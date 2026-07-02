@@ -1,8 +1,8 @@
 import { X, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Task, Status } from "./notion-table";
+import type { Task } from "./notion-table";
 
-const statusColors: Record<Status, string> = {
+const statusColors: Record<string, string> = {
   "In review": "bg-blue-600/20 text-blue-300",
   "Re Open": "bg-amber-500/20 text-amber-300",
   "Done": "bg-green-600/20 text-green-300",

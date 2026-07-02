@@ -33,6 +33,8 @@ export const loginUser = createAsyncThunk(
   "auth/login",
   async ({ email, password }: { email: string; password: string }) => {
     const response = await apiClient.post("/auth/login", { email, password });
+    localStorage.setItem("token", response.data.data.token);
+    localStorage.setItem("user", JSON.stringify(response.data.data.user));
     return response.data.data;
   }
 );
@@ -49,6 +51,8 @@ export const registerUser = createAsyncThunk(
     password: string;
   }) => {
     const response = await apiClient.post("/auth/register", { name, email, password });
+    localStorage.setItem("token", response.data.data.token);
+    localStorage.setItem("user", JSON.stringify(response.data.data.user));
     return response.data.data;
   }
 );
@@ -59,6 +63,8 @@ export const logoutUser = createAsyncThunk("auth/logout", async () => {
   } catch {
     // ignore errors during logout
   }
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 });
 
 export const fetchCurrentUser = createAsyncThunk(
@@ -83,6 +89,8 @@ const authSlice = createSlice({
       state,
       action: PayloadAction<{ token: string; user: User }>
     ) => {
+      localStorage.setItem("token", action.payload.token);
+      localStorage.setItem("user", JSON.stringify(action.payload.user));
       state.token = action.payload.token;
       state.user = action.payload.user;
       state.isAuthenticated = true;
@@ -96,6 +104,8 @@ const authSlice = createSlice({
       state.error = null;
     },
     clearAuth: (state) => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;

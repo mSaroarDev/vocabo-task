@@ -2,6 +2,7 @@ import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import {
   persistStore,
   persistReducer,
+  createMigrate,
   FLUSH,
   REHYDRATE,
   PAUSE,
@@ -21,10 +22,36 @@ const rootReducer = combineReducers({
   workspaces: workspacesReducer,
 });
 
+const migrations = {
+  2: (state: any) => {
+    const oldSeedTeams = ["Vocabo", "Design Team", "Engineering"];
+    const teams = state?.teams?.items;
+
+    if (
+      Array.isArray(teams) &&
+      teams.length === oldSeedTeams.length &&
+      teams.every((team, index) => team?.name === oldSeedTeams[index])
+    ) {
+      return {
+        ...state,
+        teams: {
+          ...state.teams,
+          items: [],
+          selectedTeamId: null,
+          lastFetched: null,
+        },
+      };
+    }
+
+    return state;
+  },
+};
+
 const persistConfig = {
   key: "vocabo-root",
-  version: 1,
+  version: 2,
   storage,
+  migrate: createMigrate(migrations, { debug: false }),
   whitelist: ["auth", "teams", "workspaces"],
 };
 

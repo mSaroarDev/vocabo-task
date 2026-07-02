@@ -111,7 +111,7 @@ let nextId = 13;
 export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { teams, selectedTeam, setSelectedTeam } = useTeams();
+  const { teams, selectedTeam, setSelectedTeam, addTeam } = useTeams();
   const { workspaces, addWorkspace: addWs, updateWorkspace: updateWs, removeWorkspace: removeWs } = useWorkspaces();
   const [searchParams] = useSearchParams();
   const activeWorkspace = searchParams.get("workspace");
@@ -151,6 +151,13 @@ export default function Sidebar() {
 
   const openConfirm = (title: string, description: string, onConfirm: () => void) => {
     setConfirmDialog({ open: true, title, description, onConfirm });
+  };
+
+  const createTeam = () => {
+    setTeamDropdownOpen(false);
+    openInputModal("Create team", "", (value) => {
+      void addTeam(value);
+    });
   };
 
   const addWorkspace = () => {
@@ -228,10 +235,17 @@ export default function Sidebar() {
             onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
             className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
           >
-            <div className={`flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white ${selectedTeam.color}`}>
-              {selectedTeam.avatar}
+            <div
+              className={cn(
+                "flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white",
+                selectedTeam ? selectedTeam.color : "bg-sidebar-accent"
+              )}
+            >
+              {selectedTeam?.avatar || "+"}
             </div>
-            <span className="flex-1 truncate text-left">{selectedTeam.name}</span>
+            <span className="flex-1 truncate text-left">
+              {selectedTeam?.name || "No team"}
+            </span>
             <ChevronsUpDown size={14} className="text-muted-foreground" />
           </button>
 
@@ -252,9 +266,18 @@ export default function Sidebar() {
                       {team.avatar}
                     </div>
                     <span className="flex-1 truncate text-left">{team.name}</span>
-                    {selectedTeam.id === team.id && <Check size={14} className="text-muted-foreground" />}
+                    {selectedTeam?.id === team.id && <Check size={14} className="text-muted-foreground" />}
                   </button>
                 ))}
+                <button
+                  onClick={createTeam}
+                  className="mt-1 flex w-full cursor-pointer items-center gap-3 border-t border-sidebar-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                >
+                  <div className="flex h-6 w-6 items-center justify-center rounded bg-sidebar-accent text-sidebar-foreground">
+                    <Plus size={14} />
+                  </div>
+                  <span className="flex-1 truncate text-left">Create team</span>
+                </button>
               </div>
             </>
           )}

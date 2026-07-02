@@ -412,9 +412,9 @@ interface NotionTableProps {
   onStatusOptionsChange?: (options: StatusOption[]) => void;
 }
 
-export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusOptions: externalStatusOptions, onStatusOptionsChange }: NotionTableProps) {
+export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusOptions: externalStatusOptions }: NotionTableProps) {
   const [data, setData] = useState<Task[]>(tasks);
-  const [localStatusOptions, setLocalStatusOptions] = useState<StatusOption[]>(defaultStatusOptions);
+  const [localStatusOptions] = useState<StatusOption[]>(defaultStatusOptions);
   const [columnOrder, setColumnOrder] = useState<string[]>(defaultColumns.map((c) => c.key));
   const [columnLabels, setColumnLabels] = useState<Record<string, string>>(
     Object.fromEntries(defaultColumns.map((c) => [c.key, c.label]))
@@ -425,7 +425,6 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const statusOptions = externalStatusOptions ?? localStatusOptions;
-  const setStatusOptions = onStatusOptionsChange ?? setLocalStatusOptions;
 
   const rowSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),

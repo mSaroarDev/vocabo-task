@@ -9,6 +9,7 @@ import {
   setCredentials,
   type User,
 } from "@/store/slices/authSlice";
+import { clearTeams } from "@/store/slices/teamsSlice";
 
 export function useAuth() {
   const dispatch = useAppDispatch();
@@ -36,10 +37,12 @@ export function useAuth() {
     },
     register: async (name: string, email: string, password: string) => {
       const result = await dispatch(registerUser({ name, email, password })).unwrap();
+      dispatch(clearTeams());
       return result;
     },
     logout: async () => {
       await dispatch(logoutUser()).unwrap();
+      dispatch(clearTeams());
     },
     clearError: () => dispatch(clearError()),
     setCredentials: (data: { token: string; user: User }) =>

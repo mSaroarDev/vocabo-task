@@ -1,7 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  addTeam as addTeamAction,
+  createTeam as createTeamAction,
+  fetchTeams as fetchTeamsAction,
+  joinTeam as joinTeamAction,
   selectTeam as selectTeamAction,
   setTeams as setTeamsAction,
   type Team,
@@ -9,7 +11,8 @@ import {
 
 export function useTeams() {
   const dispatch = useAppDispatch();
-  const { items: teams, selectedTeamId, isLoading, lastFetched } = useAppSelector(
+  const { token } = useAppSelector((state) => state.auth);
+  const { items: teams, selectedTeamId, isLoading, lastFetched, error } = useAppSelector(
     (state) => state.teams
   );
 
@@ -24,28 +27,28 @@ export function useTeams() {
     return Date.now() - lastFetched > FIVE_MINUTES;
   }, [lastFetched]);
 
+  useEffect(() => {
+    if (token && shouldRefetch && !isLoading) {
+      dispatch(fetchTeamsAction());
+    }
+  }, [dispatch, isLoading, shouldRefetch, token]);
+
   return {
     teams,
     selectedTeam,
     isLoading,
+    error,
     shouldRefetch,
-    addTeam: (name: string) => {
-      const avatar = name.charAt(0).toUpperCase();
-      const colors = [
-        "bg-blue-500/20",
-        "bg-purple-500/20",
-        "bg-pink-500/20",
-        "bg-green-500/20",
-        "bg-amber-500/20",
-      ];
-      const newTeam: Team = {
-        id: String(Date.now()),
-        name,
-        avatar,
-        color: colors[teams.length % colors.length],
-      };
-      dispatch(addTeamAction(newTeam));
-      return newTeam;
+    fetchTeams: () => dispatch(fetchTeamsAction()).unwrap(),
+    addTeam: async (name: string) => {
+      const cleanName = name.trim();
+      if (!cleanName) return null;
+      return dispatch(createTeamAction({ name: cleanName })).unwrap();
+    },
+    joinTeam: async (inviteCode: string) => {
+      const cleanCode = inviteCode.trim().toUpperCase();
+      if (!cleanCode) return null;
+      return dispatch(joinTeamAction({ inviteCode: cleanCode })).unwrap();
     },
     setSelectedTeam: (team: Team) => dispatch(selectTeamAction(team.id)),
     setTeams: (newTeams: Team[]) => dispatch(setTeamsAction(newTeams)),
