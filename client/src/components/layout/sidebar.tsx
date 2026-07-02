@@ -5,7 +5,7 @@ import {
   ChevronsUpDown,
   Check,
   Plus,
-  Briefcase,
+  GripVertical,
   ListTodo,
   Star,
   Trash2,
@@ -14,20 +14,37 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ItemModal from "@/components/ui/item-modal";
+import WorkspaceModal from "@/components/ui/workspace-modal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { WorkspaceIcon } from "@/lib/workspace-icons";
 
 interface SidebarItem {
   id: string;
   label: string;
   icon?: React.ReactNode;
+  iconName?: string;
   active?: boolean;
 }
 
@@ -40,15 +57,142 @@ const favorites: SidebarItem[] = [
 interface SidebarSectionProps {
   title: string;
   items: SidebarItem[];
+  emptyMessage?: string;
+  statusMessage?: string;
   onAdd?: () => void;
   onEdit?: (id: string, currentLabel: string) => void;
   onDelete?: (id: string) => void;
   onItemClick?: (id: string) => void;
+  onReorder?: (items: SidebarItem[]) => void;
   addLabel?: string;
 }
 
-function SidebarSection({ title, items, onAdd, onEdit, onDelete, onItemClick, addLabel }: SidebarSectionProps) {
+interface SidebarSectionItemProps {
+  item: SidebarItem;
+  sortable?: boolean;
+  onEdit?: (id: string, currentLabel: string) => void;
+  onDelete?: (id: string) => void;
+  onItemClick?: (id: string) => void;
+}
+
+function SidebarSectionItem({
+  item,
+  sortable = false,
+  onEdit,
+  onDelete,
+  onItemClick,
+}: SidebarSectionItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id, disabled: !sortable });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={cn(
+        "group relative w-full rounded-sm text-sm font-normal text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        item.active && "bg-sidebar-accent text-sidebar-accent-foreground",
+        isDragging && "z-30 opacity-70"
+      )}
+    >
+      <button
+        type="button"
+        className={cn(
+          "flex w-full min-w-0 items-center gap-3 px-3 py-1.5 text-left",
+          onItemClick ? "cursor-pointer" : "cursor-default"
+        )}
+        onClick={() => onItemClick?.(item.id)}
+      >
+        {sortable && (
+          <span
+            {...attributes}
+            {...listeners}
+            aria-label={`Reorder ${item.label}`}
+            className="flex h-4 w-3 shrink-0 cursor-grab items-center justify-center text-muted-foreground/60 active:cursor-grabbing"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <GripVertical size={12} />
+          </span>
+        )}
+        {item.icon}
+        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      </button>
+      {(onEdit || onDelete) && (
+        <div className="pointer-events-none absolute right-1 top-1/2 z-20 flex -translate-y-1/2 items-center gap-0.5 rounded-sm bg-sidebar-accent px-0.5 opacity-0 shadow-sm transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
+          {onEdit && (
+            <button
+              type="button"
+              title="Edit"
+              aria-label={`Edit ${item.label}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(item.id, item.label);
+              }}
+              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-sidebar-border hover:text-sidebar-foreground"
+            >
+              <Pen size={13} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              title="Delete"
+              aria-label={`Delete ${item.label}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(item.id);
+              }}
+              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-sidebar-border hover:text-red-300"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarSection({
+  title,
+  items,
+  emptyMessage,
+  statusMessage,
+  onAdd,
+  onEdit,
+  onDelete,
+  onItemClick,
+  onReorder,
+  addLabel,
+}: SidebarSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onReorder) return;
+
+    const oldIndex = items.findIndex((item) => item.id === active.id);
+    const newIndex = items.findIndex((item) => item.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    onReorder(arrayMove(items, oldIndex, newIndex));
+  };
+
+  const sortable = Boolean(onReorder);
 
   return (
     <div className="mb-6">
@@ -61,36 +205,42 @@ function SidebarSection({ title, items, onAdd, onEdit, onDelete, onItemClick, ad
       </button>
       {!collapsed && (
         <div className="mt-0.5 space-y-0.5">
-          {items.map((item) => (
-            <div key={item.id} className="group relative">
-              <Button
-                variant="sidebar"
-                className={cn(onItemClick && "cursor-pointer", item.active && "bg-sidebar-accent text-sidebar-accent-foreground")}
-                onClick={() => onItemClick?.(item.id)}
-              >
-                {item.icon}
-                <span className="flex-1 truncate text-left">{item.label}</span>
-                <span className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                  {onEdit && (
-                    <span
-                      onClick={(e) => { e.stopPropagation(); onEdit(item.id, item.label); }}
-                      className="flex h-5 w-5 cursor-pointer items-center justify-center rounded hover:bg-sidebar-border"
-                    >
-                      <Pen size={10} />
-                    </span>
-                  )}
-                  {onDelete && (
-                    <span
-                      onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-                      className="flex h-5 w-5 cursor-pointer items-center justify-center rounded hover:bg-sidebar-border"
-                    >
-                      <Trash2 size={10} />
-                    </span>
-                  )}
-                </span>
-              </Button>
-            </div>
-          ))}
+          {statusMessage && (
+            <p className="px-3 py-1 text-xs text-muted-foreground">
+              {statusMessage}
+            </p>
+          )}
+          {!statusMessage && items.length === 0 && emptyMessage && (
+            <p className="px-3 py-1 text-xs text-muted-foreground">
+              {emptyMessage}
+            </p>
+          )}
+          {sortable ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                {items.map((item) => (
+                  <SidebarSectionItem
+                    key={item.id}
+                    item={item}
+                    sortable
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onItemClick={onItemClick}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          ) : (
+            items.map((item) => (
+              <SidebarSectionItem
+                key={item.id}
+                item={item}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onItemClick={onItemClick}
+              />
+            ))
+              )}
           {onAdd && (
             <button
               onClick={onAdd}
@@ -112,7 +262,15 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { teams, selectedTeam, setSelectedTeam, addTeam } = useTeams();
-  const { workspaces, addWorkspace: addWs, updateWorkspace: updateWs, removeWorkspace: removeWs } = useWorkspaces();
+  const {
+    workspaces,
+    isLoading: workspacesLoading,
+    error: workspacesError,
+    addWorkspace: addWs,
+    updateWorkspace: updateWs,
+    removeWorkspace: removeWs,
+    reorderWorkspaces: reorderWs,
+  } = useWorkspaces(selectedTeam?.id);
   const [searchParams] = useSearchParams();
   const activeWorkspace = searchParams.get("workspace");
   const [searchQuery, setSearchQuery] = useState("");
@@ -123,11 +281,15 @@ export default function Sidebar() {
     { id: "12", label: "Goals", icon: <ListTodo size={16} /> },
   ]);
 
-  const workspaceList: SidebarItem[] = workspaces.map((w) => ({
-    id: w.id,
-    label: w.name,
-    icon: <Briefcase size={16} />,
-  }));
+  const workspaceList: SidebarItem[] = workspaces
+    .filter((workspace) => workspace.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    .map((w) => ({
+      id: w.id,
+      label: w.name,
+      icon: <WorkspaceIcon name={w.icon} size={16} />,
+      iconName: w.icon,
+    }));
+  const canReorderWorkspaces = Boolean(selectedTeam && !searchQuery.trim());
 
   // Modal state
   const [itemModal, setItemModal] = useState<{
@@ -136,6 +298,12 @@ export default function Sidebar() {
     initialValue: string;
     onSave: (value: string) => void;
   }>({ open: false, title: "", initialValue: "", onSave: () => {} });
+  const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
+  const [editingWorkspace, setEditingWorkspace] = useState<{
+    id: string;
+    name: string;
+    icon: string;
+  } | null>(null);
 
   // Confirm state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -161,20 +329,37 @@ export default function Sidebar() {
   };
 
   const addWorkspace = () => {
-    openInputModal("Add workspace", "", (value) => {
-      addWs(value);
-    });
+    if (!selectedTeam) return;
+
+    setEditingWorkspace(null);
+    setWorkspaceModalOpen(true);
   };
 
-  const editWorkspace = (_id: string, currentLabel: string) => {
-    openInputModal("Rename workspace", currentLabel, (value) => {
-      updateWs(_id, value);
+  const editWorkspace = (_id: string) => {
+    if (!selectedTeam) return;
+
+    const workspace = workspaces.find((item) => item.id === _id);
+    if (!workspace) return;
+
+    setEditingWorkspace({
+      id: workspace.id,
+      name: workspace.name,
+      icon: workspace.icon,
     });
+    setWorkspaceModalOpen(true);
   };
 
   const deleteWorkspace = (id: string) => {
+    if (!selectedTeam) return;
+
     openConfirm("Delete workspace", "Are you sure you want to delete this workspace?", () => {
-      removeWs(id);
+      void removeWs(id).then(() => {
+        if (activeWorkspace === id) {
+          navigate("/dashboard");
+        }
+      }).catch(() => {
+        // Redux stores and renders the API error.
+      });
     });
   };
 
@@ -220,6 +405,32 @@ export default function Sidebar() {
         initialValue={itemModal.initialValue}
         onSave={itemModal.onSave}
       />
+      <WorkspaceModal
+        open={workspaceModalOpen}
+        onOpenChange={(open) => {
+          setWorkspaceModalOpen(open);
+          if (!open) setEditingWorkspace(null);
+        }}
+        title={editingWorkspace ? "Edit workspace" : "Add workspace"}
+        initialName={editingWorkspace?.name || ""}
+        initialIcon={editingWorkspace?.icon || "briefcase"}
+        onSave={({ name, icon }) => {
+          if (editingWorkspace) {
+            void updateWs(editingWorkspace.id, name, icon).then((workspace) => {
+              if (workspace && activeWorkspace === editingWorkspace.id) {
+                navigate(`/dashboard?workspace=${workspace.id}&name=${encodeURIComponent(workspace.name)}`);
+              }
+            }).catch(() => {
+              // Redux stores and renders the API error.
+            });
+            return;
+          }
+
+          void addWs(name, icon).catch(() => {
+            // Redux stores and renders the API error.
+          });
+        }}
+      />
       <ConfirmDialog
         open={confirmDialog.open}
         onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
@@ -228,7 +439,7 @@ export default function Sidebar() {
         onConfirm={confirmDialog.onConfirm}
       />
 
-      <aside className="w-60 h-screen bg-sidebar border-r border-sidebar-border flex flex-col shrink-0">
+      <aside className="h-full w-full bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden">
         {/* Team switcher */}
         <div className="relative px-3 pt-2 pb-1">
           <button
@@ -301,9 +512,20 @@ export default function Sidebar() {
           <SidebarSection
             title="Workspaces"
             items={workspaceList.map((w) => ({ ...w, active: w.id === activeWorkspace }))}
-            onAdd={addWorkspace}
+            emptyMessage={selectedTeam ? "No workspaces yet" : "Create or select a team first"}
+            statusMessage={workspacesLoading ? "Loading workspaces..." : workspacesError || undefined}
+            onAdd={selectedTeam ? addWorkspace : undefined}
             onEdit={editWorkspace}
             onDelete={deleteWorkspace}
+            onReorder={
+              canReorderWorkspaces
+                ? (orderedItems) => {
+                    void reorderWs(orderedItems.map((item) => item.id)).catch(() => {
+                      // Redux stores and renders the API error.
+                    });
+                  }
+                : undefined
+            }
             onItemClick={(id) => {
               const ws = workspaceList.find((w) => w.id === id);
               if (ws) navigate(`/dashboard?workspace=${ws.id}&name=${encodeURIComponent(ws.label)}`);

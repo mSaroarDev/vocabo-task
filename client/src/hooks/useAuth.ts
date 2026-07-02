@@ -10,6 +10,7 @@ import {
   type User,
 } from "@/store/slices/authSlice";
 import { clearTeams } from "@/store/slices/teamsSlice";
+import { clearWorkspaces } from "@/store/slices/workspacesSlice";
 
 export function useAuth() {
   const dispatch = useAppDispatch();
@@ -38,11 +39,13 @@ export function useAuth() {
     register: async (name: string, email: string, password: string) => {
       const result = await dispatch(registerUser({ name, email, password })).unwrap();
       dispatch(clearTeams());
+      dispatch(clearWorkspaces());
       return result;
     },
     logout: async () => {
       await dispatch(logoutUser()).unwrap();
       dispatch(clearTeams());
+      dispatch(clearWorkspaces());
     },
     clearError: () => dispatch(clearError()),
     setCredentials: (data: { token: string; user: User }) =>

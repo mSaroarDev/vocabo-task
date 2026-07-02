@@ -45,11 +45,21 @@ const migrations = {
 
     return state;
   },
+  3: (state: any) => ({
+    ...state,
+    workspaces: {
+      items: [],
+      currentTeamId: null,
+      isLoading: false,
+      lastFetched: null,
+      error: null,
+    },
+  }),
 };
 
 const persistConfig = {
   key: "vocabo-root",
-  version: 2,
+  version: 3,
   storage,
   migrate: createMigrate(migrations, { debug: false }),
   whitelist: ["auth", "teams", "workspaces"],
