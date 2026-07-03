@@ -9,6 +9,7 @@
     "start": "node dist/src/server.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1079.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "bcryptjs": "^3.0.3",
@@ -21,11 +22,13 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.9.5",
+    "multer": "^2.2.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.2.0",
     "@types/node": "^22.10.5",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.3"

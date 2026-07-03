@@ -10,10 +10,11 @@ export interface IColumn {
 }
 
 export const DEFAULT_COLUMN_SEED: Array<{ key: string; label: string }> = [
-  { key: "name", label: "Task Name" },
+  { key: "title", label: "Title" },
   { key: "status", label: "Status" },
   { key: "priority", label: "Priority" },
-  { key: "attachFile", label: "Attach File" },
+  { key: "isCompleted", label: "Done" },
+  { key: "description", label: "Description" },
+  { key: "assignee", label: "Assigned To" },
   { key: "createdBy", label: "Created By" },
-  { key: "assignedTo", label: "Assigned To" },
 ];

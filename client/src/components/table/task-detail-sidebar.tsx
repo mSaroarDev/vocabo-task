@@ -9,6 +9,15 @@ const statusColors: Record<string, string> = {
   "Rejected": "bg-zinc-600/30 text-zinc-300",
 };
 
+const priorityColors: Record<string, string> = {
+  None: "text-muted-foreground/50",
+  Lowest: "bg-zinc-600/20 text-zinc-300",
+  Low: "bg-zinc-600/20 text-zinc-300",
+  Medium: "bg-amber-500/20 text-amber-300",
+  High: "bg-orange-600/20 text-orange-300",
+  Highest: "bg-red-600/20 text-red-300",
+};
+
 interface TaskDetailSidebarProps {
   task: Task;
   open: boolean;
@@ -41,10 +50,10 @@ export default function TaskDetailSidebar({ task, open, onClose }: TaskDetailSid
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
-            {/* Task Name */}
+            {/* Task Title */}
             <div>
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Task Name</label>
-              <p className="text-sm text-foreground leading-relaxed">{task.name}</p>
+              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Title</label>
+              <p className="text-sm text-foreground leading-relaxed">{task.title}</p>
             </div>
 
             {/* Status */}
@@ -52,7 +61,7 @@ export default function TaskDetailSidebar({ task, open, onClose }: TaskDetailSid
               <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Status</label>
               <span
                 className={cn(
-                  "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                  "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium",
                   statusColors[task.status]
                 )}
               >
@@ -63,13 +72,9 @@ export default function TaskDetailSidebar({ task, open, onClose }: TaskDetailSid
             {/* Priority */}
             <div>
               <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Priority</label>
-              {task.priority ? (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-600/20 text-red-300">
-                  {task.priority}
-                </span>
-              ) : (
-                <span className="text-sm text-muted-foreground/50">None</span>
-              )}
+              <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", priorityColors[task.priority])}>
+                {task.priority}
+              </span>
             </div>
 
             {/* Created By */}
@@ -94,18 +99,28 @@ export default function TaskDetailSidebar({ task, open, onClose }: TaskDetailSid
               </div>
             </div>
 
-            {/* Attach File */}
-            <div>
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Attachments</label>
-              {task.attachFile > 0 ? (
-                <div className="flex items-center gap-2">
-                  <Paperclip size={14} className="text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">{task.attachFile} file{task.attachFile > 1 ? "s" : ""}</span>
+            {/* Description */}
+            {task.description && (
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Description</label>
+                <p className="text-sm text-foreground/80 leading-relaxed">{task.description}</p>
+              </div>
+            )}
+
+            {/* Attachments */}
+            {task.attachments.length > 0 && (
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Attachments</label>
+                <div className="space-y-2">
+                  {task.attachments.map((a) => (
+                    <div key={a.id} className="flex items-center gap-2">
+                      <Paperclip size={14} className="text-muted-foreground shrink-0" />
+                      <span className="text-sm text-muted-foreground truncate">{a.originalName}</span>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <span className="text-sm text-muted-foreground/50">None</span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

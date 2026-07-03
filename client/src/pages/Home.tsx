@@ -1,25 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Heart, Lightbulb, Sun, Folder, Settings, Plus, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NotionTable, { type StatusOption } from "@/components/table/notion-table";
 import SettingsModal from "@/components/table/settings-modal";
 import { useTeams } from "@/hooks/useTeams";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
 
 export default function Home() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { teams, addTeam, joinTeam, isLoading: teamsLoading, error: teamsError } = useTeams();
+  const { teams, selectedTeam, addTeam, joinTeam, isLoading: teamsLoading, error: teamsError } = useTeams();
+  const { workspaces, updateWorkspace } = useWorkspaces(selectedTeam?.id);
   const workspaceId = searchParams.get("workspace");
-  const workspaceName = searchParams.get("name");
+  const currentWorkspace = workspaceId ? workspaces.find((w) => w.id === workspaceId) : null;
+  const workspaceName = currentWorkspace?.name || "";
   const [activeTab, setActiveTab] = useState<"all" | "category">("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [wrapTaskName, setWrapTaskName] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState(workspaceName ? decodeURIComponent(workspaceName) : "");
+  const [titleValue, setTitleValue] = useState(workspaceName);
   const [teamMode, setTeamMode] = useState<"create" | "join">("create");
   const [teamName, setTeamName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  useEffect(() => {
+    setTitleValue(workspaceName);
+  }, [workspaceName]);
+
+  const handleSaveTitle = async () => {
+    if (!workspaceId || !titleValue.trim()) return;
+    const trimmed = titleValue.trim();
+    setTitleValue(trimmed);
+    try {
+      await updateWorkspace(workspaceId, trimmed);
+      navigate(`/dashboard?workspace=${workspaceId}`, { replace: true });
+    } catch {
+      // Redux stores and renders the API error.
+    }
+    setEditingTitle(false);
+  };
+
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([
     { label: "In review", color: "bg-blue-600/20 text-blue-300" },
     { label: "Re Open", color: "bg-amber-500/20 text-amber-300" },
@@ -47,7 +68,7 @@ export default function Home() {
     }
   };
 
-  if (workspaceId && workspaceName) {
+  if (workspaceId && currentWorkspace) {
     return (
       <div className="px-12 py-8">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-6">
@@ -67,8 +88,8 @@ export default function Home() {
               autoFocus
               value={titleValue}
               onChange={(e) => setTitleValue(e.target.value)}
-              onBlur={() => setEditingTitle(false)}
-              onKeyDown={(e) => e.key === "Enter" && setEditingTitle(false)}
+              onBlur={handleSaveTitle}
+              onKeyDown={(e) => e.key === "Enter" && handleSaveTitle()}
               className="text-3xl font-bold text-foreground bg-transparent outline-none border-b-2 border-foreground/20 focus:border-foreground/50"
             />
           ) : (
@@ -93,7 +114,7 @@ export default function Home() {
               )}
             >
               <Sun size={14} />
-              All Bugs
+              All Tasks
             </button>
             <button
               onClick={() => setActiveTab("category")}

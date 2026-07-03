@@ -192,7 +192,7 @@ function StatusRow({
         />
       ) : (
         <div className="flex-1 flex items-center gap-2">
-          <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", option.color)}>
+          <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", option.color)}>
             {option.label}
           </span>
           <button

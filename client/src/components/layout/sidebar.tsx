@@ -418,7 +418,7 @@ export default function Sidebar() {
           if (editingWorkspace) {
             void updateWs(editingWorkspace.id, name, icon).then((workspace) => {
               if (workspace && activeWorkspace === editingWorkspace.id) {
-                navigate(`/dashboard?workspace=${workspace.id}&name=${encodeURIComponent(workspace.name)}`);
+                navigate(`/dashboard?workspace=${workspace.id}`, { replace: true });
               }
             }).catch(() => {
               // Redux stores and renders the API error.
@@ -528,7 +528,7 @@ export default function Sidebar() {
             }
             onItemClick={(id) => {
               const ws = workspaceList.find((w) => w.id === id);
-              if (ws) navigate(`/dashboard?workspace=${ws.id}&name=${encodeURIComponent(ws.label)}`);
+              if (ws) navigate(`/dashboard?workspace=${ws.id}`);
             }}
             addLabel="Add workspace"
           />

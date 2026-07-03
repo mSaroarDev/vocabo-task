@@ -21,10 +21,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import TaskDetailSidebar from "./task-detail-sidebar";
-import { useColumns } from "@/hooks/useColumns";
+import TaskDetailModal from "./task-detail-modal";
 
-type Priority = "High" | "";
+type Priority = "None" | "Lowest" | "Low" | "Medium" | "High" | "Highest";
 
 interface Person {
   name: string;
@@ -32,14 +31,29 @@ interface Person {
   color: string;
 }
 
+export interface Attachment {
+  id: string;
+  filename: string;
+  originalName: string;
+  url: string;
+  size: number;
+  mimeType: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
 export interface Task {
   id: string;
-  name: string;
+  title: string;
   status: string;
   priority: Priority;
-  attachFile: number;
+  isCompleted: boolean;
+  description?: string;
+  banner?: string;
+  attachments: Attachment[];
   createdBy: Person;
   assignedTo: Person;
+  customFields: Record<string, unknown>;
 }
 
 interface StatusOption {
@@ -60,48 +74,61 @@ const avatarColors = [
 const sampleTasks: Task[] = [
   {
     id: "1",
-    name: "User cannot login with Google OAuth after profile update — returns 401 error",
+    title: "User cannot login with Google OAuth after profile update — returns 401 error",
     status: "In review",
-    priority: "High",
-    attachFile: 2,
+    priority: "Highest",
+    isCompleted: false,
+    description: "Users are reporting a 401 error when trying to log in via Google OAuth after updating their profile information. This needs immediate investigation.",
+    attachments: [
+      { id: "a1", filename: "error-screenshot.png", originalName: "error-screenshot.png", url: "", size: 0, mimeType: "image/png", uploadedBy: "", uploadedAt: "Jun 22, 2026, 12:30 PM" },
+    ],
     createdBy: { name: "Sihab Bin Toriq", initials: "St", color: avatarColors[0] },
     assignedTo: { name: "Harun Ar Rashid", initials: "Ha", color: avatarColors[1] },
+    customFields: {},
   },
   {
     id: "2",
-    name: "Dashboard chart not rendering on Safari — WebGL compatibility issue",
+    title: "Dashboard chart not rendering on Safari — WebGL compatibility issue",
     status: "Re Open",
     priority: "High",
-    attachFile: 1,
+    isCompleted: false,
+    attachments: [],
     createdBy: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
     assignedTo: { name: "Sihab Bin Toriq", initials: "St", color: avatarColors[0] },
+    customFields: {},
   },
   {
     id: "3",
-    name: "Fix pagination offset when filtering by date range on the invoices page",
+    title: "Fix pagination offset when filtering by date range on the invoices page",
     status: "Done",
-    priority: "",
-    attachFile: 0,
+    priority: "Medium",
+    isCompleted: true,
+    attachments: [],
     createdBy: { name: "Harun Ar Rashid", initials: "Ha", color: avatarColors[1] },
     assignedTo: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
+    customFields: {},
   },
   {
     id: "4",
-    name: "Email notification delay — sometimes arrives 30+ minutes after trigger",
+    title: "Email notification delay — sometimes arrives 30+ minutes after trigger",
     status: "Rejected",
-    priority: "",
-    attachFile: 3,
+    priority: "Low",
+    isCompleted: false,
+    attachments: [],
     createdBy: { name: "Sihab Bin Toriq", initials: "St", color: avatarColors[0] },
     assignedTo: { name: "Sihab Bin Toriq", initials: "St", color: avatarColors[0] },
+    customFields: {},
   },
   {
     id: "5",
-    name: "Mobile nav menu overlaps with page content on iPhone SE",
+    title: "Mobile nav menu overlaps with page content on iPhone SE",
     status: "In review",
-    priority: "High",
-    attachFile: 0,
+    priority: "Highest",
+    isCompleted: false,
+    attachments: [],
     createdBy: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
     assignedTo: { name: "Harun Ar Rashid", initials: "Ha", color: avatarColors[1] },
+    customFields: {},
   },
 ];
 
@@ -124,12 +151,13 @@ function PersonCell({ person }: { person: Person }) {
 }
 
 const defaultColumns = [
-  { key: "name", label: "Task Name", width: 380 },
+  { key: "title", label: "Title", width: 380 },
   { key: "status", label: "Status", width: 120 },
   { key: "priority", label: "Priority", width: 100 },
-  { key: "attachFile", label: "Attach File", width: 100 },
+  { key: "isCompleted", label: "Done", width: 80 },
+  { key: "description", label: "Description", width: 200 },
+  { key: "assignee", label: "Assigned To", width: 200 },
   { key: "createdBy", label: "Created By", width: 200 },
-  { key: "assignedTo", label: "Assigned To", width: 200 },
 ];
 
 function ColumnHeaderDropdown({
@@ -241,6 +269,7 @@ function DraggableHeader({
   onRename,
   onRemove,
   onAddColumn,
+  onResize,
 }: {
   column: (typeof defaultColumns)[number];
   sortKey: string | null;
@@ -249,6 +278,7 @@ function DraggableHeader({
   onRename: (key: string, newLabel: string) => void;
   onRemove?: (key: string) => void;
   onAddColumn?: () => void;
+  onResize: (key: string, width: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `col-${column.key}`,
@@ -259,6 +289,29 @@ function DraggableHeader({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const th = (e.currentTarget as HTMLElement).closest("th");
+      if (!th) return;
+      const startX = e.clientX;
+      const startWidth = th.offsetWidth;
+
+      const onMouseMove = (me: MouseEvent) => {
+        const newWidth = Math.max(80, Math.min(800, startWidth + me.clientX - startX));
+        onResize(column.key, newWidth);
+      };
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    [column.key, onResize]
+  );
 
   return (
     <th
@@ -283,6 +336,10 @@ function DraggableHeader({
           </span>
         )}
       </div>
+      <div
+        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-blue-500/40 active:bg-blue-500 z-10"
+        onMouseDown={handleResizeStart}
+      />
       {menuOpen && (
         <ColumnHeaderDropdown
           column={column}
@@ -315,7 +372,7 @@ function StatusCell({
     <div className="relative">
       <span
         className={cn(
-          "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer select-none",
+          "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium cursor-pointer select-none",
           currentColor
         )}
         onClick={() => setOpen(!open)}
@@ -335,7 +392,7 @@ function StatusCell({
                   setOpen(false);
                 }}
               >
-                <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", s.color)}>
+                <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", s.color)}>
                   {s.label}
                 </span>
               </button>
@@ -347,9 +404,18 @@ function StatusCell({
   );
 }
 
+const priorityColors: Record<string, string> = {
+  None: "text-muted-foreground/30",
+  Lowest: "bg-zinc-600/20 text-zinc-300",
+  Low: "bg-zinc-600/20 text-zinc-300",
+  Medium: "bg-amber-500/20 text-amber-300",
+  High: "bg-orange-600/20 text-orange-300",
+  Highest: "bg-red-600/20 text-red-300",
+};
+
 function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean) {
   switch (columnKey) {
-    case "name":
+    case "title":
       return (
         <span
           className={cn(
@@ -358,43 +424,44 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
           )}
           onClick={() => onSelect(task)}
         >
-          {task.name}
+          {task.title}
         </span>
       );
     case "status":
       return <StatusCell statusOptions={statusOptions} task={task} onUpdate={onStatusUpdate} />;
     case "priority":
-      return task.priority ? (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-600/20 text-red-300">
+      return (
+        <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", priorityColors[task.priority])}>
           {task.priority}
         </span>
-      ) : (
-        <span className="text-muted-foreground/30">—</span>
       );
-    case "attachFile":
-      return task.attachFile > 0 ? (
-        <div className="flex items-center gap-1">
-          {Array.from({ length: Math.min(task.attachFile, 3) }).map((_, i) => (
-            <div
-              key={i}
-              className="h-8 w-6 rounded bg-zinc-700/50 border border-zinc-600/30 flex items-center justify-center text-[8px] text-muted-foreground overflow-hidden"
-            >
-              <div className="h-full w-full bg-gradient-to-b from-zinc-600/20 to-zinc-700/40" />
-            </div>
-          ))}
-          {task.attachFile > 3 && (
-            <span className="text-[10px] text-muted-foreground ml-0.5">+{task.attachFile - 3}</span>
-          )}
-        </div>
-      ) : (
-        <span className="text-muted-foreground/30">—</span>
+    case "isCompleted":
+      return (
+        <span className="flex items-center justify-center">
+          <input
+            type="checkbox"
+            checked={task.isCompleted}
+            onChange={() => onSelect(task)}
+            className="h-4 w-4 cursor-pointer accent-green-500"
+          />
+        </span>
+      );
+    case "description":
+      return (
+        <span className="text-sm text-muted-foreground truncate block">
+          {task.description || "—"}
+        </span>
       );
     case "createdBy":
       return <PersonCell person={task.createdBy} />;
     case "assignedTo":
+    case "assignee":
       return <PersonCell person={task.assignedTo} />;
     default:
-      return null;
+      if (task.customFields?.[columnKey] !== undefined) {
+        return <span className="text-sm text-foreground">{String(task.customFields[columnKey])}</span>;
+      }
+      return <span className="text-muted-foreground/30">—</span>;
   }
 }
 
@@ -435,7 +502,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         </span>
       </td>
       {columnOrder.map((key) => (
-        <td key={key} className={cn("h-11 px-3", key === "name" && wrapTaskName && "h-auto min-h-11 py-1.5")}>
+        <td key={key} className={cn("h-11 px-3", key === "title" && wrapTaskName && "h-auto min-h-11 py-1.5")}>
           {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName)}
         </td>
       ))}
@@ -457,8 +524,12 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
   const [columnLabels, setColumnLabels] = useState<Record<string, string>>(
     Object.fromEntries(defaultColumns.map((c) => [c.key, c.label]))
   );
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(
+    Object.fromEntries(defaultColumns.map((c) => [c.key, c.width]))
+  );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -523,25 +594,32 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
     setColumnLabels((prev) => ({ ...prev, [key]: newLabel }));
   };
 
-  const addTask = () => {
-    const defaultStatus = statusOptions[0]?.label || "";
+  const handleTaskUpdate = (id: string, updates: Partial<Task>) => {
+    setData((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+  };
+
+  const handleCreateTask = (partial: Partial<Task>) => {
     const newTask: Task = {
       id: String(Date.now()),
-      name: "Untitled task",
-      status: defaultStatus,
-      priority: "",
-      attachFile: 0,
+      title: partial.title || "Untitled task",
+      status: partial.status || statusOptions[0]?.label || "In review",
+      priority: (partial.priority as Task["priority"]) || "None",
+      isCompleted: false,
+      description: partial.description,
+      attachments: [],
       createdBy: { name: "You", initials: "Yo", color: avatarColors[0] },
       assignedTo: { name: "Unassigned", initials: "Un", color: avatarColors[1] },
+      customFields: {},
     };
-    setData([...data, newTask]);
+    setData((prev) => [...prev, newTask]);
+    setShowCreateModal(false);
   };
 
   const isDragging = (id: string) => activeId === id;
 
   const sortedColumns = columnOrder.map((key) => {
     const col = defaultColumns.find((c) => c.key === key)!;
-    return { ...col, label: columnLabels[key] ?? col.label };
+    return { ...col, label: columnLabels[key] ?? col.label, width: columnWidths[key] ?? col.width };
   });
 
   return (
@@ -551,7 +629,7 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden">
         <table className="w-full border-collapse text-sm">
           <thead>
             <DndContext
@@ -574,6 +652,9 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
                       sortDir={sortDir}
                       onToggleSort={toggleSort}
                       onRename={renameColumn}
+                      onResize={(key, w) =>
+                        setColumnWidths((prev) => ({ ...prev, [key]: w }))
+                      }
                     />
                   ))}
                 </tr>
@@ -598,7 +679,7 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
             <tr>
               <td colSpan={columnOrder.length + 1} className="px-3 py-1">
                 <button
-                  onClick={addTask}
+                  onClick={() => setShowCreateModal(true)}
                   className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer"
                 >
                   <Plus size={14} />
@@ -622,7 +703,7 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
                   <td className="h-11 w-8" />
                   <td className="h-11 px-3" colSpan={columnOrder.length}>
                     <span className="text-sm leading-tight">
-                      {data.find((t) => t.id === activeId)?.name}
+                      {data.find((t) => t.id === activeId)?.title}
                     </span>
                   </td>
                 </tr>
@@ -632,12 +713,22 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
         ) : null}
       </DragOverlay>
       {selectedTask && (
-        <TaskDetailSidebar
+        <TaskDetailModal
           task={selectedTask}
-          open={!!selectedTask}
-          onClose={() => setSelectedTask(null)}
+          open
+          onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+          onUpdate={handleTaskUpdate}
+          statusOptions={statusOptions}
+          mode="view"
         />
       )}
+      <TaskDetailModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onCreate={handleCreateTask}
+        statusOptions={statusOptions}
+        mode="create"
+      />
     </DndContext>
   );
 }
