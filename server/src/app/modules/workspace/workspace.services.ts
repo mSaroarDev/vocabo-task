@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import { Types } from "mongoose";
 import AppError from "../../errors/AppError";
 import TeamModel from "../team/team.model";
+import { seedDefaultColumns } from "../column/column.services";
 import WorkspaceModel from "./workspace.model";
 
 const ensureTeamMember = async (teamId: string, userId: string) => {
@@ -42,6 +43,8 @@ const createWorkspace = async (
     team: new Types.ObjectId(teamId),
     createdBy: new Types.ObjectId(userId),
   });
+
+  await seedDefaultColumns(result._id);
 
   return result;
 };

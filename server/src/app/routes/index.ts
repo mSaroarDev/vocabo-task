@@ -3,6 +3,7 @@ import { SampleRoutes } from "../modules/sample/sample.routes";
 import { AuthRoutes } from "../modules/auth/auth.routes";
 import { TeamRoutes } from "../modules/team/team.routes";
 import { WorkspaceRoutes } from "../modules/workspace/workspace.routes";
+import { ColumnRoutes } from "../modules/column/column.routes";
 
 const router = express.Router();
 
@@ -14,5 +15,6 @@ router.use("/sample", SampleRoutes);
 router.use("/auth", AuthRoutes);
 router.use("/teams", TeamRoutes);
 router.use("/teams/:teamId/workspaces", WorkspaceRoutes);
+router.use("/teams/:teamId/workspaces/:workspaceId/columns", ColumnRoutes);
 
 export default router;

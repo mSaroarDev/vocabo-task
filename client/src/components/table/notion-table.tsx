@@ -19,9 +19,10 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TaskDetailSidebar from "./task-detail-sidebar";
+import { useColumns } from "@/hooks/useColumns";
 
 type Priority = "High" | "";
 
@@ -137,6 +138,8 @@ function ColumnHeaderDropdown({
   sortDir,
   onToggleSort,
   onRename,
+  onRemove,
+  onAddColumn,
   onClose,
 }: {
   column: (typeof defaultColumns)[number];
@@ -144,6 +147,8 @@ function ColumnHeaderDropdown({
   sortDir: "asc" | "desc";
   onToggleSort: (key: string) => void;
   onRename: (key: string, newLabel: string) => void;
+  onRemove?: (key: string) => void;
+  onAddColumn?: () => void;
   onClose: () => void;
 }) {
   const [renaming, setRenaming] = useState(false);
@@ -173,6 +178,33 @@ function ColumnHeaderDropdown({
               <Pencil size={12} />
               Rename
             </button>
+            {onRemove && (
+              <button
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer text-red-300"
+                onClick={() => {
+                  onRemove(column.key);
+                  onClose();
+                }}
+              >
+                <Trash2 size={12} />
+                Delete
+              </button>
+            )}
+            {onAddColumn && (
+              <>
+                <div className="border-t border-border/50 my-1" />
+                <button
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer"
+                  onClick={() => {
+                    onAddColumn();
+                    onClose();
+                  }}
+                >
+                  <Plus size={12} />
+                  Add column
+                </button>
+              </>
+            )}
           </>
         ) : (
           <div className="px-3 py-2">
@@ -207,12 +239,16 @@ function DraggableHeader({
   sortDir,
   onToggleSort,
   onRename,
+  onRemove,
+  onAddColumn,
 }: {
   column: (typeof defaultColumns)[number];
   sortKey: string | null;
   sortDir: "asc" | "desc";
   onToggleSort: (key: string) => void;
   onRename: (key: string, newLabel: string) => void;
+  onRemove?: (key: string) => void;
+  onAddColumn?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `col-${column.key}`,
@@ -254,6 +290,8 @@ function DraggableHeader({
           sortDir={sortDir}
           onToggleSort={onToggleSort}
           onRename={onRename}
+          onRemove={onRemove}
+          onAddColumn={onAddColumn}
           onClose={() => setMenuOpen(false)}
         />
       )}

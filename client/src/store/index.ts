@@ -15,11 +15,13 @@ import storage from "redux-persist/lib/storage";
 import authReducer from "./slices/authSlice";
 import teamsReducer from "./slices/teamsSlice";
 import workspacesReducer from "./slices/workspacesSlice";
+import columnsReducer from "./slices/columnsSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
   teams: teamsReducer,
   workspaces: workspacesReducer,
+  columns: columnsReducer,
 });
 
 const migrations = {
@@ -55,11 +57,21 @@ const migrations = {
       error: null,
     },
   }),
+  4: (state: any) => ({
+    ...state,
+    columns: {
+      items: [],
+      currentWorkspaceId: null,
+      isLoading: false,
+      lastFetched: null,
+      error: null,
+    },
+  }),
 };
 
 const persistConfig = {
   key: "vocabo-root",
-  version: 3,
+  version: 4,
   storage,
   migrate: createMigrate(migrations, { debug: false }),
   whitelist: ["auth", "teams", "workspaces"],
