@@ -6,6 +6,7 @@ import WorkspaceModel from "../workspace/workspace.model";
 import TaskModel from "./task.model";
 import type { TaskPriority } from "./task.interface";
 import { getStorage } from "./task.storage";
+import { ActivityLogServices } from "../activityLog/activityLog.services";
 
 const ensureTeamMember = async (teamId: string, userId: string) => {
   if (!Types.ObjectId.isValid(teamId)) {
@@ -90,7 +91,17 @@ const createTask = async (
     order,
   });
 
-  return task.populate(["createdBy", "assignedTo"]);
+  const populated = await task.populate(["createdBy", "assignedTo"]);
+
+  await ActivityLogServices.logActivity({
+    task: String(task._id),
+    workspace: workspaceId,
+    team: teamId,
+    action: "created",
+    performedBy: userId,
+  });
+
+  return populated;
 };
 
 interface UpdateTaskPayload {
@@ -118,16 +129,46 @@ const updateTask = async (
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
   }
 
-  const updateData: Record<string, unknown> = {};
+  const oldTask = await TaskModel.findOne({ _id: taskId, workspace: workspaceId });
+  if (!oldTask) {
+    throw new AppError(httpStatus.NOT_FOUND, "Task not found");
+  }
 
-  if (payload.title !== undefined) updateData.title = payload.title.trim();
+  const updateData: Record<string, unknown> = {};
+  const changes: Array<{ field: string; oldValue?: string; newValue?: string }> = [];
+
+  if (payload.title !== undefined) {
+    updateData.title = payload.title.trim();
+    changes.push({ field: "title", oldValue: oldTask.title, newValue: payload.title });
+  }
   if (payload.banner !== undefined) updateData.banner = payload.banner;
-  if (payload.isCompleted !== undefined) updateData.isCompleted = payload.isCompleted;
-  if (payload.description !== undefined) updateData.description = payload.description?.trim();
-  if (payload.status !== undefined) updateData.status = payload.status.trim();
-  if (payload.priority !== undefined) updateData.priority = payload.priority;
+  if (payload.isCompleted !== undefined) {
+    updateData.isCompleted = payload.isCompleted;
+    changes.push({
+      field: "isCompleted",
+      oldValue: String(oldTask.isCompleted),
+      newValue: String(payload.isCompleted),
+    });
+  }
+  if (payload.description !== undefined) {
+    updateData.description = payload.description?.trim();
+    changes.push({ field: "description", oldValue: oldTask.description, newValue: payload.description });
+  }
+  if (payload.status !== undefined) {
+    updateData.status = payload.status.trim();
+    changes.push({ field: "status", oldValue: oldTask.status, newValue: payload.status });
+  }
+  if (payload.priority !== undefined) {
+    updateData.priority = payload.priority;
+    changes.push({ field: "priority", oldValue: oldTask.priority, newValue: payload.priority });
+  }
   if (payload.assignedTo !== undefined) {
     updateData.assignedTo = payload.assignedTo ? new Types.ObjectId(payload.assignedTo) : null;
+    changes.push({
+      field: "assignedTo",
+      oldValue: String(oldTask.assignedTo ?? ""),
+      newValue: payload.assignedTo ?? "",
+    });
   }
   if (payload.customFields !== undefined) {
     updateData.customFields = new Map(Object.entries(payload.customFields));
@@ -141,6 +182,23 @@ const updateTask = async (
 
   if (!task) {
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
+  }
+
+  if (changes.length > 0) {
+    await Promise.all(
+      changes.map((c) =>
+        ActivityLogServices.logActivity({
+          task: taskId,
+          workspace: workspaceId,
+          team: teamId,
+          action: "updated",
+          field: c.field,
+          oldValue: c.oldValue?.slice(0, 200),
+          newValue: c.newValue?.slice(0, 200),
+          performedBy: userId,
+        })
+      )
+    );
   }
 
   return task;
@@ -164,6 +222,14 @@ const deleteTask = async (
   if (!task) {
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
   }
+
+  await ActivityLogServices.logActivity({
+    task: taskId,
+    workspace: workspaceId,
+    team: teamId,
+    action: "deleted",
+    performedBy: userId,
+  });
 
   const storage = getStorage();
   const cleanup: Promise<void>[] = [];

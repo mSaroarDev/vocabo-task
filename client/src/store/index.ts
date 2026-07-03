@@ -16,12 +16,14 @@ import authReducer from "./slices/authSlice";
 import teamsReducer from "./slices/teamsSlice";
 import workspacesReducer from "./slices/workspacesSlice";
 import columnsReducer from "./slices/columnsSlice";
+import tasksReducer from "./slices/tasksSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
   teams: teamsReducer,
   workspaces: workspacesReducer,
   columns: columnsReducer,
+  tasks: tasksReducer,
 });
 
 const migrations = {

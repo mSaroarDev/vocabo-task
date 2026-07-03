@@ -8,6 +8,7 @@ import {
   reorderTasksValidator,
 } from "./task.validation";
 import { attachmentUpload, bannerUpload } from "./task.upload";
+import { ActivityLogRoutes } from "../activityLog/activityLog.routes";
 
 const router = express.Router({ mergeParams: true });
 
@@ -30,5 +31,7 @@ router.delete("/:taskId/attachments/:attachmentId", TaskControllers.removeAttach
 
 router.post("/:taskId/banner", bannerUpload, TaskControllers.setBanner);
 router.delete("/:taskId/banner", TaskControllers.removeBanner);
+
+router.use("/:taskId/activity", ActivityLogRoutes);
 
 export const TaskRoutes = router;

@@ -9,8 +9,6 @@ import {
   Paperclip,
   ExternalLink,
   MoreHorizontal,
-  SmilePlus,
-  Reply,
   MessageSquare,
   CheckSquare,
   Tag,
@@ -25,6 +23,7 @@ import {
 } from "lucide-react";
 import type { Task, Attachment } from "./notion-table";
 import type { StatusOption } from "./notion-table";
+import apiClient from "@/api/client";
 
 const statusColors: Record<string, string> = {
   "In review": "bg-blue-600/20 text-blue-300",
@@ -42,6 +41,16 @@ const priorityColors: Record<string, string> = {
   Highest: "bg-red-600/20 text-red-300",
 };
 
+interface ActivityItem {
+  _id: string;
+  action: "created" | "updated" | "deleted";
+  field?: string;
+  oldValue?: string;
+  newValue?: string;
+  performedBy: { _id: string; name: string; email: string };
+  createdAt: string;
+}
+
 interface TaskDetailModalProps {
   task?: Task | null;
   open: boolean;
@@ -50,33 +59,10 @@ interface TaskDetailModalProps {
   onCreate?: (data: Partial<Task>) => void;
   statusOptions: StatusOption[];
   mode?: "view" | "create";
+  loading?: boolean;
+  teamId?: string;
+  workspaceId?: string;
 }
-
-interface Comment {
-  id: string;
-  author: { name: string; initials: string; color: string };
-  timestamp: string;
-  text: string;
-  image?: string;
-  imageCaption?: string;
-}
-
-const commentData: Comment[] = [
-  {
-    id: "c1",
-    author: { name: "Md. Nahiduzzaman", initials: "MN", color: "bg-blue-500/20 text-blue-300" },
-    timestamp: "2h ago",
-    text: "We should be able to edit/delete a message until it's seen by the recipient.",
-    image: "",
-    imageCaption: "Dark-themed chat window showing highlighted message bubble",
-  },
-  {
-    id: "c2",
-    author: { name: "Farnaz Bagheri", initials: "FB", color: "bg-purple-500/20 text-purple-300" },
-    timestamp: "1h ago",
-    text: "need more info",
-  },
-];
 
 const quickActions = [
   { label: "Add", icon: CheckSquare },
@@ -86,53 +72,57 @@ const quickActions = [
   { label: "Members", icon: UserPlus },
 ];
 
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function formatActivity(item: ActivityItem): string {
+  switch (item.action) {
+    case "created":
+      return "created this task";
+    case "deleted":
+      return "deleted this task";
+    case "updated":
+      if (item.field === "status" && item.newValue) {
+        return `changed status to ${item.newValue}`;
+      }
+      if (item.field === "priority" && item.newValue) {
+        return `changed priority to ${item.newValue}`;
+      }
+      if (item.field === "isCompleted") {
+        return item.newValue === "true" ? "marked as done" : "marked as not done";
+      }
+      return `updated ${item.field ?? "task"}`;
+    default:
+      return "performed an action";
+  }
+}
+
+function formatTimeAgo(dateStr: string): string {
+  const now = Date.now();
+  const date = new Date(dateStr).getTime();
+  const diff = now - date;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
 function QuickActionButton({ label, icon: Icon }: { label: string; icon: React.ElementType }) {
   return (
     <button className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent border border-border/50 transition-colors cursor-pointer">
       <Icon size={13} />
       {label}
     </button>
-  );
-}
-
-function CommentCard({ comment }: { comment: Comment }) {
-  return (
-    <div className="flex gap-3 group">
-      <div
-        className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium",
-          comment.author.color
-        )}
-      >
-        {comment.author.initials}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm font-medium text-foreground">{comment.author.name}</span>
-          <span className="text-xs text-muted-foreground">{comment.timestamp}</span>
-        </div>
-        {comment.image && (
-          <div className="mb-2 rounded-lg border border-border/50 overflow-hidden bg-[#1a1a1a] max-w-[280px]">
-            <div className="h-32 bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-              <ImageIcon size={24} className="text-muted-foreground/30" />
-            </div>
-          </div>
-        )}
-        {comment.imageCaption && (
-          <p className="text-xs text-muted-foreground mb-2 italic">{comment.imageCaption}</p>
-        )}
-        <p className="text-sm text-foreground leading-relaxed mb-2">{comment.text}</p>
-        <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-            <SmilePlus size={14} />
-          </button>
-          <button className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-            <Reply size={14} />
-            Reply
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -171,6 +161,9 @@ export default function TaskDetailModal({
   onUpdate,
   onCreate,
   statusOptions,
+  loading,
+  teamId,
+  workspaceId,
   mode = "view",
 }: TaskDetailModalProps) {
   const isCreate = mode === "create";
@@ -184,6 +177,21 @@ export default function TaskDetailModal({
   const [statusOpen, setStatusOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !task || !teamId || !workspaceId) {
+      setActivity([]);
+      return;
+    }
+    setActivityLoading(true);
+    apiClient
+      .get(`/teams/${teamId}/workspaces/${workspaceId}/tasks/${task.id}/activity`)
+      .then((res) => setActivity(res.data.data as ActivityItem[]))
+      .catch(() => setActivity([]))
+      .finally(() => setActivityLoading(false));
+  }, [open, task?.id, teamId, workspaceId]);
 
   useEffect(() => {
     if (task) {
@@ -591,10 +599,10 @@ export default function TaskDetailModal({
                 <div className="px-5 py-4 border-t border-border/30">
                   <button
                     onClick={handleCreate}
-                    disabled={!titleValue.trim()}
+                    disabled={!titleValue.trim() || loading}
                     className="w-full rounded-lg bg-foreground text-background px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    Create Task
+                    {loading ? "Creating..." : "Create Task"}
                   </button>
                 </div>
               </>
@@ -624,24 +632,29 @@ export default function TaskDetailModal({
                 </div>
 
                 {/* Activity Feed */}
-                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-                  {commentData.map((comment) => (
-                    <CommentCard key={comment.id} comment={comment} />
-                  ))}
-
-                  {/* System Action Note */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-border/20">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-[9px] font-medium text-purple-300">
-                      FB
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">Farnaz Bagheri</span> added this card to{' '}
-                        <span className="font-medium text-foreground">CHAT & SUPPORT</span>
-                      </p>
-                      <p className="text-[11px] text-muted-foreground/50">3h ago</p>
-                    </div>
-                  </div>
+                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                  {activityLoading ? (
+                    <div className="text-xs text-muted-foreground text-center py-4">Loading activity...</div>
+                  ) : activity.length === 0 ? (
+                    <div className="text-xs text-muted-foreground text-center py-4">No activity yet</div>
+                  ) : (
+                    activity.map((item) => (
+                      <div key={item._id} className="flex items-start gap-2">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground mt-0.5">
+                          {getInitials(item.performedBy.name)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground">{item.performedBy.name}</span>{" "}
+                            {formatActivity(item)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground/50">
+                            {formatTimeAgo(item.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </>
             )}

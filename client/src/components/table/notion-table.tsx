@@ -19,7 +19,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, CircleCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
 
@@ -154,7 +154,6 @@ const defaultColumns = [
   { key: "title", label: "Title", width: 380 },
   { key: "status", label: "Status", width: 120 },
   { key: "priority", label: "Priority", width: 100 },
-  { key: "isCompleted", label: "Done", width: 80 },
   { key: "description", label: "Description", width: 200 },
   { key: "assignee", label: "Assigned To", width: 200 },
   { key: "createdBy", label: "Created By", width: 200 },
@@ -291,24 +290,25 @@ function DraggableHeader({
   };
 
   const handleResizeStart = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.PointerEvent) => {
       e.preventDefault();
-      e.stopPropagation();
-      const th = (e.currentTarget as HTMLElement).closest("th");
+      const el = e.currentTarget as HTMLElement;
+      const th = el.closest("th");
       if (!th) return;
       const startX = e.clientX;
       const startWidth = th.offsetWidth;
+      el.setPointerCapture(e.pointerId);
 
-      const onMouseMove = (me: MouseEvent) => {
-        const newWidth = Math.max(80, Math.min(800, startWidth + me.clientX - startX));
+      const onPointerMove = (pe: PointerEvent) => {
+        const newWidth = Math.max(80, Math.min(800, startWidth + pe.clientX - startX));
         onResize(column.key, newWidth);
       };
-      const onMouseUp = () => {
-        document.removeEventListener("mousemove", onMouseMove);
-        document.removeEventListener("mouseup", onMouseUp);
+      const onPointerUp = () => {
+        el.removeEventListener("pointermove", onPointerMove);
+        el.removeEventListener("pointerup", onPointerUp);
       };
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
+      el.addEventListener("pointermove", onPointerMove);
+      el.addEventListener("pointerup", onPointerUp);
     },
     [column.key, onResize]
   );
@@ -337,8 +337,8 @@ function DraggableHeader({
         )}
       </div>
       <div
-        className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-blue-500/40 active:bg-blue-500 z-10"
-        onMouseDown={handleResizeStart}
+        className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-500/40 active:bg-blue-500 z-10 touch-none"
+        onPointerDown={handleResizeStart}
       />
       {menuOpen && (
         <ColumnHeaderDropdown
@@ -413,18 +413,33 @@ const priorityColors: Record<string, string> = {
   Highest: "bg-red-600/20 text-red-300",
 };
 
-function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean) {
+function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onTaskUpdate?: (id: string, updates: Partial<Task>) => void) {
   switch (columnKey) {
     case "title":
       return (
-        <span
-          className={cn(
-            "cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50 block text-sm leading-tight",
-            wrapTaskName ? "whitespace-normal" : "truncate"
-          )}
-          onClick={() => onSelect(task)}
-        >
-          {task.title}
+        <span className="inline-flex items-center gap-2 w-full">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onTaskUpdate?.(task.id, { isCompleted: !task.isCompleted });
+            }}
+            className="shrink-0"
+          >
+            {task.isCompleted ? (
+              <CircleCheck size={18} className="text-green-500" />
+            ) : (
+              <Circle size={18} className="text-muted-foreground/50 hover:text-muted-foreground" />
+            )}
+          </button>
+          <span
+            className={cn(
+              "cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50 text-sm leading-tight",
+              wrapTaskName ? "whitespace-normal" : "truncate"
+            )}
+            onClick={() => onSelect(task)}
+          >
+            {task.title}
+          </span>
         </span>
       );
     case "status":
@@ -433,17 +448,6 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
       return (
         <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", priorityColors[task.priority])}>
           {task.priority}
-        </span>
-      );
-    case "isCompleted":
-      return (
-        <span className="flex items-center justify-center">
-          <input
-            type="checkbox"
-            checked={task.isCompleted}
-            onChange={() => onSelect(task)}
-            className="h-4 w-4 cursor-pointer accent-green-500"
-          />
         </span>
       );
     case "description":
@@ -472,10 +476,11 @@ interface DraggableRowProps {
   statusOptions: StatusOption[];
   onSelect: (task: Task) => void;
   onStatusUpdate: (id: string, status: string) => void;
+  onTaskUpdate: (id: string, updates: Partial<Task>) => void;
   wrapTaskName?: boolean;
 }
 
-function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, wrapTaskName }: DraggableRowProps) {
+function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onTaskUpdate, wrapTaskName }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
   const style = {
@@ -503,7 +508,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
       </td>
       {columnOrder.map((key) => (
         <td key={key} className={cn("h-11 px-3", key === "title" && wrapTaskName && "h-auto min-h-11 py-1.5")}>
-          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName)}
+          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onTaskUpdate)}
         </td>
       ))}
     </tr>
@@ -515,10 +520,23 @@ interface NotionTableProps {
   wrapTaskName?: boolean;
   statusOptions?: StatusOption[];
   onStatusOptionsChange?: (options: StatusOption[]) => void;
+  teamId?: string;
+  workspaceId?: string;
+  onTaskCreate?: (data: Partial<Task>) => Promise<Task | null>;
+  onTaskUpdate?: (id: string, data: Partial<Task>) => Promise<Task | null>;
+  onTaskReorder?: (taskIds: string[]) => Promise<{ workspaceId: string; tasks: Task[] } | null>;
 }
 
-export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusOptions: externalStatusOptions }: NotionTableProps) {
-  const [data, setData] = useState<Task[]>(tasks);
+export default function NotionTable({
+  tasks = sampleTasks,
+  wrapTaskName,
+  statusOptions: externalStatusOptions,
+  teamId: teamIdProp,
+  workspaceId: workspaceIdProp,
+  onTaskCreate,
+  onTaskUpdate,
+  onTaskReorder,
+}: NotionTableProps) {
   const [localStatusOptions] = useState<StatusOption[]>(defaultStatusOptions);
   const [columnOrder, setColumnOrder] = useState<string[]>(defaultColumns.map((c) => c.key));
   const [columnLabels, setColumnLabels] = useState<Record<string, string>>(
@@ -563,17 +581,17 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
         if (oldIndex === -1 || newIndex === -1) return prev;
         return arrayMove(prev, oldIndex, newIndex);
       });
-    } else {
-      setData((prev) => {
-        const oldIndex = prev.findIndex((t) => t.id === activeIdStr);
-        const newIndex = prev.findIndex((t) => t.id === overIdStr);
-        if (oldIndex === -1 || newIndex === -1) return prev;
-        return arrayMove(prev, oldIndex, newIndex);
-      });
+    } else if (onTaskReorder) {
+      const orderedTasks = [...tasks];
+      const oldIndex = orderedTasks.findIndex((t) => t.id === activeIdStr);
+      const newIndex = orderedTasks.findIndex((t) => t.id === overIdStr);
+      if (oldIndex === -1 || newIndex === -1) return;
+      const reordered = arrayMove(orderedTasks, oldIndex, newIndex);
+      onTaskReorder(reordered.map((t) => t.id));
     }
-  }, []);
+  }, [tasks, onTaskReorder]);
 
-  const sorted = [...data].sort((a, b) => {
+  const sorted = [...tasks].sort((a, b) => {
     if (!sortKey) return 0;
     const key = sortKey as keyof Task;
     const va = String(a[key] ?? "").toLowerCase();
@@ -595,24 +613,25 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
   };
 
   const handleTaskUpdate = (id: string, updates: Partial<Task>) => {
-    setData((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+    onTaskUpdate?.(id, updates);
   };
 
-  const handleCreateTask = (partial: Partial<Task>) => {
-    const newTask: Task = {
-      id: String(Date.now()),
-      title: partial.title || "Untitled task",
-      status: partial.status || statusOptions[0]?.label || "In review",
-      priority: (partial.priority as Task["priority"]) || "None",
-      isCompleted: false,
-      description: partial.description,
-      attachments: [],
-      createdBy: { name: "You", initials: "Yo", color: avatarColors[0] },
-      assignedTo: { name: "Unassigned", initials: "Un", color: avatarColors[1] },
-      customFields: {},
-    };
-    setData((prev) => [...prev, newTask]);
-    setShowCreateModal(false);
+  const [creating, setCreating] = useState(false);
+
+  const handleCreateTask = async (partial: Partial<Task>) => {
+    if (!onTaskCreate) {
+      setShowCreateModal(false);
+      return;
+    }
+    setCreating(true);
+    try {
+      await onTaskCreate(partial);
+      setShowCreateModal(false);
+    } catch {
+      // creation failed — keep modal open
+    } finally {
+      setCreating(false);
+    }
   };
 
   const isDragging = (id: string) => activeId === id;
@@ -662,7 +681,7 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
             </DndContext>
           </thead>
           <tbody>
-            <SortableContext items={data.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               {sorted.map((task) => (
                 <DraggableRow
                   key={task.id}
@@ -671,7 +690,8 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
                   columnOrder={columnOrder}
                   statusOptions={statusOptions}
                   onSelect={(t) => setSelectedTask(t)}
-                  onStatusUpdate={(id, status) => setData((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)))}
+                  onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
+                  onTaskUpdate={(id, updates) => onTaskUpdate?.(id, updates)}
                   wrapTaskName={wrapTaskName}
                 />
               ))}
@@ -703,7 +723,7 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
                   <td className="h-11 w-8" />
                   <td className="h-11 px-3" colSpan={columnOrder.length}>
                     <span className="text-sm leading-tight">
-                      {data.find((t) => t.id === activeId)?.title}
+                      {tasks.find((t) => t.id === activeId)?.title}
                     </span>
                   </td>
                 </tr>
@@ -720,6 +740,8 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
           onUpdate={handleTaskUpdate}
           statusOptions={statusOptions}
           mode="view"
+          teamId={teamIdProp}
+          workspaceId={workspaceIdProp}
         />
       )}
       <TaskDetailModal
@@ -728,6 +750,9 @@ export default function NotionTable({ tasks = sampleTasks, wrapTaskName, statusO
         onCreate={handleCreateTask}
         statusOptions={statusOptions}
         mode="create"
+        loading={creating}
+        teamId={teamIdProp}
+        workspaceId={workspaceIdProp}
       />
     </DndContext>
   );

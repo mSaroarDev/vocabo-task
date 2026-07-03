@@ -4,7 +4,7 @@ const createTaskValidator = z.object({
   title: z.string().trim().min(1, "Title is required").max(200, "Title is too long"),
   description: z.string().trim().optional(),
   status: z.string().trim().optional(),
-  priority: z.enum(["None", "Low", "Medium", "High"]).optional(),
+  priority: z.enum(["None", "Lowest", "Low", "Medium", "High", "Highest"]).optional(),
   assignedTo: z.string().optional(),
   customFields: z.record(z.string(), z.unknown()).optional(),
 });
@@ -15,7 +15,7 @@ const updateTaskValidator = z.object({
   isCompleted: z.boolean().optional(),
   description: z.string().trim().optional(),
   status: z.string().trim().optional(),
-  priority: z.enum(["None", "Low", "Medium", "High"]).optional(),
+  priority: z.enum(["None", "Lowest", "Low", "Medium", "High", "Highest"]).optional(),
   assignedTo: z.string().nullable().optional(),
   customFields: z.record(z.string(), z.unknown()).optional(),
 });

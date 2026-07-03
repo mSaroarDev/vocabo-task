@@ -7,13 +7,15 @@ import NotionTable, { type StatusOption } from "@/components/table/notion-table"
 import SettingsModal from "@/components/table/settings-modal";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { useTasks } from "@/hooks/useTasks";
 
 export default function Home() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { teams, selectedTeam, addTeam, joinTeam, isLoading: teamsLoading, error: teamsError } = useTeams();
-  const { workspaces, updateWorkspace } = useWorkspaces(selectedTeam?.id);
   const workspaceId = searchParams.get("workspace");
+  const { workspaces, updateWorkspace } = useWorkspaces(selectedTeam?.id);
+  const { tasks, addTask, editTask, reorder } = useTasks(selectedTeam?.id, workspaceId);
   const currentWorkspace = workspaceId ? workspaces.find((w) => w.id === workspaceId) : null;
   const workspaceName = currentWorkspace?.name || "";
   const [activeTab, setActiveTab] = useState<"all" | "category">("all");
@@ -137,7 +139,17 @@ export default function Home() {
           </button>
         </div>
 
-        <NotionTable wrapTaskName={wrapTaskName} statusOptions={statusOptions} onStatusOptionsChange={setStatusOptions} />
+        <NotionTable
+          wrapTaskName={wrapTaskName}
+          statusOptions={statusOptions}
+          onStatusOptionsChange={setStatusOptions}
+          teamId={selectedTeam?.id}
+          workspaceId={workspaceId}
+          tasks={tasks}
+          onTaskCreate={addTask}
+          onTaskUpdate={editTask}
+          onTaskReorder={reorder}
+        />
 
         <SettingsModal
           open={settingsOpen}
