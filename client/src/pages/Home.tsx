@@ -18,7 +18,7 @@ export default function Home() {
   const workspaceId = searchParams.get("workspace");
   const checklistId = searchParams.get("checklist");
   const { workspaces, updateWorkspace } = useWorkspaces(selectedTeam?.id);
-  const { tasks, addTask, editTask, reorder } = useTasks(selectedTeam?.id, workspaceId);
+  const { tasks, addTask, editTask, removeTask, reorder } = useTasks(selectedTeam?.id, workspaceId);
   const { groups: checklistGroups } = useChecklist();
   const currentWorkspace = workspaceId ? workspaces.find((w) => w.id === workspaceId) : null;
   const currentChecklist = checklistId ? checklistGroups.find((g) => g.id === checklistId) : null;
@@ -158,6 +158,7 @@ export default function Home() {
           tasks={tasks}
           onTaskCreate={addTask}
           onTaskUpdate={editTask}
+          onTaskDelete={removeTask}
           onTaskReorder={reorder}
         />
 

@@ -499,10 +499,11 @@ interface DraggableRowProps {
   onSelect: (task: Task) => void;
   onStatusUpdate: (id: string, status: string) => void;
   onTaskUpdate: (id: string, updates: Partial<Task>) => void;
+  onTaskDelete: (id: string) => void;
   wrapTaskName?: boolean;
 }
 
-function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onTaskUpdate, wrapTaskName }: DraggableRowProps) {
+function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onTaskUpdate, onTaskDelete, wrapTaskName }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
   const style = {
@@ -519,7 +520,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         isDragging && "opacity-40"
       )}
     >
-      <td className="h-11 w-8 px-1 text-center">
+      <td className="h-11 w-12 px-1 text-center">
         <span
           {...attributes}
           {...listeners}
@@ -527,6 +528,13 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         >
           <GripVertical size={14} />
         </span>
+        <button
+          onClick={() => onTaskDelete(task.id)}
+          className="invisible group-hover:visible inline-flex cursor-pointer text-muted-foreground/30 hover:text-red-400 transition-colors px-1"
+          title="Delete task"
+        >
+          <Trash2 size={14} />
+        </button>
       </td>
       {columnOrder.map((key) => (
         <td key={key} className={cn("h-11 px-3 border-t border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-11 py-1.5")}>
@@ -546,6 +554,7 @@ interface NotionTableProps {
   workspaceId?: string;
   onTaskCreate?: (data: Partial<Task>) => Promise<Task | null>;
   onTaskUpdate?: (id: string, data: Partial<Task>) => Promise<Task | null>;
+  onTaskDelete?: (id: string) => void;
   onTaskReorder?: (taskIds: string[]) => Promise<{ workspaceId: string; tasks: Task[] } | null>;
 }
 
@@ -557,6 +566,7 @@ export default function NotionTable({
   workspaceId: workspaceIdProp,
   onTaskCreate,
   onTaskUpdate,
+  onTaskDelete,
   onTaskReorder,
 }: NotionTableProps) {
   const [localStatusOptions] = useState<StatusOption[]>(defaultStatusOptions);
@@ -715,6 +725,7 @@ export default function NotionTable({
                   onSelect={(t) => setSelectedTaskId(t.id)}
                   onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
                   onTaskUpdate={(id, updates) => onTaskUpdate?.(id, updates)}
+                  onTaskDelete={(id) => onTaskDelete?.(id)}
                   wrapTaskName={wrapTaskName}
                 />
               ))}
