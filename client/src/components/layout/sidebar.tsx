@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { useChecklist } from "@/hooks/useChecklist";
 import { WorkspaceIcon } from "@/lib/workspace-icons";
 
 interface SidebarItem {
@@ -256,8 +257,6 @@ function SidebarSection({
   );
 }
 
-let nextId = 13;
-
 export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -271,15 +270,18 @@ export default function Sidebar() {
     removeWorkspace: removeWs,
     reorderWorkspaces: reorderWs,
   } = useWorkspaces(selectedTeam?.id);
+  const {
+    groups: checklistGroups,
+    createGroup,
+    renameGroup: renameChecklist,
+    deleteGroup: deleteChecklist,
+    reorderGroups,
+  } = useChecklist();
   const [searchParams] = useSearchParams();
   const activeWorkspace = searchParams.get("workspace");
+  const activeChecklist = searchParams.get("checklist");
   const [searchQuery, setSearchQuery] = useState("");
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
-  const [checklistList, setChecklistList] = useState<SidebarItem[]>([
-    { id: "10", label: "Daily Tasks", icon: <ListTodo size={16} /> },
-    { id: "11", label: "Shopping List", icon: <ListTodo size={16} /> },
-    { id: "12", label: "Goals", icon: <ListTodo size={16} /> },
-  ]);
 
   const workspaceList: SidebarItem[] = workspaces
     .filter((workspace) => workspace.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
@@ -365,20 +367,19 @@ export default function Sidebar() {
 
   const addChecklist = () => {
     openInputModal("Add list", "", (value) => {
-      const id = String(nextId++);
-      setChecklistList([...checklistList, { id, label: value, icon: <ListTodo size={16} /> }]);
+      createGroup(value);
     });
   };
 
-  const editChecklist = (_id: string, currentLabel: string) => {
+  const editChecklist = (id: string, currentLabel: string) => {
     openInputModal("Rename list", currentLabel, (value) => {
-      setChecklistList(checklistList.map((c) => (c.id === _id ? { ...c, label: value } : c)));
+      renameChecklist(id, value);
     });
   };
 
-  const deleteChecklist = (id: string) => {
+  const handleDeleteChecklist = (id: string) => {
     openConfirm("Delete list", "Are you sure you want to delete this list?", () => {
-      setChecklistList(checklistList.filter((c) => c.id !== id));
+      deleteChecklist(id);
     });
   };
 
@@ -535,10 +536,21 @@ export default function Sidebar() {
 
           <SidebarSection
             title="Personal Checklist"
-            items={checklistList}
+            items={checklistGroups.map((g) => ({
+              id: g.id,
+              label: g.title,
+              icon: <ListTodo size={16} />,
+              active: g.id === activeChecklist,
+            }))}
             onAdd={addChecklist}
             onEdit={editChecklist}
-            onDelete={deleteChecklist}
+            onDelete={handleDeleteChecklist}
+            onReorder={(orderedItems) => {
+              reorderGroups(orderedItems.map((item) => item.id));
+            }}
+            onItemClick={(id) => {
+              navigate(`/dashboard?checklist=${id}`);
+            }}
             addLabel="Add list"
           />
         </ScrollArea>

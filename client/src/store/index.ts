@@ -17,6 +17,7 @@ import teamsReducer from "./slices/teamsSlice";
 import workspacesReducer from "./slices/workspacesSlice";
 import columnsReducer from "./slices/columnsSlice";
 import tasksReducer from "./slices/tasksSlice";
+import checklistReducer from "./slices/checklistSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
   workspaces: workspacesReducer,
   columns: columnsReducer,
   tasks: tasksReducer,
+  checklist: checklistReducer,
 });
 
 const migrations = {
@@ -69,14 +71,20 @@ const migrations = {
       error: null,
     },
   }),
+  5: (state: any) => ({
+    ...state,
+    checklist: {
+      groups: [],
+    },
+  }),
 };
 
 const persistConfig = {
   key: "vocabo-root",
-  version: 4,
+  version: 5,
   storage,
   migrate: createMigrate(migrations, { debug: false }),
-  whitelist: ["auth", "teams", "workspaces"],
+  whitelist: ["auth", "teams", "workspaces", "checklist"],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

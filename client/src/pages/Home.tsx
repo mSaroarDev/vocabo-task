@@ -5,18 +5,23 @@ import { Heart, Lightbulb, Sun, Folder, Settings, Plus, UserPlus } from "lucide-
 import { cn } from "@/lib/utils";
 import NotionTable, { type StatusOption } from "@/components/table/notion-table";
 import SettingsModal from "@/components/table/settings-modal";
+import ChecklistView from "@/components/checklist/checklist-view";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { useTasks } from "@/hooks/useTasks";
+import { useChecklist } from "@/hooks/useChecklist";
 
 export default function Home() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { teams, selectedTeam, addTeam, joinTeam, isLoading: teamsLoading, error: teamsError } = useTeams();
   const workspaceId = searchParams.get("workspace");
+  const checklistId = searchParams.get("checklist");
   const { workspaces, updateWorkspace } = useWorkspaces(selectedTeam?.id);
   const { tasks, addTask, editTask, reorder } = useTasks(selectedTeam?.id, workspaceId);
+  const { groups: checklistGroups } = useChecklist();
   const currentWorkspace = workspaceId ? workspaces.find((w) => w.id === workspaceId) : null;
+  const currentChecklist = checklistId ? checklistGroups.find((g) => g.id === checklistId) : null;
   const workspaceName = currentWorkspace?.name || "";
   const [activeTab, setActiveTab] = useState<"all" | "category">("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -70,6 +75,10 @@ export default function Home() {
       // Redux stores and renders the API error.
     }
   };
+
+  if (checklistId && currentChecklist) {
+    return <ChecklistView group={currentChecklist} />;
+  }
 
   if (workspaceId && currentWorkspace) {
     return (
