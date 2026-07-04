@@ -19,7 +19,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, CircleCheck } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, CircleCheck, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
 
@@ -157,6 +157,7 @@ const defaultColumns = [
   { key: "description", label: "Description", width: 200 },
   { key: "assignee", label: "Assigned To", width: 200 },
   { key: "createdBy", label: "Created By", width: 200 },
+  { key: "attachments", label: "Attachments", width: 100 },
 ];
 
 function ColumnHeaderDropdown({
@@ -458,6 +459,15 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
       );
     case "createdBy":
       return <PersonCell person={task.createdBy} />;
+    case "attachments":
+      return task.attachments.length > 0 ? (
+        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Paperclip size={14} />
+          {task.attachments.length}
+        </span>
+      ) : (
+        <span className="text-muted-foreground/30">—</span>
+      );
     case "assignedTo":
     case "assignee":
       return <PersonCell person={task.assignedTo} />;
