@@ -19,7 +19,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, CircleCheck, Paperclip } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, CircleCheck, Paperclip, FileText, Flag, AlignLeft, User, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
 
@@ -149,6 +149,16 @@ function PersonCell({ person }: { person: Person }) {
     </div>
   );
 }
+
+const columnIcons: Record<string, React.ReactNode> = {
+  title: <FileText className="size-3.5" />,
+  status: <Circle className="size-3.5" />,
+  priority: <Flag className="size-3.5" />,
+  description: <AlignLeft className="size-3.5" />,
+  assignee: <User className="size-3.5" />,
+  createdBy: <UserPlus className="size-3.5" />,
+  attachments: <Paperclip className="size-3.5" />,
+};
 
 const defaultColumns = [
   { key: "title", label: "Title", width: 380 },
@@ -319,7 +329,7 @@ function DraggableHeader({
       ref={setNodeRef}
       style={{ ...style, width: column.width, minWidth: column.width }}
       className={cn(
-        "h-10 px-3 text-left text-xs font-medium text-muted-foreground select-none relative",
+        "h-10 px-3 text-left text-xs font-bold text-muted-foreground select-none relative border-r border-b border-border/50",
         "hover:text-foreground transition-colors",
         isDragging && "opacity-40"
       )}
@@ -330,6 +340,7 @@ function DraggableHeader({
         {...attributes}
         {...listeners}
       >
+        {columnIcons[column.key]}
         <span>{column.label}</span>
         {sortKey === column.key && (
           <span className="text-muted-foreground text-[10px]">
@@ -503,7 +514,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group border-b border-transparent hover:border-border/30 hover:bg-white/[0.02] transition-colors",
+        "group hover:bg-white/[0.02] transition-colors [&>td:last-child]:border-r-0",
         isDragging && "opacity-40"
       )}
     >
@@ -511,13 +522,13 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         <span
           {...attributes}
           {...listeners}
-          className="inline-flex cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors px-1"
+          className="invisible group-hover:visible inline-flex cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors px-1"
         >
           <GripVertical size={14} />
         </span>
       </td>
       {columnOrder.map((key) => (
-        <td key={key} className={cn("h-11 px-3", key === "title" && wrapTaskName && "h-auto min-h-11 py-1.5")}>
+        <td key={key} className={cn("h-11 px-3 border-t border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-11 py-1.5")}>
           {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onTaskUpdate)}
         </td>
       ))}
@@ -671,7 +682,7 @@ export default function NotionTable({
                 items={columnOrder.map((k) => `col-${k}`)}
                 strategy={horizontalListSortingStrategy}
               >
-                <tr className="border-b border-border/50">
+                <tr className="[&>th:last-child]:border-r-0">
                   <th style={{ width: 32, minWidth: 32 }} className="h-10" />
                   {sortedColumns.map((col) => (
                     <DraggableHeader
