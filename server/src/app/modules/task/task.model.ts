@@ -21,7 +21,7 @@ const taskSchema = new Schema<ITask>(
     banner: { type: String, trim: true },
     isCompleted: { type: Boolean, default: false },
     description: { type: String, trim: true },
-    status: { type: String, required: true, default: "In review", trim: true, maxlength: 80 },
+    status: { type: String, required: true, default: "New", trim: true, maxlength: 80 },
     priority: {
       type: String,
       enum: ["None", "Low", "Medium", "High"],

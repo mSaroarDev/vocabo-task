@@ -3,10 +3,11 @@ import { cn } from "@/lib/utils";
 import type { Task } from "./notion-table";
 
 const statusColors: Record<string, string> = {
+  New: "bg-purple-500/20 text-purple-300",
   "In review": "bg-blue-600/20 text-blue-300",
   "Re Open": "bg-amber-500/20 text-amber-300",
-  "Done": "bg-green-600/20 text-green-300",
-  "Rejected": "bg-zinc-600/30 text-zinc-300",
+  Done: "bg-green-600/20 text-green-300",
+  Rejected: "bg-zinc-600/30 text-zinc-300",
 };
 
 const priorityColors: Record<string, string> = {

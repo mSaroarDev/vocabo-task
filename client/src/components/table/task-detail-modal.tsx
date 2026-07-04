@@ -26,10 +26,11 @@ import type { StatusOption } from "./notion-table";
 import apiClient from "@/api/client";
 
 const statusColors: Record<string, string> = {
+  New: "bg-purple-500/20 text-purple-300",
   "In review": "bg-blue-600/20 text-blue-300",
   "Re Open": "bg-amber-500/20 text-amber-300",
-  "Done": "bg-green-600/20 text-green-300",
-  "Rejected": "bg-zinc-600/30 text-zinc-300",
+  Done: "bg-green-600/20 text-green-300",
+  Rejected: "bg-zinc-600/30 text-zinc-300",
 };
 
 const priorityColors: Record<string, string> = {
@@ -200,7 +201,7 @@ export default function TaskDetailModal({
       setStatusValue(task.status);
       setPriorityValue(task.priority);
     }
-  }, [task?.id]);
+  }, [task?.id, task?.title, task?.description, task?.status, task?.priority]);
 
   useEffect(() => {
     if (open && isCreate) {

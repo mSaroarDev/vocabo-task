@@ -44,6 +44,7 @@ export default function Home() {
   };
 
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([
+    { label: "New", color: "bg-purple-500/20 text-purple-300" },
     { label: "In review", color: "bg-blue-600/20 text-blue-300" },
     { label: "Re Open", color: "bg-amber-500/20 text-amber-300" },
     { label: "Done", color: "bg-green-600/20 text-green-300" },

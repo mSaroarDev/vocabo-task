@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -133,6 +133,7 @@ const sampleTasks: Task[] = [
 ];
 
 const defaultStatusOptions: StatusOption[] = [
+  { label: "New", color: "bg-purple-500/20 text-purple-300" },
   { label: "In review", color: "bg-blue-600/20 text-blue-300" },
   { label: "Re Open", color: "bg-amber-500/20 text-amber-300" },
   { label: "Done", color: "bg-green-600/20 text-green-300" },
@@ -567,7 +568,8 @@ export default function NotionTable({
     Object.fromEntries(defaultColumns.map((c) => [c.key, c.width]))
   );
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const selectedTask = useMemo(() => tasks.find((t) => t.id === selectedTaskId) ?? null, [tasks, selectedTaskId]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -710,7 +712,7 @@ export default function NotionTable({
                   isDragging={isDragging(task.id)}
                   columnOrder={columnOrder}
                   statusOptions={statusOptions}
-                  onSelect={(t) => setSelectedTask(t)}
+                  onSelect={(t) => setSelectedTaskId(t.id)}
                   onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
                   onTaskUpdate={(id, updates) => onTaskUpdate?.(id, updates)}
                   wrapTaskName={wrapTaskName}
@@ -757,7 +759,7 @@ export default function NotionTable({
         <TaskDetailModal
           task={selectedTask}
           open
-          onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
+          onOpenChange={(open) => { if (!open) setSelectedTaskId(null); }}
           onUpdate={handleTaskUpdate}
           statusOptions={statusOptions}
           mode="view"
