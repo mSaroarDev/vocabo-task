@@ -1,3 +1,4 @@
+import axios from "axios";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import apiClient from "@/api/client";
 import type { Task } from "@/components/table/notion-table";
@@ -196,6 +197,29 @@ export const reorderTasks = createAsyncThunk<
   }
 });
 
+export const addTaskAttachment = createAsyncThunk<
+  Task,
+  { teamId: string; workspaceId: string; taskId: string; file: File },
+  { rejectValue: string }
+>("tasks/addTaskAttachment", async ({ teamId, workspaceId, taskId, file }, { rejectWithValue }) => {
+  try {
+    const formData = new FormData();
+    formData.append("attachments", file);
+    const token = localStorage.getItem("token");
+    const response = await axios({
+      method: "post",
+      url: `${apiClient.defaults.baseURL}/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}/attachments`,
+      data: formData,
+      headers: {
+        Authorization: token ? `Bearer ${token}` : undefined,
+      },
+    });
+    return mapTask(response.data.data as ApiTask);
+  } catch (error) {
+    return rejectWithValue(getErrorMessage(error, "Failed to upload attachment"));
+  }
+});
+
 const tasksSlice = createSlice({
   name: "tasks",
   initialState,
@@ -239,7 +263,7 @@ const tasksSlice = createSlice({
         state.error = action.payload || "Failed to load tasks";
       })
       .addCase(createTask.fulfilled, (state, action) => {
-        state.items.unshift(action.payload);
+        state.items.push(action.payload);
         state.error = null;
       })
       .addCase(createTask.rejected, (state, action) => {
@@ -261,6 +285,16 @@ const tasksSlice = createSlice({
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.error = action.payload || "Failed to delete task";
+      })
+      .addCase(addTaskAttachment.fulfilled, (state, action) => {
+        const idx = state.items.findIndex((t) => t.id === action.payload.id);
+        if (idx !== -1) {
+          state.items[idx] = action.payload;
+        }
+        state.error = null;
+      })
+      .addCase(addTaskAttachment.rejected, (state, action) => {
+        state.error = action.payload || "Failed to upload attachment";
       })
       .addCase(reorderTasks.fulfilled, (state, action) => {
         if (state.currentWorkspaceId === action.payload.workspaceId) {

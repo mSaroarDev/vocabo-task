@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Heart, Lightbulb, Sun, Folder, Settings, Plus, UserPlus } from "lucide-react";
+import { Heart, Lightbulb, Sun, Folder, Filter, ArrowUpDown, Search, Settings, Plus, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NotionTable, { type StatusOption } from "@/components/table/notion-table";
 import SettingsModal from "@/components/table/settings-modal";
@@ -25,6 +25,7 @@ export default function Home() {
   const workspaceName = currentWorkspace?.name || "";
   const [activeTab, setActiveTab] = useState<"all" | "category">("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [wrapTaskName, setWrapTaskName] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(workspaceName);
@@ -83,7 +84,7 @@ export default function Home() {
   if (workspaceId && currentWorkspace) {
     return (
       <div className="px-12 py-8">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-6">
+        <div className="ml-5 flex items-center gap-1.5 text-xs text-muted-foreground mb-6">
           <Heart size={12} className="text-red-400" fill="currentColor" />
           <span>Vocabo Teamspace</span>
           <span className="text-muted-foreground/40">/</span>
@@ -91,7 +92,7 @@ export default function Home() {
           <span>{titleValue}</span>
         </div>
 
-        <div className="flex items-center gap-3 mb-8">
+        <div className="ml-5 flex items-center gap-3 mb-8">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-400/10">
             <Lightbulb size={22} className="text-amber-400" />
           </div>
@@ -114,7 +115,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="flex items-center justify-between mb-8">
+        <div className="ml-5 flex items-center justify-between mb-8">
           <div className="flex items-center gap-1">
             <button
               onClick={() => setActiveTab("all")}
@@ -141,26 +142,50 @@ export default function Home() {
               By Category
             </button>
           </div>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-          >
-            <Settings size={15} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer" title="Filter">
+              <Filter size={14} />
+            </button>
+            <button className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer" title="Sort">
+              <ArrowUpDown size={14} />
+            </button>
+            <button className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer" title="Search">
+              <Search size={14} />
+            </button>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+              title="Settings"
+            >
+              <Settings size={14} />
+            </button>
+            <div className="w-2" />
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 cursor-pointer"
+            >
+              <Plus size={14} />
+              New
+            </button>
+          </div>
         </div>
 
-        <NotionTable
-          wrapTaskName={wrapTaskName}
-          statusOptions={statusOptions}
-          onStatusOptionsChange={setStatusOptions}
-          teamId={selectedTeam?.id}
-          workspaceId={workspaceId}
-          tasks={tasks}
-          onTaskCreate={addTask}
-          onTaskUpdate={editTask}
-          onTaskDelete={removeTask}
-          onTaskReorder={reorder}
-        />
+        <div className="-ml-5">
+          <NotionTable
+            wrapTaskName={wrapTaskName}
+            statusOptions={statusOptions}
+            onStatusOptionsChange={setStatusOptions}
+            teamId={selectedTeam?.id}
+            workspaceId={workspaceId}
+            tasks={tasks}
+            onTaskCreate={addTask}
+            onTaskUpdate={editTask}
+            onTaskDelete={removeTask}
+            onTaskReorder={reorder}
+            createModalOpen={showCreateModal}
+            onCreateModalChange={setShowCreateModal}
+          />
+        </div>
 
         <SettingsModal
           open={settingsOpen}

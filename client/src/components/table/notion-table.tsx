@@ -19,9 +19,10 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, CircleCheck, Paperclip, FileText, Flag, AlignLeft, User, UserPlus } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
+import ImagePreview from "@/components/ui/image-preview";
 
 type Priority = "None" | "Lowest" | "Low" | "Medium" | "High" | "Highest";
 
@@ -330,7 +331,7 @@ function DraggableHeader({
       ref={setNodeRef}
       style={{ ...style, width: column.width, minWidth: column.width }}
       className={cn(
-        "h-10 px-3 text-left text-xs font-bold text-muted-foreground select-none relative border-r border-b border-border/50",
+        "h-10 px-3 text-left text-xs font-bold text-muted-foreground select-none relative border-b border-border/50",
         "hover:text-foreground transition-colors",
         isDragging && "opacity-40"
       )}
@@ -422,28 +423,15 @@ const priorityColors: Record<string, string> = {
   Lowest: "bg-zinc-600/20 text-zinc-300",
   Low: "bg-zinc-600/20 text-zinc-300",
   Medium: "bg-amber-500/20 text-amber-300",
-  High: "bg-orange-600/20 text-orange-300",
-  Highest: "bg-red-600/20 text-red-300",
+  High: "bg-red-500/20 text-red-300",
+  Highest: "bg-red-600/30 text-red-200",
 };
 
-function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onTaskUpdate?: (id: string, updates: Partial<Task>) => void) {
+function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void) {
   switch (columnKey) {
     case "title":
       return (
-        <span className="inline-flex items-center gap-2 w-full">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onTaskUpdate?.(task.id, { isCompleted: !task.isCompleted });
-            }}
-            className="shrink-0"
-          >
-            {task.isCompleted ? (
-              <CircleCheck size={18} className="text-green-500" />
-            ) : (
-              <Circle size={18} className="text-muted-foreground/50 hover:text-muted-foreground" />
-            )}
-          </button>
+        <span className="inline-flex items-center w-full">
           <span
             className={cn(
               "cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50 text-sm leading-tight",
@@ -473,9 +461,30 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
       return <PersonCell person={task.createdBy} />;
     case "attachments":
       return task.attachments.length > 0 ? (
-        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Paperclip size={14} />
-          {task.attachments.length}
+        <span className="inline-flex items-center gap-1">
+          {task.attachments.slice(0, 3).map((att) =>
+            att.mimeType?.startsWith("image/") && att.url ? (
+              <img
+                key={att.id}
+                src={att.url}
+                alt={att.originalName}
+                className="h-7 w-7 rounded object-cover border border-white/[0.06] cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all"
+                onClick={() => onImagePreview?.(att.url)}
+              />
+            ) : (
+              <span
+                key={att.id}
+                className="flex h-7 w-7 items-center justify-center rounded border border-white/[0.06] bg-white/[0.03]"
+              >
+                <Paperclip size={12} className="text-muted-foreground" />
+              </span>
+            )
+          )}
+          {task.attachments.length > 3 && (
+            <span className="text-xs text-muted-foreground ml-0.5">
+              +{task.attachments.length - 3}
+            </span>
+          )}
         </span>
       ) : (
         <span className="text-muted-foreground/30">—</span>
@@ -498,12 +507,12 @@ interface DraggableRowProps {
   statusOptions: StatusOption[];
   onSelect: (task: Task) => void;
   onStatusUpdate: (id: string, status: string) => void;
-  onTaskUpdate: (id: string, updates: Partial<Task>) => void;
   onTaskDelete: (id: string) => void;
   wrapTaskName?: boolean;
+  onImagePreview?: (url: string) => void;
 }
 
-function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onTaskUpdate, onTaskDelete, wrapTaskName }: DraggableRowProps) {
+function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onTaskDelete, wrapTaskName, onImagePreview }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
   const style = {
@@ -516,11 +525,11 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group hover:bg-white/[0.02] transition-colors [&>td:last-child]:border-r-0",
+        "group hover:bg-white/[0.02] transition-colors",
         isDragging && "opacity-40"
       )}
     >
-      <td className="h-11 w-12 px-1 text-center">
+      <td className="h-9 w-12 px-1 text-center">
         <span
           {...attributes}
           {...listeners}
@@ -537,8 +546,8 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         </button>
       </td>
       {columnOrder.map((key) => (
-        <td key={key} className={cn("h-11 px-3 border-t border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-11 py-1.5")}>
-          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onTaskUpdate)}
+        <td key={key} className={cn("h-9 px-3 border-b border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")}>
+          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview)}
         </td>
       ))}
     </tr>
@@ -556,6 +565,8 @@ interface NotionTableProps {
   onTaskUpdate?: (id: string, data: Partial<Task>) => Promise<Task | null>;
   onTaskDelete?: (id: string) => void;
   onTaskReorder?: (taskIds: string[]) => Promise<{ workspaceId: string; tasks: Task[] } | null>;
+  createModalOpen?: boolean;
+  onCreateModalChange?: (open: boolean) => void;
 }
 
 export default function NotionTable({
@@ -568,6 +579,8 @@ export default function NotionTable({
   onTaskUpdate,
   onTaskDelete,
   onTaskReorder,
+  createModalOpen: externalCreateOpen,
+  onCreateModalChange,
 }: NotionTableProps) {
   const [localStatusOptions] = useState<StatusOption[]>(defaultStatusOptions);
   const [columnOrder, setColumnOrder] = useState<string[]>(defaultColumns.map((c) => c.key));
@@ -580,9 +593,12 @@ export default function NotionTable({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const selectedTask = useMemo(() => tasks.find((t) => t.id === selectedTaskId) ?? null, [tasks, selectedTaskId]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [localCreateOpen, setLocalCreateOpen] = useState(false);
+  const showCreateModal = externalCreateOpen ?? localCreateOpen;
+  const setShowCreateModal = onCreateModalChange ?? setLocalCreateOpen;
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const statusOptions = externalStatusOptions ?? localStatusOptions;
 
@@ -651,17 +667,18 @@ export default function NotionTable({
 
   const [creating, setCreating] = useState(false);
 
-  const handleCreateTask = async (partial: Partial<Task>) => {
+  const handleCreateTask = async (partial: Partial<Task>): Promise<Task | null> => {
     if (!onTaskCreate) {
       setShowCreateModal(false);
-      return;
+      return null;
     }
     setCreating(true);
     try {
-      await onTaskCreate(partial);
+      const result = await onTaskCreate(partial);
       setShowCreateModal(false);
+      return result;
     } catch {
-      // creation failed — keep modal open
+      return null;
     } finally {
       setCreating(false);
     }
@@ -694,7 +711,7 @@ export default function NotionTable({
                 items={columnOrder.map((k) => `col-${k}`)}
                 strategy={horizontalListSortingStrategy}
               >
-                <tr className="[&>th:last-child]:border-r-0">
+                <tr>
                   <th style={{ width: 32, minWidth: 32 }} className="h-10" />
                   {sortedColumns.map((col) => (
                     <DraggableHeader
@@ -716,7 +733,7 @@ export default function NotionTable({
           <tbody>
             <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               {sorted.map((task) => (
-                <DraggableRow
+                  <DraggableRow
                   key={task.id}
                   task={task}
                   isDragging={isDragging(task.id)}
@@ -724,14 +741,14 @@ export default function NotionTable({
                   statusOptions={statusOptions}
                   onSelect={(t) => setSelectedTaskId(t.id)}
                   onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
-                  onTaskUpdate={(id, updates) => onTaskUpdate?.(id, updates)}
                   onTaskDelete={(id) => onTaskDelete?.(id)}
                   wrapTaskName={wrapTaskName}
+                  onImagePreview={(url) => setPreviewUrl(url)}
                 />
               ))}
             </SortableContext>
             <tr>
-              <td colSpan={columnOrder.length + 1} className="px-3 py-1">
+              <td colSpan={columnOrder.length + 1} className="pl-8 pr-3 py-1">
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer"
@@ -787,6 +804,11 @@ export default function NotionTable({
         loading={creating}
         teamId={teamIdProp}
         workspaceId={workspaceIdProp}
+      />
+      <ImagePreview
+        url={previewUrl || ""}
+        open={!!previewUrl}
+        onClose={() => setPreviewUrl(null)}
       />
     </DndContext>
   );
