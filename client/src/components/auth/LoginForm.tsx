@@ -110,7 +110,7 @@ export default function LoginForm({ onSuccess, showHeader = true }: LoginFormPro
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://142.93.28.233:5000/api/v1/auth/google-login";
+    window.location.href = "/api/v1/auth/google-login";
   };
 
   const handleSwitchMode = () => {
