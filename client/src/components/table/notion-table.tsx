@@ -161,7 +161,7 @@ function AssigneeCell({
 }: {
   task: Task;
   members?: TeamMember[];
-  onUpdate: (id: string, assignedTo: string | null) => void;
+  onUpdate?: (id: string, assignedTo: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -207,7 +207,7 @@ function AssigneeCell({
                   isUnassigned && "bg-white/5"
                 )}
                 onClick={() => {
-                  onUpdate(task.id, null);
+                  onUpdate?.(task.id, null);
                   setOpen(false);
                 }}
               >
@@ -232,7 +232,7 @@ function AssigneeCell({
                       isSelected && "bg-white/5"
                     )}
                     onClick={() => {
-                      onUpdate(task.id, member.userId);
+                      onUpdate?.(task.id, member.userId);
                       setOpen(false);
                     }}
                   >
@@ -543,7 +543,7 @@ function PriorityCell({
   onUpdate,
 }: {
   task: Task;
-  onUpdate: (id: string, priority: string) => void;
+  onUpdate?: (id: string, priority: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
@@ -581,7 +581,7 @@ function PriorityCell({
                   key={p}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer"
                   onClick={() => {
-                    onUpdate(task.id, p);
+                    onUpdate?.(task.id, p);
                     setOpen(false);
                   }}
                 >
