@@ -51,8 +51,38 @@ const joinTeam: RequestHandler = catchAsync(async (req: Request, res: Response) 
   });
 });
 
+const addMember: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const userId = getUserId(req as AuthRequest);
+  const teamId = req.params.teamId as string;
+  const { email } = req.body;
+  const result = await TeamServices.addMember(teamId, userId, email);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Member added successfully",
+    data: result,
+  });
+});
+
+const removeMember: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const userId = getUserId(req as AuthRequest);
+  const teamId = req.params.teamId as string;
+  const memberUserId = req.params.memberUserId as string;
+  const result = await TeamServices.removeMember(teamId, userId, memberUserId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Member removed successfully",
+    data: result,
+  });
+});
+
 export const TeamControllers = {
   createTeam,
   getMyTeams,
   joinTeam,
+  addMember,
+  removeMember,
 };

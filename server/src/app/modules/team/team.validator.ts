@@ -8,4 +8,8 @@ const joinTeamValidator = z.object({
   inviteCode: z.string().trim().min(4, "Invite code is required").max(12, "Invite code is too long"),
 });
 
-export { createTeamValidator, joinTeamValidator };
+const addMemberValidator = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export { createTeamValidator, joinTeamValidator, addMemberValidator };

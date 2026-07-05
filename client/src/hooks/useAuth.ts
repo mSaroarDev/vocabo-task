@@ -5,6 +5,8 @@ import {
   registerUser,
   logoutUser,
   fetchCurrentUser,
+  updateProfile as updateProfileAction,
+  deleteAccount as deleteAccountAction,
   clearError,
   setCredentials,
   type User,
@@ -46,6 +48,12 @@ export function useAuth() {
       await dispatch(logoutUser()).unwrap();
       dispatch(clearTeams());
       dispatch(clearWorkspaces());
+    },
+    updateProfile: async (data: { name?: string; email?: string; phone?: string }) => {
+      return dispatch(updateProfileAction(data)).unwrap();
+    },
+    deleteAccount: async () => {
+      return dispatch(deleteAccountAction()).unwrap();
     },
     clearError: () => dispatch(clearError()),
     setCredentials: (data: { token: string; user: User }) =>

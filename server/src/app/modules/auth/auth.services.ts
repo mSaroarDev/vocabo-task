@@ -92,4 +92,37 @@ export const AuthServices = {
 
     return { message: "Logged out successfully" };
   },
+
+  updateProfile: async (userId: string, data: { name?: string; email?: string; phone?: string }) => {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    if (data.email && data.email !== user.email) {
+      const existing = await User.findOne({ email: data.email });
+      if (existing) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Email already in use");
+      }
+    }
+
+    if (data.name) user.name = data.name;
+    if (data.email) user.email = data.email;
+    if (data.phone !== undefined) user.phone = data.phone;
+
+    await user.save();
+
+    const { password: _, ...userWithoutPassword } = user.toObject();
+    return userWithoutPassword;
+  },
+
+  deleteAccount: async (userId: string) => {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    await User.findByIdAndDelete(userId);
+    return { message: "Account deleted successfully" };
+  },
 };

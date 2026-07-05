@@ -4,6 +4,8 @@ import {
   createTeam as createTeamAction,
   fetchTeams as fetchTeamsAction,
   joinTeam as joinTeamAction,
+  addTeamMember as addTeamMemberAction,
+  removeTeamMember as removeTeamMemberAction,
   selectTeam as selectTeamAction,
   setTeams as setTeamsAction,
   type Team,
@@ -49,6 +51,12 @@ export function useTeams() {
       const cleanCode = inviteCode.trim().toUpperCase();
       if (!cleanCode) return null;
       return dispatch(joinTeamAction({ inviteCode: cleanCode })).unwrap();
+    },
+    addTeamMember: async (teamId: string, email: string) => {
+      return dispatch(addTeamMemberAction({ teamId, email })).unwrap();
+    },
+    removeTeamMember: async (teamId: string, memberUserId: string) => {
+      return dispatch(removeTeamMemberAction({ teamId, memberUserId })).unwrap();
     },
     setSelectedTeam: (team: Team) => dispatch(selectTeamAction(team.id)),
     setTeams: (newTeams: Team[]) => dispatch(setTeamsAction(newTeams)),

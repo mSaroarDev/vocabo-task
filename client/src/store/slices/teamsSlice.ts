@@ -1,12 +1,22 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import apiClient from "@/api/client";
 
+export interface TeamMember {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  joinedAt?: string;
+}
+
 export interface Team {
   id: string;
   name: string;
   avatar: string;
   color: string;
   inviteCode?: string;
+  owner?: string;
+  members?: TeamMember[];
 }
 
 interface TeamsState {
@@ -25,11 +35,38 @@ const initialState: TeamsState = {
   error: null,
 };
 
+interface ApiTeamMember {
+  user: { _id: string; name: string; email: string } | string;
+  role: string;
+  joinedAt?: string;
+}
+
 interface ApiTeam {
   _id: string;
   name: string;
   inviteCode: string;
+  owner: string;
+  members: ApiTeamMember[];
 }
+
+const mapMember = (m: ApiTeamMember): TeamMember => {
+  if (typeof m.user === "object" && m.user !== null) {
+    return {
+      userId: m.user._id,
+      name: m.user.name,
+      email: m.user.email,
+      role: m.role,
+      joinedAt: m.joinedAt,
+    };
+  }
+  return {
+    userId: m.user as string,
+    name: "",
+    email: "",
+    role: m.role,
+    joinedAt: m.joinedAt,
+  };
+};
 
 const teamColors = [
   "bg-blue-500/20",
@@ -46,6 +83,8 @@ const mapTeam = (team: ApiTeam, index = 0): Team => ({
   avatar: team.name.charAt(0).toUpperCase(),
   color: teamColors[index % teamColors.length],
   inviteCode: team.inviteCode,
+  owner: team.owner,
+  members: (team.members || []).map(mapMember),
 });
 
 const getErrorMessage = (error: unknown, fallback: string) => {
@@ -73,6 +112,30 @@ export const createTeam = createAsyncThunk<Team, { name: string }, { rejectValue
       return mapTeam(response.data.data as ApiTeam);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, "Failed to create team"));
+    }
+  }
+);
+
+export const addTeamMember = createAsyncThunk<Team, { teamId: string; email: string }, { rejectValue: string }>(
+  "teams/addTeamMember",
+  async ({ teamId, email }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post(`/teams/${teamId}/members`, { email });
+      return mapTeam(response.data.data as ApiTeam);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, "Failed to add member"));
+    }
+  }
+);
+
+export const removeTeamMember = createAsyncThunk<Team, { teamId: string; memberUserId: string }, { rejectValue: string }>(
+  "teams/removeTeamMember",
+  async ({ teamId, memberUserId }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.delete(`/teams/${teamId}/members/${memberUserId}`);
+      return mapTeam(response.data.data as ApiTeam);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, "Failed to remove member"));
     }
   }
 );
@@ -183,6 +246,26 @@ const teamsSlice = createSlice({
       .addCase(joinTeam.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || "Failed to join team";
+      })
+      .addCase(addTeamMember.fulfilled, (state, action) => {
+        const index = state.items.findIndex((t) => t.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+        state.error = null;
+      })
+      .addCase(addTeamMember.rejected, (state, action) => {
+        state.error = action.payload || "Failed to add member";
+      })
+      .addCase(removeTeamMember.fulfilled, (state, action) => {
+        const index = state.items.findIndex((t) => t.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+        state.error = null;
+      })
+      .addCase(removeTeamMember.rejected, (state, action) => {
+        state.error = action.payload || "Failed to remove member";
       });
   },
 });

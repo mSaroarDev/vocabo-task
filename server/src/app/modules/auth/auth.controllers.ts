@@ -57,4 +57,26 @@ export const AuthControllers = {
       data: result,
     });
   }),
+
+  updateProfile: catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id;
+    const result = await AuthServices.updateProfile(userId, req.body);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Profile updated successfully",
+      data: result,
+    });
+  }),
+
+  deleteAccount: catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id;
+    const result = await AuthServices.deleteAccount(userId);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Account deleted successfully",
+      data: result,
+    });
+  }),
 };

@@ -5,6 +5,7 @@ export interface User {
   _id: string;
   email: string;
   name: string;
+  phone?: string;
   avatar?: string;
   googleId?: string;
   isEmailVerified: boolean;
@@ -66,6 +67,33 @@ export const logoutUser = createAsyncThunk("auth/logout", async () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 });
+
+export const updateProfile = createAsyncThunk(
+  "auth/updateProfile",
+  async (data: { name?: string; email?: string; phone?: string }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.patch("/auth/profile", data);
+      const updatedUser = response.data.data;
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      return updatedUser;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const deleteAccount = createAsyncThunk(
+  "auth/deleteAccount",
+  async (_, { rejectWithValue }) => {
+    try {
+      await apiClient.delete("/auth/account");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
 
 export const fetchCurrentUser = createAsyncThunk(
   "auth/fetchCurrentUser",
@@ -161,6 +189,23 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         state.isLoading = false;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.error = action.error.message || "Failed to update profile";
+      })
+      .addCase(deleteAccount.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(deleteAccount.rejected, (state, action) => {
+        state.error = action.error.message || "Failed to delete account";
       });
   },
 });

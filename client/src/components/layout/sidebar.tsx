@@ -556,7 +556,10 @@ export default function Sidebar() {
         </ScrollArea>
 
         <div className="pb-3">
-          <div className="flex items-center gap-3 px-3 py-2 rounded-md mx-2 mt-2 group">
+          <div
+            onClick={() => navigate("/profile")}
+            className="flex items-center gap-3 px-3 py-2 rounded-md mx-2 mt-2 group cursor-pointer hover:bg-sidebar-accent/50 transition-colors"
+          >
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sidebar-accent text-xs font-medium">
               {userInitials}
             </div>
@@ -565,7 +568,10 @@ export default function Sidebar() {
               <p className="truncate text-xs text-muted-foreground">{user?.email || ""}</p>
             </div>
             <button
-              onClick={handleLogout}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogout();
+              }}
               title="Log out"
               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-sidebar-border hover:text-foreground group-hover:opacity-100 cursor-pointer"
             >

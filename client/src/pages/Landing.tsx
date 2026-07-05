@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -8,6 +8,7 @@ import {
   Moon,
   ArrowRight,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const features = [
   {
@@ -50,6 +51,15 @@ const steps = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e5e5e5]">
