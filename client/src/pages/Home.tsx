@@ -177,6 +177,7 @@ export default function Home() {
             onStatusOptionsChange={setStatusOptions}
             teamId={selectedTeam?.id}
             workspaceId={workspaceId}
+            members={selectedTeam?.members}
             tasks={tasks}
             onTaskCreate={addTask}
             onTaskUpdate={editTask}

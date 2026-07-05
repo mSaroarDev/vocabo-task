@@ -20,7 +20,8 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check } from "lucide-react";
+import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
 import ImagePreview from "@/components/ui/image-preview";
@@ -149,6 +150,108 @@ function PersonCell({ person }: { person: Person }) {
         {person.initials}
       </div>
       <span className="text-sm text-foreground">{person.name}</span>
+    </div>
+  );
+}
+
+function AssigneeCell({
+  task,
+  members,
+  onUpdate,
+}: {
+  task: Task;
+  members?: TeamMember[];
+  onUpdate: (id: string, assignedTo: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 6, left: rect.left });
+    }
+  }, [open]);
+
+  const isUnassigned = task.assignedTo.name === "Unassigned";
+
+  return (
+    <div className="relative inline-flex">
+      <div
+        ref={triggerRef}
+        className={cn(
+          "flex items-center gap-2 cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50 transition-colors",
+          isUnassigned && "text-muted-foreground/40"
+        )}
+        onClick={() => setOpen(!open)}
+      >
+        {!isUnassigned && (
+          <div className={cn("flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-medium", task.assignedTo.color)}>
+            {task.assignedTo.initials}
+          </div>
+        )}
+        <span className="text-sm">{task.assignedTo.name}</span>
+      </div>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          {createPortal(
+            <div
+              className="fixed z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[200px] max-h-[240px] overflow-y-auto"
+              style={{ top: menuPos.top, left: menuPos.left }}
+            >
+              <button
+                className={cn(
+                  "flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-white/10 text-left cursor-pointer",
+                  isUnassigned && "bg-white/5"
+                )}
+                onClick={() => {
+                  onUpdate(task.id, null);
+                  setOpen(false);
+                }}
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-medium text-foreground">
+                  Un
+                </div>
+                <span className="text-muted-foreground">Unassigned</span>
+              </button>
+              {members?.map((member) => {
+                const initials = member.name
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+                const isSelected = task.assignedTo.name === member.name;
+                return (
+                  <button
+                    key={member.userId}
+                    className={cn(
+                      "flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-white/10 text-left cursor-pointer",
+                      isSelected && "bg-white/5"
+                    )}
+                    onClick={() => {
+                      onUpdate(task.id, member.userId);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-medium">
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground truncate">{member.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{member.email}</p>
+                    </div>
+                    {isSelected && <Check size={14} className="text-blue-400 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>,
+            document.body
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -507,7 +610,7 @@ const priorityColors: Record<string, string> = {
   Immediate: "bg-rose-600/40 text-rose-200",
 };
 
-function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void) {
+function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[]) {
   switch (columnKey) {
     case "title":
       return (
@@ -567,7 +670,7 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
       );
     case "assignedTo":
     case "assignee":
-      return <PersonCell person={task.assignedTo} />;
+      return <AssigneeCell task={task} members={members} onUpdate={onAssigneeUpdate} />;
     default:
       if (task.customFields?.[columnKey] !== undefined) {
         return <span className="text-sm text-foreground">{String(task.customFields[columnKey])}</span>;
@@ -584,12 +687,14 @@ interface DraggableRowProps {
   onSelect: (task: Task) => void;
   onStatusUpdate: (id: string, status: string) => void;
   onPriorityUpdate: (id: string, priority: string) => void;
+  onAssigneeUpdate: (id: string, assignedTo: string | null) => void;
   onTaskDelete: (id: string) => void;
   wrapTaskName?: boolean;
   onImagePreview?: (url: string) => void;
+  members?: TeamMember[];
 }
 
-function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onTaskDelete, wrapTaskName, onImagePreview }: DraggableRowProps) {
+function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onAssigneeUpdate, onTaskDelete, wrapTaskName, onImagePreview, members }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
   const style = {
@@ -624,7 +729,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
       </td>
       {columnOrder.map((key) => (
         <td key={key} className={cn("h-9 px-3 border-b border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")}>
-          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate)}
+          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members)}
         </td>
       ))}
     </tr>
@@ -638,6 +743,7 @@ interface NotionTableProps {
   onStatusOptionsChange?: (options: StatusOption[]) => void;
   teamId?: string;
   workspaceId?: string;
+  members?: TeamMember[];
   onTaskCreate?: (data: Partial<Task>) => Promise<Task | null>;
   onTaskUpdate?: (id: string, data: Partial<Task>) => Promise<Task | null>;
   onTaskDelete?: (id: string) => void;
@@ -652,6 +758,7 @@ export default function NotionTable({
   statusOptions: externalStatusOptions,
   teamId: teamIdProp,
   workspaceId: workspaceIdProp,
+  members,
   onTaskCreate,
   onTaskUpdate,
   onTaskDelete,
@@ -819,9 +926,11 @@ export default function NotionTable({
                   onSelect={(t) => setSelectedTaskId(t.id)}
                   onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
                   onPriorityUpdate={(id, priority) => onTaskUpdate?.(id, { priority: priority as Task["priority"] })}
+                  onAssigneeUpdate={(id, assignedTo) => onTaskUpdate?.(id, { assignedTo: assignedTo as unknown as Task["assignedTo"] })}
                   onTaskDelete={(id) => onTaskDelete?.(id)}
                   wrapTaskName={wrapTaskName}
                   onImagePreview={(url) => setPreviewUrl(url)}
+                  members={members}
                 />
               ))}
             </SortableContext>
