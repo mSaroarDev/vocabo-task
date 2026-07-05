@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   DndContext,
   DragOverlay,
@@ -24,7 +25,7 @@ import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
 import ImagePreview from "@/components/ui/image-preview";
 
-type Priority = "None" | "Lowest" | "Low" | "Medium" | "High" | "Highest";
+type Priority = "Low" | "Medium" | "High" | "Very High" | "Urgent" | "Immediate";
 
 interface Person {
   name: string;
@@ -77,7 +78,7 @@ const sampleTasks: Task[] = [
     id: "1",
     title: "User cannot login with Google OAuth after profile update — returns 401 error",
     status: "In review",
-    priority: "Highest",
+    priority: "Immediate",
     isCompleted: false,
     description: "Users are reporting a 401 error when trying to log in via Google OAuth after updating their profile information. This needs immediate investigation.",
     attachments: [
@@ -91,7 +92,7 @@ const sampleTasks: Task[] = [
     id: "2",
     title: "Dashboard chart not rendering on Safari — WebGL compatibility issue",
     status: "Re Open",
-    priority: "High",
+    priority: "Urgent",
     isCompleted: false,
     attachments: [],
     createdBy: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
@@ -124,7 +125,7 @@ const sampleTasks: Task[] = [
     id: "5",
     title: "Mobile nav menu overlaps with page content on iPhone SE",
     status: "In review",
-    priority: "Highest",
+    priority: "Very High",
     isCompleted: false,
     attachments: [],
     createdBy: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
@@ -380,11 +381,21 @@ function StatusCell({
   onUpdate: (id: string, status: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLSpanElement>(null);
   const currentColor = statusOptions.find((s) => s.label === task.status)?.color || "";
 
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 6, left: rect.left });
+    }
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div className="relative inline-flex">
       <span
+        ref={triggerRef}
         className={cn(
           "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium cursor-pointer select-none",
           currentColor
@@ -396,38 +407,107 @@ function StatusCell({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1.5 z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[160px]">
-            {statusOptions.map((s) => (
-              <button
-                key={s.label}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer"
-                onClick={() => {
-                  onUpdate(task.id, s.label);
-                  setOpen(false);
-                }}
-              >
-                <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", s.color)}>
-                  {s.label}
-                </span>
-              </button>
-            ))}
-          </div>
+          {createPortal(
+            <div
+              className="fixed z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
+              style={{ top: menuPos.top, left: menuPos.left }}
+            >
+              {statusOptions.map((s) => (
+                <button
+                  key={s.label}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer"
+                  onClick={() => {
+                    onUpdate(task.id, s.label);
+                    setOpen(false);
+                  }}
+                >
+                  <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", s.color)}>
+                    {s.label}
+                  </span>
+                </button>
+              ))}
+            </div>,
+            document.body
+          )}
         </>
       )}
     </div>
   );
 }
 
+function PriorityCell({
+  task,
+  onUpdate,
+}: {
+  task: Task;
+  onUpdate: (id: string, priority: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 6, left: rect.left });
+    }
+  }, [open]);
+
+  return (
+    <div className="relative inline-flex">
+      <span
+        ref={triggerRef}
+        className={cn(
+          "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium cursor-pointer select-none",
+          priorityColors[task.priority]
+        )}
+        onClick={() => setOpen(!open)}
+      >
+        {task.priority}
+      </span>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          {createPortal(
+            <div
+              className="fixed z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
+              style={{ top: menuPos.top, left: menuPos.left }}
+            >
+              {priorityOptions.map((p) => (
+                <button
+                  key={p}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer"
+                  onClick={() => {
+                    onUpdate(task.id, p);
+                    setOpen(false);
+                  }}
+                >
+                  <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", priorityColors[p])}>
+                    {p}
+                  </span>
+                </button>
+              ))}
+            </div>,
+            document.body
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+const priorityOptions = ["Low", "Medium", "High", "Very High", "Urgent", "Immediate"];
+
 const priorityColors: Record<string, string> = {
-  None: "text-muted-foreground/30",
-  Lowest: "bg-zinc-600/20 text-zinc-300",
   Low: "bg-zinc-600/20 text-zinc-300",
   Medium: "bg-amber-500/20 text-amber-300",
   High: "bg-red-500/20 text-red-300",
-  Highest: "bg-red-600/30 text-red-200",
+  "Very High": "bg-red-600/30 text-red-200",
+  Urgent: "bg-orange-600/30 text-orange-200",
+  Immediate: "bg-rose-600/40 text-rose-200",
 };
 
-function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void) {
+function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void) {
   switch (columnKey) {
     case "title":
       return (
@@ -446,11 +526,7 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
     case "status":
       return <StatusCell statusOptions={statusOptions} task={task} onUpdate={onStatusUpdate} />;
     case "priority":
-      return (
-        <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", priorityColors[task.priority])}>
-          {task.priority}
-        </span>
-      );
+      return <PriorityCell task={task} onUpdate={onPriorityUpdate} />;
     case "description":
       return (
         <span className="text-sm text-muted-foreground truncate block">
@@ -507,12 +583,13 @@ interface DraggableRowProps {
   statusOptions: StatusOption[];
   onSelect: (task: Task) => void;
   onStatusUpdate: (id: string, status: string) => void;
+  onPriorityUpdate: (id: string, priority: string) => void;
   onTaskDelete: (id: string) => void;
   wrapTaskName?: boolean;
   onImagePreview?: (url: string) => void;
 }
 
-function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onTaskDelete, wrapTaskName, onImagePreview }: DraggableRowProps) {
+function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onTaskDelete, wrapTaskName, onImagePreview }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
   const style = {
@@ -547,7 +624,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
       </td>
       {columnOrder.map((key) => (
         <td key={key} className={cn("h-9 px-3 border-b border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")}>
-          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview)}
+          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate)}
         </td>
       ))}
     </tr>
@@ -741,6 +818,7 @@ export default function NotionTable({
                   statusOptions={statusOptions}
                   onSelect={(t) => setSelectedTaskId(t.id)}
                   onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
+                  onPriorityUpdate={(id, priority) => onTaskUpdate?.(id, { priority: priority as Task["priority"] })}
                   onTaskDelete={(id) => onTaskDelete?.(id)}
                   wrapTaskName={wrapTaskName}
                   onImagePreview={(url) => setPreviewUrl(url)}

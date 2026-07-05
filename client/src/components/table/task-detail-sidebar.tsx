@@ -11,12 +11,12 @@ const statusColors: Record<string, string> = {
 };
 
 const priorityColors: Record<string, string> = {
-  None: "text-muted-foreground/50",
-  Lowest: "bg-zinc-600/20 text-zinc-300",
   Low: "bg-zinc-600/20 text-zinc-300",
   Medium: "bg-amber-500/20 text-amber-300",
-  High: "bg-orange-600/20 text-orange-300",
-  Highest: "bg-red-600/20 text-red-300",
+  High: "bg-red-500/20 text-red-300",
+  "Very High": "bg-red-600/30 text-red-200",
+  Urgent: "bg-orange-600/30 text-orange-200",
+  Immediate: "bg-rose-600/40 text-rose-200",
 };
 
 interface TaskDetailSidebarProps {

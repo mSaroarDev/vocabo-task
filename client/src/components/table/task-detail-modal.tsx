@@ -29,12 +29,12 @@ const statusColors: Record<string, string> = {
 };
 
 const priorityColors: Record<string, string> = {
-  None: "bg-zinc-600/20 text-zinc-300",
-  Lowest: "bg-zinc-600/20 text-zinc-300",
   Low: "bg-zinc-600/20 text-zinc-300",
   Medium: "bg-amber-500/20 text-amber-300",
   High: "bg-red-500/20 text-red-300",
-  Highest: "bg-red-600/30 text-red-200",
+  "Very High": "bg-red-600/30 text-red-200",
+  Urgent: "bg-orange-600/30 text-orange-200",
+  Immediate: "bg-rose-600/40 text-rose-200",
 };
 
 interface ActivityItem {
@@ -161,7 +161,7 @@ export default function TaskDetailModal({
   const [titleValue, setTitleValue] = useState(task?.title || "");
   const [descValue, setDescValue] = useState(task?.description || "");
   const [statusValue, setStatusValue] = useState(task?.status || statusOptions[0]?.label || "In review");
-  const [priorityValue, setPriorityValue] = useState(task?.priority || "None");
+  const [priorityValue, setPriorityValue] = useState(task?.priority || "Medium");
   const [assignedToName, setAssignedToName] = useState(task?.assignedTo?.name || "");
   const [statusOpen, setStatusOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
@@ -202,7 +202,7 @@ export default function TaskDetailModal({
       setTitleValue("");
       setDescValue("");
       setStatusValue(statusOptions[0]?.label || "In review");
-      setPriorityValue("None");
+      setPriorityValue("Medium");
       setAssignedToName("");
       setPendingAttachments([]);
     }
@@ -283,7 +283,7 @@ export default function TaskDetailModal({
     }
   };
 
-  const priorityOptions = ["None", "Lowest", "Low", "Medium", "High", "Highest"];
+  const priorityOptions = ["Low", "Medium", "High", "Very High", "Urgent", "Immediate"];
 
   const renderTitle = () => {
     if (isCreate) {
