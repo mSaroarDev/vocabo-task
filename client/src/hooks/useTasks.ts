@@ -40,25 +40,19 @@ export function useTasks(teamId?: string | null, workspaceId?: string | null) {
   const tasks: Task[] = currentWorkspaceId === workspaceId ? items : [];
 
   const addTask = useCallback(
-    async (data: Partial<Task>) => {
-      if (!teamId || !workspaceId) return null;
-      try {
-        return await dispatch(
-          createTaskAction({ teamId, workspaceId, data })
-        ).unwrap();
-      } catch (error) {
-        throw error;
-      }
+    (data: Partial<Task>, pendingAttachments?: File[]) => {
+      if (!teamId || !workspaceId) return;
+      dispatch(createTaskAction({ teamId, workspaceId, data, pendingAttachments }));
     },
     [dispatch, teamId, workspaceId]
   );
 
   const editTask = useCallback(
-    async (taskId: string, data: Partial<Task>) => {
+    async (taskId: string, data: Partial<Task>, optimisticData?: any) => {
       if (!teamId || !workspaceId) return null;
       try {
         return await dispatch(
-          updateTaskAction({ teamId, workspaceId, taskId, data })
+          updateTaskAction({ teamId, workspaceId, taskId, data, optimisticData })
         ).unwrap();
       } catch (error) {
         throw error;

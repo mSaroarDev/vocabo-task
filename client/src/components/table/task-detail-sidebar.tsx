@@ -4,19 +4,23 @@ import type { Task } from "./notion-table";
 
 const statusColors: Record<string, string> = {
   New: "bg-purple-500/20 text-purple-300",
+  "In progress": "bg-sky-500/20 text-sky-300",
   "In review": "bg-blue-600/20 text-blue-300",
   "Re Open": "bg-amber-500/20 text-amber-300",
+  "Need info": "bg-yellow-500/20 text-yellow-300",
   Done: "bg-green-600/20 text-green-300",
+  Duplicate: "bg-slate-600/20 text-slate-300",
+  Invalid: "bg-red-600/20 text-red-300",
   Rejected: "bg-zinc-600/30 text-zinc-300",
 };
 
 const priorityColors: Record<string, string> = {
-  Low: "bg-zinc-600/20 text-zinc-300",
+  None: "bg-zinc-600/20 text-zinc-300",
+  Lowest: "bg-blue-500/20 text-blue-300",
+  Low: "bg-sky-500/20 text-sky-300",
   Medium: "bg-amber-500/20 text-amber-300",
-  High: "bg-red-500/20 text-red-300",
-  "Very High": "bg-red-600/30 text-red-200",
-  Urgent: "bg-orange-600/30 text-orange-200",
-  Immediate: "bg-rose-600/40 text-rose-200",
+  High: "bg-orange-500/20 text-orange-300",
+  Highest: "bg-red-500/20 text-red-300",
 };
 
 interface TaskDetailSidebarProps {

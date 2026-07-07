@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
 import ImagePreview from "@/components/ui/image-preview";
 
-type Priority = "Low" | "Medium" | "High" | "Very High" | "Urgent" | "Immediate";
+type Priority = "None" | "Lowest" | "Low" | "Medium" | "High" | "Highest";
 
 interface Person {
   name: string;
@@ -57,6 +57,7 @@ export interface Task {
   createdBy: Person;
   assignedTo: Person;
   customFields: Record<string, unknown>;
+  isPending?: boolean;
 }
 
 interface StatusOption {
@@ -79,7 +80,7 @@ const sampleTasks: Task[] = [
     id: "1",
     title: "User cannot login with Google OAuth after profile update — returns 401 error",
     status: "In review",
-    priority: "Immediate",
+    priority: "Highest",
     isCompleted: false,
     description: "Users are reporting a 401 error when trying to log in via Google OAuth after updating their profile information. This needs immediate investigation.",
     attachments: [
@@ -93,7 +94,7 @@ const sampleTasks: Task[] = [
     id: "2",
     title: "Dashboard chart not rendering on Safari — WebGL compatibility issue",
     status: "Re Open",
-    priority: "Urgent",
+    priority: "Highest",
     isCompleted: false,
     attachments: [],
     createdBy: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
@@ -126,7 +127,7 @@ const sampleTasks: Task[] = [
     id: "5",
     title: "Mobile nav menu overlaps with page content on iPhone SE",
     status: "In review",
-    priority: "Very High",
+    priority: "High",
     isCompleted: false,
     attachments: [],
     createdBy: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
@@ -137,9 +138,13 @@ const sampleTasks: Task[] = [
 
 const defaultStatusOptions: StatusOption[] = [
   { label: "New", color: "bg-purple-500/20 text-purple-300" },
+  { label: "In progress", color: "bg-sky-500/20 text-sky-300" },
   { label: "In review", color: "bg-blue-600/20 text-blue-300" },
   { label: "Re Open", color: "bg-amber-500/20 text-amber-300" },
+  { label: "Need info", color: "bg-yellow-500/20 text-yellow-300" },
   { label: "Done", color: "bg-green-600/20 text-green-300" },
+  { label: "Duplicate", color: "bg-slate-600/20 text-slate-300" },
+  { label: "Invalid", color: "bg-red-600/20 text-red-300" },
   { label: "Rejected", color: "bg-zinc-600/30 text-zinc-300" },
 ];
 
@@ -231,8 +236,10 @@ function AssigneeCell({
                       "flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-white/10 text-left cursor-pointer",
                       isSelected && "bg-white/5"
                     )}
-                    onClick={() => {
-                      onUpdate?.(task.id, member.userId);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      onUpdate?.(task.id, isSelected ? null : member.userId);
                       setOpen(false);
                     }}
                   >
@@ -599,15 +606,15 @@ function PriorityCell({
   );
 }
 
-const priorityOptions = ["Low", "Medium", "High", "Very High", "Urgent", "Immediate"];
+const priorityOptions = ["None", "Lowest", "Low", "Medium", "High", "Highest"];
 
 const priorityColors: Record<string, string> = {
-  Low: "bg-zinc-600/20 text-zinc-300",
+  None: "bg-zinc-600/20 text-zinc-300",
+  Lowest: "bg-blue-500/20 text-blue-300",
+  Low: "bg-sky-500/20 text-sky-300",
   Medium: "bg-amber-500/20 text-amber-300",
-  High: "bg-red-500/20 text-red-300",
-  "Very High": "bg-red-600/30 text-red-200",
-  Urgent: "bg-orange-600/30 text-orange-200",
-  Immediate: "bg-rose-600/40 text-rose-200",
+  High: "bg-orange-500/20 text-orange-300",
+  Highest: "bg-red-500/20 text-red-300",
 };
 
 function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[]) {
@@ -744,8 +751,8 @@ interface NotionTableProps {
   teamId?: string;
   workspaceId?: string;
   members?: TeamMember[];
-  onTaskCreate?: (data: Partial<Task>) => Promise<Task | null>;
-  onTaskUpdate?: (id: string, data: Partial<Task>) => Promise<Task | null>;
+  onTaskCreate?: (data: Partial<Task>, pendingAttachments?: File[]) => void;
+  onTaskUpdate?: (id: string, data: Partial<Task>, optimisticData?: any) => Promise<Task | null>;
   onTaskDelete?: (id: string) => void;
   onTaskReorder?: (taskIds: string[]) => Promise<{ workspaceId: string; tasks: Task[] } | null>;
   createModalOpen?: boolean;
@@ -845,27 +852,17 @@ export default function NotionTable({
     setColumnLabels((prev) => ({ ...prev, [key]: newLabel }));
   };
 
-  const handleTaskUpdate = (id: string, updates: Partial<Task>) => {
-    onTaskUpdate?.(id, updates);
+  const handleTaskUpdate = (id: string, updates: Partial<Task>, optimisticData?: any) => {
+    onTaskUpdate?.(id, updates, optimisticData);
   };
 
-  const [creating, setCreating] = useState(false);
-
-  const handleCreateTask = async (partial: Partial<Task>): Promise<Task | null> => {
+  const handleCreateTask = (partial: Partial<Task>, pendingAttachments?: File[]) => {
     if (!onTaskCreate) {
       setShowCreateModal(false);
-      return null;
+      return;
     }
-    setCreating(true);
-    try {
-      const result = await onTaskCreate(partial);
-      setShowCreateModal(false);
-      return result;
-    } catch {
-      return null;
-    } finally {
-      setCreating(false);
-    }
+    onTaskCreate(partial, pendingAttachments);
+    setShowCreateModal(false);
   };
 
   const isDragging = (id: string) => activeId === id;
@@ -926,7 +923,17 @@ export default function NotionTable({
                   onSelect={(t) => setSelectedTaskId(t.id)}
                   onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
                   onPriorityUpdate={(id, priority) => onTaskUpdate?.(id, { priority: priority as Task["priority"] })}
-                  onAssigneeUpdate={(id, assignedTo) => onTaskUpdate?.(id, { assignedTo: assignedTo as unknown as Task["assignedTo"] })}
+                  onAssigneeUpdate={(id, assignedTo) => {
+                    const member = members?.find(m => m.userId === assignedTo);
+                    const optimisticAssignedTo = member 
+                      ? {
+                          name: member.name,
+                          initials: member.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
+                          color: "bg-blue-500/20 text-blue-300"
+                        }
+                      : { name: "Unassigned", initials: "Un", color: "bg-blue-500/20 text-blue-300" };
+                    onTaskUpdate?.(id, { assignedTo: assignedTo as unknown as Task["assignedTo"] }, { assignedTo: optimisticAssignedTo });
+                  }}
                   onTaskDelete={(id) => onTaskDelete?.(id)}
                   wrapTaskName={wrapTaskName}
                   onImagePreview={(url) => setPreviewUrl(url)}
@@ -988,7 +995,6 @@ export default function NotionTable({
         onCreate={handleCreateTask}
         statusOptions={statusOptions}
         mode="create"
-        loading={creating}
         teamId={teamIdProp}
         workspaceId={workspaceIdProp}
       />

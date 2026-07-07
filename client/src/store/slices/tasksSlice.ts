@@ -132,38 +132,120 @@ export const fetchTasks = createAsyncThunk<
 
 export const createTask = createAsyncThunk<
   Task,
-  { teamId: string; workspaceId: string; data: Partial<Task> },
+  {
+    teamId: string;
+    workspaceId: string;
+    data: Partial<Task>;
+    pendingAttachments?: File[];
+  },
   { rejectValue: string }
->("tasks/createTask", async ({ teamId, workspaceId, data }, { rejectWithValue }) => {
-  try {
-    const payload: Record<string, unknown> = {
-      title: data.title,
+>(
+  "tasks/createTask",
+  async (
+    { teamId, workspaceId, data, pendingAttachments },
+    { dispatch, rejectWithValue }
+  ) => {
+    const tempId = `temp_${crypto.randomUUID()}`;
+    const tempTask: Task = {
+      id: tempId,
+      title: data.title || "Untitled",
+      status: data.status || "New",
+      priority: data.priority || "Medium",
+      isCompleted: false,
       description: data.description,
-      status: data.status,
-      priority: data.priority,
+      attachments: [],
+      createdBy: {
+        name: "You",
+        initials: "YO",
+        color: "bg-zinc-700 text-foreground",
+      },
+      assignedTo: {
+        name: "Unassigned",
+        initials: "Un",
+        color: "bg-blue-500/20 text-blue-300",
+      },
+      customFields: {},
+      isPending: true,
     };
-    const response = await apiClient.post(`/teams/${teamId}/workspaces/${workspaceId}/tasks`, payload);
-    return mapTask(response.data.data as ApiTask);
-  } catch (error) {
-    return rejectWithValue(getErrorMessage(error, "Failed to create task"));
+
+    dispatch(addOptimisticTask(tempTask));
+
+    try {
+      const payload: Record<string, unknown> = {
+        title: data.title,
+        description: data.description,
+        status: data.status,
+        priority: data.priority,
+      };
+      const response = await apiClient.post(
+        `/teams/${teamId}/workspaces/${workspaceId}/tasks`,
+        payload
+      );
+      const realTask = mapTask(response.data.data as ApiTask);
+
+      if (pendingAttachments && pendingAttachments.length > 0) {
+        const token = localStorage.getItem("token");
+        for (const file of pendingAttachments) {
+          try {
+            const formData = new FormData();
+            formData.append("attachments", file);
+            const attachRes = await axios({
+              method: "post",
+              url: `${apiClient.defaults.baseURL}/teams/${teamId}/workspaces/${workspaceId}/tasks/${realTask.id}/attachments`,
+              data: formData,
+              headers: {
+                Authorization: token ? `Bearer ${token}` : undefined,
+              },
+            });
+            const updated = mapTask(attachRes.data.data as ApiTask);
+            dispatch(confirmOptimisticTask({ tempId, realTask: updated }));
+          } catch {
+            // individual attachment upload failure — continue
+          }
+        }
+      } else {
+        dispatch(confirmOptimisticTask({ tempId, realTask }));
+      }
+
+      return realTask;
+    } catch (error) {
+      dispatch(removeOptimisticTask(tempId));
+      return rejectWithValue(
+        getErrorMessage(error, "Failed to create task")
+      );
+    }
   }
-});
+);
 
 export const updateTask = createAsyncThunk<
   Task,
-  { teamId: string; workspaceId: string; taskId: string; data: Partial<Task> },
-  { rejectValue: string }
->("tasks/updateTask", async ({ teamId, workspaceId, taskId, data }, { rejectWithValue }) => {
-  try {
-    const response = await apiClient.patch(
-      `/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}`,
-      data
-    );
-    return mapTask(response.data.data as ApiTask);
-  } catch (error) {
-    return rejectWithValue(getErrorMessage(error, "Failed to update task"));
+  { teamId: string; workspaceId: string; taskId: string; data: Partial<Task>; optimisticData?: any },
+  { state: { tasks: TasksState }; rejectValue: string }
+>(
+  "tasks/updateTask",
+  async (
+    { teamId, workspaceId, taskId, data, optimisticData },
+    { dispatch, getState, rejectWithValue }
+  ) => {
+    const task = getState().tasks.items.find((t) => t.id === taskId);
+    if (task) {
+      dispatch(applyOptimisticUpdate({ taskId, updates: optimisticData || data }));
+    }
+
+    try {
+      const response = await apiClient.patch(
+        `/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}`,
+        data
+      );
+      return mapTask(response.data.data as ApiTask);
+    } catch (error) {
+      if (task) {
+        dispatch(revertTaskUpdate({ taskId, previousState: task }));
+      }
+      return rejectWithValue(getErrorMessage(error, "Failed to update task"));
+    }
   }
-});
+);
 
 export const deleteTask = createAsyncThunk<
   string,
@@ -238,6 +320,40 @@ const tasksSlice = createSlice({
       state.lastFetched = null;
       state.error = null;
     },
+    addOptimisticTask: (state, action: PayloadAction<Task>) => {
+      state.items.push(action.payload);
+    },
+    removeOptimisticTask: (state, action: PayloadAction<string>) => {
+      state.items = state.items.filter((t) => t.id !== action.payload);
+    },
+    confirmOptimisticTask: (
+      state,
+      action: PayloadAction<{ tempId: string; realTask: Task }>
+    ) => {
+      const idx = state.items.findIndex((t) => t.id === action.payload.tempId);
+      if (idx !== -1) {
+        state.items[idx] = action.payload.realTask;
+      }
+      state.error = null;
+    },
+    applyOptimisticUpdate: (
+      state,
+      action: PayloadAction<{ taskId: string; updates: Partial<Task> }>
+    ) => {
+      const idx = state.items.findIndex((t) => t.id === action.payload.taskId);
+      if (idx !== -1) {
+        Object.assign(state.items[idx], action.payload.updates);
+      }
+    },
+    revertTaskUpdate: (
+      state,
+      action: PayloadAction<{ taskId: string; previousState: Task }>
+    ) => {
+      const idx = state.items.findIndex((t) => t.id === action.payload.taskId);
+      if (idx !== -1) {
+        state.items[idx] = action.payload.previousState;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -262,8 +378,7 @@ const tasksSlice = createSlice({
         state.lastFetched = Date.now();
         state.error = action.payload || "Failed to load tasks";
       })
-      .addCase(createTask.fulfilled, (state, action) => {
-        state.items.push(action.payload);
+      .addCase(createTask.fulfilled, (state) => {
         state.error = null;
       })
       .addCase(createTask.rejected, (state, action) => {
@@ -308,5 +423,13 @@ const tasksSlice = createSlice({
   },
 });
 
-export const { setTasks, clearTasks } = tasksSlice.actions;
+export const {
+  setTasks,
+  clearTasks,
+  addOptimisticTask,
+  removeOptimisticTask,
+  confirmOptimisticTask,
+  applyOptimisticUpdate,
+  revertTaskUpdate,
+} = tasksSlice.actions;
 export default tasksSlice.reducer;

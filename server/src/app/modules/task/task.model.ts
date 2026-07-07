@@ -24,7 +24,7 @@ const taskSchema = new Schema<ITask>(
     status: { type: String, required: true, default: "New", trim: true, maxlength: 80 },
     priority: {
       type: String,
-      enum: ["None", "Low", "Medium", "High"],
+      enum: ["None", "Lowest", "Low", "Medium", "High", "Highest"],
       default: "None",
     },
     attachments: { type: [attachmentSchema], default: [] },
