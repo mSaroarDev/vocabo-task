@@ -76,7 +76,7 @@ const createTask = async (
   const lastTask = await TaskModel.findOne({ workspace: workspaceId }).sort({ order: -1 });
   const order = lastTask ? lastTask.order + 1 : 0;
 
-  const defaultStatus = "In review";
+  const defaultStatus = "New";
   const defaultPriority: TaskPriority = "None";
 
   const task = await TaskModel.create({

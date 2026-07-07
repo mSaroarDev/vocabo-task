@@ -786,9 +786,9 @@ export default function NotionTable({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const selectedTask = useMemo(() => tasks.find((t) => t.id === selectedTaskId) ?? null, [tasks, selectedTaskId]);
-  const [localCreateOpen, setLocalCreateOpen] = useState(false);
-  const showCreateModal = externalCreateOpen ?? localCreateOpen;
-  const setShowCreateModal = onCreateModalChange ?? setLocalCreateOpen;
+  const [addingNew, setAddingNew] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const newTaskInputRef = useRef<HTMLInputElement>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -833,6 +833,13 @@ export default function NotionTable({
     }
   }, [tasks, onTaskReorder]);
 
+  useEffect(() => {
+    if (externalCreateOpen) {
+      setAddingNew(true);
+      onCreateModalChange?.(false);
+    }
+  }, [externalCreateOpen, onCreateModalChange]);
+
   const sorted = [...tasks].sort((a, b) => {
     if (!sortKey) return 0;
     const key = sortKey as keyof Task;
@@ -856,15 +863,6 @@ export default function NotionTable({
 
   const handleTaskUpdate = (id: string, updates: Partial<Task>, optimisticData?: any) => {
     onTaskUpdate?.(id, updates, optimisticData);
-  };
-
-  const handleCreateTask = (partial: Partial<Task>, pendingAttachments?: File[]) => {
-    if (!onTaskCreate) {
-      setShowCreateModal(false);
-      return;
-    }
-    onTaskCreate(partial, pendingAttachments);
-    setShowCreateModal(false);
   };
 
   const isDragging = (id: string) => activeId === id;
@@ -943,10 +941,52 @@ export default function NotionTable({
                 />
               ))}
             </SortableContext>
+            {addingNew && (
+              <tr className="group">
+                <td style={{ width: 56, minWidth: 56 }} className="h-9 px-1" />
+                {columnOrder.map((key) => (
+                  <td key={key} className="h-9 px-3 border-b border-border/50">
+                    {key === "title" ? (
+                      <input
+                        ref={newTaskInputRef}
+                        autoFocus
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (newTaskTitle.trim()) {
+                              onTaskCreate?.({ title: newTaskTitle.trim() });
+                            }
+                            setNewTaskTitle("");
+                            setAddingNew(false);
+                          }
+                          if (e.key === "Escape") {
+                            setNewTaskTitle("");
+                            setAddingNew(false);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (newTaskTitle.trim()) {
+                            onTaskCreate?.({ title: newTaskTitle.trim() });
+                          }
+                          setNewTaskTitle("");
+                          setAddingNew(false);
+                        }}
+                        placeholder="Type task title..."
+                        className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/30"
+                      />
+                    ) : (
+                      <span className="text-muted-foreground/30 text-sm">—</span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            )}
             <tr>
               <td colSpan={columnOrder.length + 1} className="pl-8 pr-3 py-1">
                 <button
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => setAddingNew(true)}
                   className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer"
                 >
                   <Plus size={14} />
@@ -991,15 +1031,6 @@ export default function NotionTable({
           workspaceId={workspaceIdProp}
         />
       )}
-      <TaskDetailModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        onCreate={handleCreateTask}
-        statusOptions={statusOptions}
-        mode="create"
-        teamId={teamIdProp}
-        workspaceId={workspaceIdProp}
-      />
       <ImagePreview
         url={previewUrl || ""}
         open={!!previewUrl}

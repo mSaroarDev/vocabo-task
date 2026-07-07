@@ -138,26 +138,28 @@ export const createTask = createAsyncThunk<
     data: Partial<Task>;
     pendingAttachments?: File[];
   },
-  { rejectValue: string }
+  { state: { auth: { user: { name: string } | null } }; rejectValue: string }
 >(
   "tasks/createTask",
   async (
     { teamId, workspaceId, data, pendingAttachments },
-    { dispatch, rejectWithValue }
+    { dispatch, rejectWithValue, getState }
   ) => {
+    const currentUser = getState().auth.user;
+    const userName = currentUser?.name || "Unknown";
     const tempId = `temp_${crypto.randomUUID()}`;
     const tempTask: Task = {
       id: tempId,
       title: data.title || "Untitled",
       status: data.status || "New",
-      priority: data.priority || "Medium",
+      priority: data.priority || "None",
       isCompleted: false,
       description: data.description,
       attachments: [],
       createdBy: {
-        name: "You",
-        initials: "YO",
-        color: "bg-zinc-700 text-foreground",
+        name: userName,
+        initials: getInitials(userName),
+        color: getColor(userName),
       },
       assignedTo: {
         name: "Unassigned",
