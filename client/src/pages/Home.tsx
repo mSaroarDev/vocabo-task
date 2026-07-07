@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Heart, Lightbulb, Sun, Folder, Filter, ArrowUpDown, Search, Settings, Plus, UserPlus } from "lucide-react";
+import { Heart, Sun, Folder, Filter, ArrowUpDown, Search, Settings, Plus, UserPlus } from "lucide-react";
+import { WorkspaceIcon } from "@/lib/workspace-icons";
 import { cn } from "@/lib/utils";
 import NotionTable, { type StatusOption } from "@/components/table/notion-table";
 import SettingsModal from "@/components/table/settings-modal";
@@ -92,13 +93,13 @@ export default function Home() {
           <Heart size={12} className="text-red-400" fill="currentColor" />
           <span>Vocabo Teamspace</span>
           <span className="text-muted-foreground/40">/</span>
-          <Lightbulb size={12} className="text-amber-400" />
+          <WorkspaceIcon name={currentWorkspace.icon} size={12} className="text-amber-400" />
           <span>{titleValue}</span>
         </div>
 
         <div className="ml-5 flex items-center gap-3 mb-8">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-400/10">
-            <Lightbulb size={22} className="text-amber-400" />
+            <WorkspaceIcon name={currentWorkspace.icon} size={22} className="text-amber-400" />
           </div>
           {editingTitle ? (
             <input
