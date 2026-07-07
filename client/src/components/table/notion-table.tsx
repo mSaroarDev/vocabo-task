@@ -617,9 +617,31 @@ const priorityColors: Record<string, string> = {
   Highest: "bg-red-500/20 text-red-300",
 };
 
-function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[]) {
+function renderCellContent(task: Task, columnKey: string, _onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[], editingTaskId?: string | null, editingField?: "title" | "description" | null, editingValue?: string, editingInputRef?: React.RefObject<HTMLInputElement | null>, onStartEdit?: (task: Task, field: "title" | "description") => void, onEditingChange?: (value: string) => void, onSaveEdit?: (taskId: string, value: string) => void, onCancelEdit?: () => void) {
+  const isEditing = editingTaskId === task.id && editingField === columnKey;
   switch (columnKey) {
     case "title":
+      if (isEditing) {
+        return (
+          <input
+            ref={editingInputRef}
+            autoFocus
+            value={editingValue}
+            onChange={(e) => onEditingChange?.(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onSaveEdit?.(task.id, editingValue || "");
+              }
+              if (e.key === "Escape") {
+                onCancelEdit?.();
+              }
+            }}
+            onBlur={() => onSaveEdit?.(task.id, editingValue || "")}
+            className="w-full bg-transparent text-sm text-foreground outline-none border-b border-foreground/20 focus:border-foreground/50 px-1 py-0.5"
+          />
+        );
+      }
       return (
         <span className="inline-flex items-center w-full">
           <span
@@ -627,7 +649,7 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
               "cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50 text-sm leading-tight",
               wrapTaskName ? "whitespace-normal" : "truncate"
             )}
-            onClick={() => onSelect(task)}
+            onClick={() => onStartEdit?.(task, "title")}
           >
             {task.title}
           </span>
@@ -638,8 +660,32 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
     case "priority":
       return <PriorityCell task={task} onUpdate={onPriorityUpdate} />;
     case "description":
+      if (isEditing) {
+        return (
+          <input
+            ref={editingInputRef}
+            autoFocus
+            value={editingValue}
+            onChange={(e) => onEditingChange?.(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onSaveEdit?.(task.id, editingValue || "");
+              }
+              if (e.key === "Escape") {
+                onCancelEdit?.();
+              }
+            }}
+            onBlur={() => onSaveEdit?.(task.id, editingValue || "")}
+            className="w-full bg-transparent text-sm text-foreground outline-none border-b border-foreground/20 focus:border-foreground/50 px-1 py-0.5"
+          />
+        );
+      }
       return (
-        <span className="text-sm text-muted-foreground truncate block">
+        <span
+          className="text-sm text-muted-foreground truncate block cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50"
+          onClick={() => onStartEdit?.(task, "description")}
+        >
           {task.description || "—"}
         </span>
       );
@@ -699,9 +745,17 @@ interface DraggableRowProps {
   wrapTaskName?: boolean;
   onImagePreview?: (url: string) => void;
   members?: TeamMember[];
+  editingTaskId?: string | null;
+  editingField?: "title" | "description" | null;
+  editingValue?: string;
+  editingInputRef?: React.RefObject<HTMLInputElement | null>;
+  onStartEdit?: (task: Task, field: "title" | "description") => void;
+  onEditingChange?: (value: string) => void;
+  onSaveEdit?: (taskId: string, value: string) => void;
+  onCancelEdit?: () => void;
 }
 
-function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onAssigneeUpdate, onTaskDelete, wrapTaskName, onImagePreview, members }: DraggableRowProps) {
+function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onAssigneeUpdate, onTaskDelete, wrapTaskName, onImagePreview, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
   const style = {
@@ -738,7 +792,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
       </td>
       {columnOrder.map((key) => (
         <td key={key} className={cn("h-9 px-3 border-b border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")}>
-          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members)}
+          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit)}
         </td>
       ))}
     </tr>
@@ -789,6 +843,10 @@ export default function NotionTable({
   const [addingNew, setAddingNew] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const newTaskInputRef = useRef<HTMLInputElement>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<"title" | "description" | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const editingInputRef = useRef<HTMLInputElement>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -865,6 +923,29 @@ export default function NotionTable({
     onTaskUpdate?.(id, updates, optimisticData);
   };
 
+  const handleStartEdit = useCallback((task: Task, field: "title" | "description") => {
+    setEditingTaskId(task.id);
+    setEditingField(field);
+    setEditingValue(field === "title" ? task.title : (task.description || ""));
+  }, []);
+
+  const handleSaveEdit = useCallback((taskId: string, value: string) => {
+    if (!editingField) return;
+    const current = tasks.find(t => t.id === taskId);
+    if (value.trim() && value.trim() !== (current?.[editingField] || "")) {
+      onTaskUpdate?.(taskId, { [editingField]: value.trim() } as Partial<Task>);
+    }
+    setEditingTaskId(null);
+    setEditingField(null);
+    setEditingValue("");
+  }, [onTaskUpdate, tasks, editingField]);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingTaskId(null);
+    setEditingField(null);
+    setEditingValue("");
+  }, []);
+
   const isDragging = (id: string) => activeId === id;
 
   const sortedColumns = columnOrder.map((key) => {
@@ -938,6 +1019,14 @@ export default function NotionTable({
                   wrapTaskName={wrapTaskName}
                   onImagePreview={(url) => setPreviewUrl(url)}
                   members={members}
+                  editingTaskId={editingTaskId}
+                  editingField={editingField}
+                  editingValue={editingValue}
+                  editingInputRef={editingInputRef}
+                  onStartEdit={handleStartEdit}
+                  onEditingChange={setEditingValue}
+                  onSaveEdit={handleSaveEdit}
+                  onCancelEdit={handleCancelEdit}
                 />
               ))}
             </SortableContext>
