@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -8,6 +8,7 @@ import {
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
+  type DragOverEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -67,7 +68,7 @@ function SortableTaskCard({
       {...listeners}
       className={cn(
         "bg-[#252525] rounded-lg border border-border/50 shadow-sm cursor-grab active:cursor-grabbing",
-        isDragging && "opacity-40"
+        isDragging && "opacity-0 pointer-events-none"
       )}
     >
       {imageUrl && (
@@ -104,6 +105,13 @@ function SortableTaskCard({
   );
 }
 
+function Placeholder({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <div className="rounded-lg border-2 border-dashed border-blue-500/40 bg-blue-500/5 h-20" />
+  );
+}
+
 function BoardColumn({
   status,
   tasks,
@@ -115,6 +123,8 @@ function BoardColumn({
   onNewTaskCreate,
   onNewTaskCancel,
   onStartAdd,
+  activeId,
+  overTaskId,
 }: {
   status: StatusOption;
   tasks: Task[];
@@ -126,9 +136,11 @@ function BoardColumn({
   onNewTaskCreate: () => void;
   onNewTaskCancel: () => void;
   onStartAdd: () => void;
+  activeId: string | null;
+  overTaskId: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.label });
-
+  const isCrossColumn = activeId != null && !tasks.some((t) => t.id === activeId);
   return (
     <div className="flex w-[300px] shrink-0 flex-col">
       <div className="flex items-center gap-2 px-3 py-3">
@@ -141,19 +153,26 @@ function BoardColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex flex-col gap-2 p-2 rounded-lg border border-border/30 transition-colors",
+          "flex flex-col gap-2 p-2 rounded-2xl border border-border/30 transition-colors",
           isOver && "bg-white/[0.03] border-blue-500/30"
         )}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <SortableTaskCard
-              key={task.id}
-              task={task}
-              isDragging={false}
-              onTaskClick={onTaskClick}
-            />
+            <div key={task.id} className="flex flex-col gap-2">
+              {isCrossColumn && overTaskId === task.id && (
+                <Placeholder show />
+              )}
+              <SortableTaskCard
+                task={task}
+                isDragging={activeId === task.id}
+                onTaskClick={onTaskClick}
+              />
+            </div>
           ))}
+          {activeId && isOver && !overTaskId && isCrossColumn && (
+            <Placeholder show />
+          )}
         </SortableContext>
         {addingNew && (
           <div className="bg-[#252525] rounded-lg border border-border/50 shadow-sm p-3">
@@ -239,6 +258,7 @@ export default function BoardView({
   workspaceId,
 }: BoardViewProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [overTaskId, setOverTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [addingStatus, setAddingStatus] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -252,9 +272,19 @@ export default function BoardView({
     setActiveId(String(event.active.id));
   };
 
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { over } = event;
+    if (over && String(over.id) !== String(event.active.id)) {
+      setOverTaskId(tasks.find((t) => t.id === String(over.id)) ? String(over.id) : null);
+    } else {
+      setOverTaskId(null);
+    }
+  }, [tasks]);
+
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+    const { active, over, delta } = event;
     setActiveId(null);
+    setOverTaskId(null);
     if (!over || active.id === over.id) return;
 
     const activeIdStr = String(active.id);
@@ -279,6 +309,7 @@ export default function BoardView({
     }
 
     const sameColumn = activeTask.status === targetStatus;
+    const draggingDown = sameColumn && delta.y > 0;
 
     const columnTasks = tasks.filter((t) => t.status === targetStatus && t.id !== activeIdStr);
     const updatedTask = { ...activeTask, status: targetStatus } as Task;
@@ -287,7 +318,8 @@ export default function BoardView({
     if (insertBeforeId) {
       const insertIdx = columnTasks.findIndex((t) => t.id === insertBeforeId);
       if (insertIdx >= 0) {
-        reorderedColumn = [...columnTasks.slice(0, insertIdx), updatedTask, ...columnTasks.slice(insertIdx)];
+        const adjustedIdx = draggingDown ? insertIdx + 1 : insertIdx;
+        reorderedColumn = [...columnTasks.slice(0, adjustedIdx), updatedTask, ...columnTasks.slice(adjustedIdx)];
       } else {
         reorderedColumn = [...columnTasks, updatedTask];
       }
@@ -321,6 +353,7 @@ export default function BoardView({
     <DndContext
       sensors={sensors}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
       <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden">
@@ -339,6 +372,8 @@ export default function BoardView({
               onNewTaskCreate={handleCreateTask}
               onNewTaskCancel={() => { setAddingStatus(null); setNewTaskTitle(""); }}
               onStartAdd={() => { setAddingStatus(status.label); setNewTaskTitle(""); }}
+              activeId={activeId}
+              overTaskId={overTaskId}
             />
           );
         })}
