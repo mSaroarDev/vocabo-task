@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import apiClient from "@/api/client";
 import { useAppDispatch } from "@/store/hooks";
 import { addTaskAttachment } from "@/store/slices/tasksSlice";
 import ImagePreview from "@/components/ui/image-preview";
+import ImagePickerModal from "./image-picker-modal";
 
 const statusColors: Record<string, string> = {
   New: "bg-purple-500/20 text-purple-300",
@@ -175,7 +176,7 @@ export default function TaskDetailModal({
   const [pendingAttachments, setPendingAttachments] = useState<{ file: File; preview: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -454,41 +455,87 @@ export default function TaskDetailModal({
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-medium text-muted-foreground">Attachments</label>
                     <button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => setImagePickerOpen(true)}
                       className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     >
                       <Plus size={13} />
                       Add
                     </button>
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                  />
-                  <div className="space-y-2 mt-2">
-                    {!isCreate && task && task.attachments.map((attachment) => (
-                      <AttachmentCard key={attachment.id} attachment={attachment} onImagePreview={(url) => setPreviewUrl(url)} />
-                    ))}
-                    {pendingAttachments.map((p, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-3 rounded-lg border border-border/50 p-3 bg-accent/20"
-                      >
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-zinc-800 border border-border/30 overflow-hidden">
+                  
+                  {/* Image thumbnails grid */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {/* Existing image attachments */}
+                    {!isCreate && task && task.attachments
+                      .filter(a => a.mimeType.startsWith("image/"))
+                      .map((attachment) => (
+                        <button
+                          key={attachment.id}
+                          onClick={() => setPreviewUrl(attachment.url)}
+                          className="relative group rounded-lg overflow-hidden border border-border/50 hover:border-foreground/50 transition-colors cursor-pointer"
+                        >
+                          <img
+                            src={attachment.url}
+                            alt={attachment.originalName}
+                            className="w-[50px] h-[80px] object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <ExternalLink size={12} className="text-white" />
+                          </div>
+                        </button>
+                      ))}
+                    
+                    {/* Pending image attachments */}
+                    {pendingAttachments
+                      .filter(p => p.file.type.startsWith("image/"))
+                      .map((p, i) => (
+                        <div
+                          key={`pending-${i}`}
+                          className="relative rounded-lg overflow-hidden border border-border/50"
+                        >
                           <img
                             src={p.preview}
-                            alt="pasted"
-                            className="h-full w-full object-cover"
+                            alt="pending"
+                            className="w-[50px] h-[80px] object-cover"
                           />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="text-[10px] text-white">Pending</span>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{p.file.name}</p>
-                          <p className="text-xs text-muted-foreground">Pending upload</p>
+                      ))}
+                    
+                    {/* Add image placeholder - always shown */}
+                    <button
+                      onClick={() => setImagePickerOpen(true)}
+                      className="flex items-center justify-center w-[50px] h-[80px] rounded-lg border-2 border-dashed border-border/50 hover:border-foreground/50 hover:bg-accent/30 transition-colors cursor-pointer"
+                    >
+                      <Plus size={16} className="text-muted-foreground" />
+                    </button>
+                  </div>
+
+                  {/* Non-image attachments */}
+                  <div className="space-y-2">
+                    {!isCreate && task && task.attachments
+                      .filter(a => !a.mimeType.startsWith("image/"))
+                      .map((attachment) => (
+                        <AttachmentCard key={attachment.id} attachment={attachment} onImagePreview={(url) => setPreviewUrl(url)} />
+                      ))}
+                    {pendingAttachments
+                      .filter(p => !p.file.type.startsWith("image/"))
+                      .map((p, i) => (
+                        <div
+                          key={`pending-${i}`}
+                          className="flex items-center gap-3 rounded-lg border border-border/50 p-3 bg-accent/20"
+                        >
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-zinc-800 border border-border/30">
+                            <Paperclip size={16} className="text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{p.file.name}</p>
+                            <p className="text-xs text-muted-foreground">Pending upload</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
                     {uploading && (
                       <div className="flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground">
                         <Loader2 size={14} className="animate-spin" />
@@ -496,9 +543,11 @@ export default function TaskDetailModal({
                       </div>
                     )}
                   </div>
+
+                  {/* Empty state - only show when no images at all */}
                   {((!isCreate && task && task.attachments.length === 0) || isCreate) && pendingAttachments.length === 0 && (
                     <div
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => setImagePickerOpen(true)}
                       className="rounded-lg border border-dashed border-border/30 px-4 py-6 text-center text-xs text-muted-foreground cursor-pointer hover:border-border/50 hover:bg-accent/20 transition-colors"
                     >
                       Paste an image or click to upload
@@ -587,6 +636,27 @@ export default function TaskDetailModal({
         url={previewUrl || ""}
         open={!!previewUrl}
         onClose={() => setPreviewUrl(null)}
+      />
+      <ImagePickerModal
+        open={imagePickerOpen}
+        onOpenChange={setImagePickerOpen}
+        attachments={task?.attachments || []}
+        onFileSelect={(file) => {
+          if (isCreate) {
+            const preview = URL.createObjectURL(file);
+            setPendingAttachments((prev) => [...prev, { file, preview }]);
+          } else {
+            uploadViewAttachment(file);
+          }
+        }}
+        onPaste={(file) => {
+          if (isCreate) {
+            const preview = URL.createObjectURL(file);
+            setPendingAttachments((prev) => [...prev, { file, preview }]);
+          } else {
+            uploadViewAttachment(file);
+          }
+        }}
       />
     </>
   );

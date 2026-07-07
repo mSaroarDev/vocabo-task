@@ -20,11 +20,13 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check, Loader2, ImagePlus } from "lucide-react";
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
 import ImagePreview from "@/components/ui/image-preview";
+import { useAppDispatch } from "@/store/hooks";
+import { addTaskAttachment } from "@/store/slices/tasksSlice";
 
 type Priority = "None" | "Lowest" | "Low" | "Medium" | "High" | "Highest";
 
@@ -617,7 +619,158 @@ const priorityColors: Record<string, string> = {
   Highest: "bg-red-500/20 text-red-300",
 };
 
-function renderCellContent(task: Task, columnKey: string, _onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[], editingTaskId?: string | null, editingField?: "title" | "description" | null, editingValue?: string, editingInputRef?: React.RefObject<HTMLInputElement | null>, onStartEdit?: (task: Task, field: "title" | "description") => void, onEditingChange?: (value: string) => void, onSaveEdit?: (taskId: string, value: string) => void, onCancelEdit?: () => void) {
+function AttachmentCell({
+  task,
+  teamId,
+  workspaceId,
+  onImagePreview,
+}: {
+  task: Task;
+  teamId?: string;
+  workspaceId?: string;
+  onImagePreview?: (url: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const pasteRef = useRef<HTMLDivElement>(null);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (editing && pasteRef.current) {
+      pasteRef.current.focus();
+    }
+  }, [editing]);
+
+  const uploadFile = useCallback(
+    async (file: File) => {
+      if (!teamId || !workspaceId) return;
+      setUploading(true);
+      try {
+        await dispatch(addTaskAttachment({ teamId, workspaceId, taskId: task.id, file })).unwrap();
+      } catch {
+        // upload failed
+      } finally {
+        setUploading(false);
+        setEditing(false);
+      }
+    },
+    [dispatch, teamId, workspaceId, task.id]
+  );
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          e.preventDefault();
+          const file = items[i].getAsFile();
+          if (file) uploadFile(file);
+          return;
+        }
+      }
+    },
+    [uploadFile]
+  );
+
+  const handleFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) uploadFile(file);
+      e.target.value = "";
+    },
+    [uploadFile]
+  );
+
+  const imageAttachments = task.attachments.filter((a) => a.mimeType.startsWith("image/"));
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        {imageAttachments.slice(0, 3).map((att) => (
+          <img
+            key={att.id}
+            src={att.url}
+            alt={att.originalName}
+            className="h-7 w-7 rounded object-cover border border-white/[0.06]"
+          />
+        ))}
+        <div
+          ref={pasteRef}
+          tabIndex={0}
+          onPaste={handlePaste}
+          className={cn(
+            "flex h-7 items-center gap-1 rounded border border-dashed px-2 text-xs cursor-text transition-colors",
+            "border-blue-500/50 bg-blue-500/10 text-blue-400"
+          )}
+        >
+          {uploading ? (
+            <Loader2 size={10} className="animate-spin" />
+          ) : (
+            <ImagePlus size={10} />
+          )}
+          <span className="whitespace-nowrap">{uploading ? "Uploading..." : "Paste here"}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (task.attachments.length === 0) {
+    return (
+      <div className="relative inline-flex items-center">
+        <button
+          onClick={() => setEditing(true)}
+          className="flex h-7 items-center gap-1 rounded border border-dashed border-border/50 px-2 text-xs text-muted-foreground/40 hover:text-muted-foreground hover:border-border transition-colors cursor-pointer"
+        >
+          <ImagePlus size={10} />
+          <span>Add</span>
+        </button>
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileInput}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="inline-flex items-center gap-1">
+      {task.attachments.slice(0, 3).map((att) =>
+        att.mimeType?.startsWith("image/") && att.url ? (
+          <img
+            key={att.id}
+            src={att.url}
+            alt={att.originalName}
+            className="h-7 w-7 rounded object-cover border border-white/[0.06] cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all"
+            onClick={() => onImagePreview?.(att.url)}
+          />
+        ) : (
+          <span
+            key={att.id}
+            className="flex h-7 w-7 items-center justify-center rounded border border-white/[0.06] bg-white/[0.03]"
+          >
+            <Paperclip size={12} className="text-muted-foreground" />
+          </span>
+        )
+      )}
+      {task.attachments.length > 3 && (
+        <span className="text-xs text-muted-foreground ml-0.5">
+          +{task.attachments.length - 3}
+        </span>
+      )}
+      <button
+        onClick={() => setEditing(true)}
+        className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground/30 hover:text-muted-foreground hover:bg-accent/50 transition-colors cursor-pointer"
+      >
+        <ImagePlus size={12} />
+      </button>
+    </div>
+  );
+}
+
+function renderCellContent(task: Task, columnKey: string, _onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[], editingTaskId?: string | null, editingField?: "title" | "description" | null, editingValue?: string, editingInputRef?: React.RefObject<HTMLInputElement | null>, onStartEdit?: (task: Task, field: "title" | "description") => void, onEditingChange?: (value: string) => void, onSaveEdit?: (taskId: string, value: string) => void, onCancelEdit?: () => void, teamId?: string, workspaceId?: string) {
   const isEditing = editingTaskId === task.id && editingField === columnKey;
   switch (columnKey) {
     case "title":
@@ -692,35 +845,7 @@ function renderCellContent(task: Task, columnKey: string, _onSelect: (t: Task) =
     case "createdBy":
       return <PersonCell person={task.createdBy} />;
     case "attachments":
-      return task.attachments.length > 0 ? (
-        <span className="inline-flex items-center gap-1">
-          {task.attachments.slice(0, 3).map((att) =>
-            att.mimeType?.startsWith("image/") && att.url ? (
-              <img
-                key={att.id}
-                src={att.url}
-                alt={att.originalName}
-                className="h-7 w-7 rounded object-cover border border-white/[0.06] cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all"
-                onClick={() => onImagePreview?.(att.url)}
-              />
-            ) : (
-              <span
-                key={att.id}
-                className="flex h-7 w-7 items-center justify-center rounded border border-white/[0.06] bg-white/[0.03]"
-              >
-                <Paperclip size={12} className="text-muted-foreground" />
-              </span>
-            )
-          )}
-          {task.attachments.length > 3 && (
-            <span className="text-xs text-muted-foreground ml-0.5">
-              +{task.attachments.length - 3}
-            </span>
-          )}
-        </span>
-      ) : (
-        <span className="text-muted-foreground/30">—</span>
-      );
+      return <AttachmentCell task={task} teamId={teamId} workspaceId={workspaceId} onImagePreview={onImagePreview} />;
     case "assignedTo":
     case "assignee":
       return <AssigneeCell task={task} members={members} onUpdate={onAssigneeUpdate} />;
@@ -753,9 +878,11 @@ interface DraggableRowProps {
   onEditingChange?: (value: string) => void;
   onSaveEdit?: (taskId: string, value: string) => void;
   onCancelEdit?: () => void;
+  teamId?: string;
+  workspaceId?: string;
 }
 
-function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onAssigneeUpdate, onTaskDelete, wrapTaskName, onImagePreview, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit }: DraggableRowProps) {
+function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onAssigneeUpdate, onTaskDelete, wrapTaskName, onImagePreview, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
   const style = {
@@ -792,7 +919,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
       </td>
       {columnOrder.map((key) => (
         <td key={key} className={cn("h-9 px-3 border-b border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")}>
-          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit)}
+          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId)}
         </td>
       ))}
     </tr>
@@ -1027,6 +1154,8 @@ export default function NotionTable({
                   onEditingChange={setEditingValue}
                   onSaveEdit={handleSaveEdit}
                   onCancelEdit={handleCancelEdit}
+                  teamId={teamIdProp}
+                  workspaceId={workspaceIdProp}
                 />
               ))}
             </SortableContext>
