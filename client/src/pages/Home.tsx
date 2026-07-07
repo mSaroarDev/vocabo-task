@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Heart, Sun, Folder, Filter, ArrowUpDown, Search, Settings, Plus, UserPlus } from "lucide-react";
+import { Heart, Sun, LayoutDashboard, Filter, ArrowUpDown, Search, Settings, Plus, UserPlus } from "lucide-react";
 import { WorkspaceIcon } from "@/lib/workspace-icons";
 import { cn } from "@/lib/utils";
 import NotionTable, { type StatusOption } from "@/components/table/notion-table";
+import BoardView from "@/components/board/board-view";
 import SettingsModal from "@/components/table/settings-modal";
 import ChecklistView from "@/components/checklist/checklist-view";
 import { useTeams } from "@/hooks/useTeams";
@@ -24,7 +25,7 @@ export default function Home() {
   const currentWorkspace = workspaceId ? workspaces.find((w) => w.id === workspaceId) : null;
   const currentChecklist = checklistId ? checklistGroups.find((g) => g.id === checklistId) : null;
   const workspaceName = currentWorkspace?.name || "";
-  const [activeTab, setActiveTab] = useState<"all" | "category">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "board">("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [wrapTaskName, setWrapTaskName] = useState(false);
@@ -135,16 +136,16 @@ export default function Home() {
               All Tasks
             </button>
             <button
-              onClick={() => setActiveTab("category")}
+              onClick={() => setActiveTab("board")}
               className={cn(
                 "flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer",
-                activeTab === "category"
+                activeTab === "board"
                   ? "bg-[#2b2b2b] text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Folder size={14} />
-              By Category
+              <LayoutDashboard size={14} />
+              Board View
             </button>
           </div>
           <div className="flex items-center gap-1">
@@ -175,23 +176,35 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="-ml-5">
-          <NotionTable
-            wrapTaskName={wrapTaskName}
+        {activeTab === "all" ? (
+          <div className="-ml-5">
+            <NotionTable
+              wrapTaskName={wrapTaskName}
+              statusOptions={statusOptions}
+              onStatusOptionsChange={setStatusOptions}
+              teamId={selectedTeam?.id}
+              workspaceId={workspaceId}
+              members={selectedTeam?.members}
+              tasks={tasks}
+              onTaskCreate={addTask}
+              onTaskUpdate={editTask}
+              onTaskDelete={removeTask}
+              onTaskReorder={reorder}
+              createModalOpen={showCreateModal}
+              onCreateModalChange={setShowCreateModal}
+            />
+          </div>
+        ) : (
+          <BoardView
+            tasks={tasks}
             statusOptions={statusOptions}
-            onStatusOptionsChange={setStatusOptions}
+            onTaskUpdate={editTask}
+            onTaskCreate={addTask}
+            onTaskReorder={reorder}
             teamId={selectedTeam?.id}
             workspaceId={workspaceId}
-            members={selectedTeam?.members}
-            tasks={tasks}
-            onTaskCreate={addTask}
-            onTaskUpdate={editTask}
-            onTaskDelete={removeTask}
-            onTaskReorder={reorder}
-            createModalOpen={showCreateModal}
-            onCreateModalChange={setShowCreateModal}
           />
-        </div>
+        )}
 
         <SettingsModal
           open={settingsOpen}
