@@ -718,21 +718,23 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         isDragging && "opacity-40"
       )}
     >
-      <td className="h-9 w-12 px-1 text-center">
-        <span
-          {...attributes}
-          {...listeners}
-          className="invisible group-hover:visible inline-flex cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors px-1"
-        >
-          <GripVertical size={14} />
-        </span>
-        <button
-          onClick={() => onTaskDelete(task.id)}
-          className="invisible group-hover:visible inline-flex cursor-pointer text-muted-foreground/30 hover:text-red-400 transition-colors px-1"
-          title="Delete task"
-        >
-          <Trash2 size={14} />
-        </button>
+      <td style={{ width: 56, minWidth: 56 }} className="h-9 px-1">
+        <div className="flex items-center justify-center flex-nowrap w-full">
+          <span
+            {...attributes}
+            {...listeners}
+            className="invisible group-hover:visible inline-flex cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors px-1"
+          >
+            <GripVertical size={14} />
+          </span>
+          <button
+            onClick={() => onTaskDelete(task.id)}
+            className="invisible group-hover:visible inline-flex cursor-pointer text-muted-foreground/30 hover:text-red-400 transition-colors px-1"
+            title="Delete task"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </td>
       {columnOrder.map((key) => (
         <td key={key} className={cn("h-9 px-3 border-b border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")}>
@@ -754,7 +756,7 @@ interface NotionTableProps {
   onTaskCreate?: (data: Partial<Task>, pendingAttachments?: File[]) => void;
   onTaskUpdate?: (id: string, data: Partial<Task>, optimisticData?: any) => Promise<Task | null>;
   onTaskDelete?: (id: string) => void;
-  onTaskReorder?: (taskIds: string[]) => Promise<{ workspaceId: string; tasks: Task[] } | null>;
+  onTaskReorder?: (taskIds: string[], optimisticTasks?: Task[]) => Promise<{ workspaceId: string; tasks: Task[] } | null>;
   createModalOpen?: boolean;
   onCreateModalChange?: (open: boolean) => void;
 }
@@ -827,7 +829,7 @@ export default function NotionTable({
       const newIndex = orderedTasks.findIndex((t) => t.id === overIdStr);
       if (oldIndex === -1 || newIndex === -1) return;
       const reordered = arrayMove(orderedTasks, oldIndex, newIndex);
-      onTaskReorder(reordered.map((t) => t.id));
+      onTaskReorder(reordered.map((t) => t.id), reordered);
     }
   }, [tasks, onTaskReorder]);
 
@@ -893,7 +895,7 @@ export default function NotionTable({
                 strategy={horizontalListSortingStrategy}
               >
                 <tr>
-                  <th style={{ width: 32, minWidth: 32 }} className="h-10" />
+                  <th style={{ width: 56, minWidth: 56 }} className="h-10" />
                   {sortedColumns.map((col) => (
                     <DraggableHeader
                       key={col.key}
@@ -965,7 +967,7 @@ export default function NotionTable({
             <table className="w-full border-collapse text-sm">
               <tbody>
                 <tr className="bg-[#1e1e1e] border border-border/50 shadow-xl rounded-lg opacity-90">
-                  <td className="h-11 w-8" />
+                  <td style={{ width: 56, minWidth: 56 }} className="h-11" />
                   <td className="h-11 px-3" colSpan={columnOrder.length}>
                     <span className="text-sm leading-tight">
                       {tasks.find((t) => t.id === activeId)?.title}

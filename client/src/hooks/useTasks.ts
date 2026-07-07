@@ -76,11 +76,11 @@ export function useTasks(teamId?: string | null, workspaceId?: string | null) {
   );
 
   const reorder = useCallback(
-    async (taskIds: string[]) => {
+    async (taskIds: string[], optimisticTasks?: Task[]) => {
       if (!teamId || !workspaceId) return null;
       try {
         return await dispatch(
-          reorderTasksAction({ teamId, workspaceId, taskIds })
+          reorderTasksAction({ teamId, workspaceId, taskIds, optimisticTasks })
         ).unwrap();
       } catch (error) {
         throw error;

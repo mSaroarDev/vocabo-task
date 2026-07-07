@@ -262,9 +262,15 @@ export const deleteTask = createAsyncThunk<
 
 export const reorderTasks = createAsyncThunk<
   { workspaceId: string; tasks: Task[] },
-  { teamId: string; workspaceId: string; taskIds: string[] },
-  { rejectValue: string }
->("tasks/reorderTasks", async ({ teamId, workspaceId, taskIds }, { rejectWithValue }) => {
+  { teamId: string; workspaceId: string; taskIds: string[]; optimisticTasks?: Task[] },
+  { state: { tasks: TasksState }; rejectValue: string }
+>("tasks/reorderTasks", async ({ teamId, workspaceId, taskIds, optimisticTasks }, { dispatch, getState, rejectWithValue }) => {
+  const previousTasks = getState().tasks.items;
+  
+  if (optimisticTasks) {
+    dispatch(setTasks({ workspaceId, tasks: optimisticTasks }));
+  }
+
   try {
     const response = await apiClient.patch(
       `/teams/${teamId}/workspaces/${workspaceId}/tasks/reorder`,
@@ -275,6 +281,9 @@ export const reorderTasks = createAsyncThunk<
       tasks: (response.data.data as ApiTask[]).map(mapTask),
     };
   } catch (error) {
+    if (optimisticTasks) {
+      dispatch(setTasks({ workspaceId, tasks: previousTasks }));
+    }
     return rejectWithValue(getErrorMessage(error, "Failed to reorder tasks"));
   }
 });
