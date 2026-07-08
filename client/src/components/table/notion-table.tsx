@@ -279,7 +279,7 @@ const defaultColumns = [
   { key: "title", label: "Title", width: 380 },
   { key: "status", label: "Status", width: 120 },
   { key: "priority", label: "Priority", width: 100 },
-  { key: "description", label: "Description", width: 200 },
+  { key: "description", label: "Description", width: 300 },
   { key: "assignee", label: "Assigned To", width: 200 },
   { key: "createdBy", label: "Created By", width: 200 },
   { key: "attachments", label: "Attachments", width: 100 },
@@ -426,7 +426,8 @@ function DraggableHeader({
       el.setPointerCapture(e.pointerId);
 
       const onPointerMove = (pe: PointerEvent) => {
-        const newWidth = Math.max(80, Math.min(800, startWidth + pe.clientX - startX));
+        const maxWidth = column.key === "description" ? 300 : 800;
+        const newWidth = Math.max(80, Math.min(maxWidth, startWidth + pe.clientX - startX));
         onResize(column.key, newWidth);
       };
       const onPointerUp = () => {
@@ -442,7 +443,7 @@ function DraggableHeader({
   return (
     <th
       ref={setNodeRef}
-      style={{ ...style, width: column.width, minWidth: column.width }}
+      style={{ ...style, width: column.width, minWidth: column.width, maxWidth: column.key === "description" ? 300 : undefined }}
       className={cn(
         "h-10 px-3 text-left text-xs font-bold text-muted-foreground select-none relative border-b border-border/50",
         "hover:text-foreground transition-colors",
@@ -770,6 +771,68 @@ function AttachmentCell({
   );
 }
 
+function DescriptionEditor({
+  task,
+  isEditing,
+  editingValue,
+  onStartEdit,
+  onEditingChange,
+  onSaveEdit,
+  onCancelEdit,
+}: {
+  task: Task;
+  isEditing: boolean;
+  editingValue?: string;
+  onStartEdit?: (task: Task, field: "title" | "description") => void;
+  onEditingChange?: (value: string) => void;
+  onSaveEdit?: (taskId: string, value: string) => void;
+  onCancelEdit?: () => void;
+}) {
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  useEffect(() => {
+    if (isEditing && spanRef.current) {
+      const rect = spanRef.current.getBoundingClientRect();
+      setPos({ top: rect.top, left: rect.left, width: Math.max(rect.width, 300) });
+    } else {
+      setPos(null);
+    }
+  }, [isEditing, editingValue]);
+
+  return (
+    <>
+      <span
+        ref={spanRef}
+        className="text-sm text-muted-foreground block cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50 truncate"
+        title={task.description}
+        onClick={() => onStartEdit?.(task, "description")}
+      >
+        {task.description || "—"}
+      </span>
+      {isEditing && pos &&
+        createPortal(
+          <textarea
+            autoFocus
+            value={editingValue}
+            onChange={(e) => onEditingChange?.(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                onCancelEdit?.();
+              }
+            }}
+            onBlur={() => onSaveEdit?.(task.id, editingValue || "")}
+            rows={Math.min(8, Math.max(2, (editingValue || "").split("\n").length))}
+            style={{ position: "fixed", top: pos.top, left: pos.left, width: pos.width }}
+            className="z-50 bg-[#252525] text-sm text-foreground outline-none border border-blue-500/50 focus:border-blue-500 rounded px-2 py-1 resize-none leading-tight shadow-xl"
+          />,
+          document.body
+        )}
+    </>
+  );
+}
+
 function renderCellContent(task: Task, columnKey: string, _onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[], editingTaskId?: string | null, editingField?: "title" | "description" | null, editingValue?: string, editingInputRef?: React.RefObject<HTMLInputElement | null>, onStartEdit?: (task: Task, field: "title" | "description") => void, onEditingChange?: (value: string) => void, onSaveEdit?: (taskId: string, value: string) => void, onCancelEdit?: () => void, teamId?: string, workspaceId?: string) {
   const isEditing = editingTaskId === task.id && editingField === columnKey;
   switch (columnKey) {
@@ -813,34 +876,16 @@ function renderCellContent(task: Task, columnKey: string, _onSelect: (t: Task) =
     case "priority":
       return <PriorityCell task={task} onUpdate={onPriorityUpdate} />;
     case "description":
-      if (isEditing) {
-        return (
-          <input
-            ref={editingInputRef}
-            autoFocus
-            value={editingValue}
-            onChange={(e) => onEditingChange?.(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                onSaveEdit?.(task.id, editingValue || "");
-              }
-              if (e.key === "Escape") {
-                onCancelEdit?.();
-              }
-            }}
-            onBlur={() => onSaveEdit?.(task.id, editingValue || "")}
-            className="w-full bg-transparent text-sm text-foreground outline-none border-b border-foreground/20 focus:border-foreground/50 px-1 py-0.5"
-          />
-        );
-      }
       return (
-        <span
-          className="text-sm text-muted-foreground truncate block cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50"
-          onClick={() => onStartEdit?.(task, "description")}
-        >
-          {task.description || "—"}
-        </span>
+        <DescriptionEditor
+          task={task}
+          isEditing={isEditing}
+          editingValue={editingValue}
+          onStartEdit={onStartEdit}
+          onEditingChange={onEditingChange}
+          onSaveEdit={onSaveEdit}
+          onCancelEdit={onCancelEdit}
+        />
       );
     case "createdBy":
       return <PersonCell person={task.createdBy} />;
@@ -918,7 +963,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         </div>
       </td>
       {columnOrder.map((key) => (
-        <td key={key} className={cn("h-9 px-3 border-b border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")}>
+        <td key={key} className={cn("h-9 px-3 border-b border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")} style={key === "description" ? { maxWidth: 300 } : undefined}>
           {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId)}
         </td>
       ))}
