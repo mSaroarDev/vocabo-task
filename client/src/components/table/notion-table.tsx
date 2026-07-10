@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   DndContext,
   DragOverlay,
@@ -20,7 +21,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check, Loader2, ImagePlus, Eye, Activity } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check, Loader2, ImagePlus, Eye } from "lucide-react";
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
@@ -874,7 +875,7 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
             className="invisible group-hover:visible inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer shrink-0"
             title="View task details"
           >
-            <Activity size={12} />
+            <Eye size={12} />
             View
           </button>
         </span>
@@ -1030,6 +1031,16 @@ export default function NotionTable({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const taskParam = searchParams.get("task");
+    if (taskParam) {
+      if (tasks.some(t => t.id === taskParam)) {
+        setSelectedTaskId(taskParam);
+      }
+    }
+  }, [searchParams, tasks]);
 
   const statusOptions = externalStatusOptions ?? localStatusOptions;
 
@@ -1181,7 +1192,10 @@ export default function NotionTable({
                   isDragging={isDragging(task.id)}
                   columnOrder={columnOrder}
                   statusOptions={statusOptions}
-                  onSelect={(t) => setSelectedTaskId(t.id)}
+                   onSelect={(t) => {
+                     setSelectedTaskId(t.id);
+                     setSearchParams(prev => { prev.set("task", t.id); return prev; }, { replace: true });
+                   }}
                   onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
                   onPriorityUpdate={(id, priority) => onTaskUpdate?.(id, { priority: priority as Task["priority"] })}
                   onAssigneeUpdate={(id, assignedTo) => {
@@ -1294,7 +1308,12 @@ export default function NotionTable({
         <TaskDetailModal
           task={selectedTask}
           open
-          onOpenChange={(open) => { if (!open) setSelectedTaskId(null); }}
+           onOpenChange={(open) => {
+             if (!open) {
+               setSelectedTaskId(null);
+               setSearchParams(prev => { prev.delete("task"); return prev; }, { replace: true });
+             }
+           }}
           onUpdate={handleTaskUpdate}
           statusOptions={statusOptions}
           mode="view"
