@@ -20,7 +20,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check, Loader2, ImagePlus } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check, Loader2, ImagePlus, Eye, Activity } from "lucide-react";
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
 import TaskDetailModal from "./task-detail-modal";
@@ -833,7 +833,7 @@ function DescriptionEditor({
   );
 }
 
-function renderCellContent(task: Task, columnKey: string, _onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[], editingTaskId?: string | null, editingField?: "title" | "description" | null, editingValue?: string, editingInputRef?: React.RefObject<HTMLInputElement | null>, onStartEdit?: (task: Task, field: "title" | "description") => void, onEditingChange?: (value: string) => void, onSaveEdit?: (taskId: string, value: string) => void, onCancelEdit?: () => void, teamId?: string, workspaceId?: string) {
+function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[], editingTaskId?: string | null, editingField?: "title" | "description" | null, editingValue?: string, editingInputRef?: React.RefObject<HTMLInputElement | null>, onStartEdit?: (task: Task, field: "title" | "description") => void, onEditingChange?: (value: string) => void, onSaveEdit?: (taskId: string, value: string) => void, onCancelEdit?: () => void, teamId?: string, workspaceId?: string) {
   const isEditing = editingTaskId === task.id && editingField === columnKey;
   switch (columnKey) {
     case "title":
@@ -859,16 +859,24 @@ function renderCellContent(task: Task, columnKey: string, _onSelect: (t: Task) =
         );
       }
       return (
-        <span className="inline-flex items-center w-full">
+        <span className="inline-flex items-center w-full justify-between">
           <span
             className={cn(
-              "cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50 text-sm leading-tight",
+              "cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-accent/50 text-sm leading-tight min-w-0",
               wrapTaskName ? "whitespace-normal" : "truncate"
             )}
             onClick={() => onStartEdit?.(task, "title")}
           >
             {task.title}
           </span>
+          <button
+            onClick={() => onSelect(task)}
+            className="invisible group-hover:visible inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer shrink-0"
+            title="View task details"
+          >
+            <Activity size={12} />
+            View
+          </button>
         </span>
       );
     case "status":
