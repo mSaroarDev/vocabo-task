@@ -13,5 +13,7 @@ router.get("/me", authMiddleware, AuthControllers.getMe);
 router.post("/logout", authMiddleware, AuthControllers.logout);
 router.patch("/profile", authMiddleware, validatorMiddleware(updateProfileSchema), AuthControllers.updateProfile);
 router.delete("/account", authMiddleware, AuthControllers.deleteAccount);
+router.post("/telegram/connect-token", authMiddleware, AuthControllers.generateTelegramToken);
+router.post("/telegram/disconnect", authMiddleware, AuthControllers.disconnectTelegram);
 
 export const AuthRoutes = router;

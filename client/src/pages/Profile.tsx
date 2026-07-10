@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import TelegramConnectModal from "@/components/auth/TelegramConnectModal";
 import { useTeams } from "@/hooks/useTeams";
 import { cn } from "@/lib/utils";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, updateProfile, deleteAccount } = useAuth();
+  const { user, isAuthenticated, updateProfile, deleteAccount, disconnectTelegram } = useAuth();
   const { teams, addTeamMember, removeTeamMember } = useTeams();
   const [name, setName] = useState(user?.name || "");
   const [phone, setPhone] = useState(user?.phone || "");
@@ -21,6 +22,7 @@ export default function Profile() {
   const [addingMember, setAddingMember] = useState<Record<string, boolean>>({});
   const [confirmRemove, setConfirmRemove] = useState<{ teamId: string; memberUserId: string; memberName: string } | null>(null);
   const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
+  const [telegramModalOpen, setTelegramModalOpen] = useState(false);
 
   const createdTeams = teams.filter((t) => t.owner === user?._id);
 
@@ -96,6 +98,41 @@ export default function Profile() {
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
       </div>
+
+      {/* Telegram Connection */}
+      <section className="mb-10">
+        <h2 className="text-sm font-medium text-foreground mb-4">Telegram</h2>
+        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-5 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {user.telegramConnected ? "✅ Connected" : "❌ Not Connected"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {user.telegramConnected
+                ? "Your account is linked to Telegram"
+                : "Connect to receive notifications on Telegram"}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              if (user.telegramConnected) {
+                disconnectTelegram();
+              } else {
+                setTelegramModalOpen(true);
+              }
+            }}
+            className={cn(
+              "flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer",
+              user.telegramConnected
+                ? "bg-[#2b2b2b] text-foreground hover:bg-[#3b3b3b]"
+                : "bg-[#0088cc] text-white hover:bg-[#0077b5]"
+            )}
+          >
+            <Send size={14} />
+            {user.telegramConnected ? "Disconnect" : "Connect Telegram"}
+          </button>
+        </div>
+      </section>
 
       {/* Edit Profile */}
       <section className="mb-10">
@@ -318,6 +355,8 @@ export default function Profile() {
           </div>
         </section>
       )}
+
+      <TelegramConnectModal open={telegramModalOpen} onOpenChange={setTelegramModalOpen} />
 
       {/* Remove Member Confirmation */}
       {confirmRemove && (

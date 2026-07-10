@@ -1,9 +1,11 @@
+import crypto from "crypto";
 import { User } from "./auth.model";
 import AppError from "../../errors/AppError";
 import httpStatus from "http-status";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { google } from "googleapis";
+import { getBotUsername } from "./telegram.bot";
 
 export const AuthServices = {
   register: async (userData: any) => {
@@ -124,5 +126,33 @@ export const AuthServices = {
 
     await User.findByIdAndDelete(userId);
     return { message: "Account deleted successfully" };
+  },
+
+  generateTelegramConnectToken: async (userId: string) => {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    user.telegramConnectToken = token;
+    await user.save();
+
+    return { token, botUsername: getBotUsername() };
+  },
+
+  disconnectTelegram: async (userId: string) => {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    user.telegramChatId = undefined;
+    user.telegramConnected = false;
+    user.telegramConnectToken = null;
+    user.telegramUsername = undefined;
+    await user.save();
+
+    return { message: "Telegram disconnected successfully" };
   },
 };

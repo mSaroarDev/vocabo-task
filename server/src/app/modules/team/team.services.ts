@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import AppError from "../../errors/AppError";
 import { User } from "../auth/auth.model";
 import TeamModel from "./team.model";
+import bot from "../auth/telegram.bot";
 
 const createInviteCode = () => {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -98,6 +99,24 @@ const addMember = async (teamId: string, userId: string, email: string) => {
     joinedAt: new Date(),
   });
   await team.save();
+
+  if (targetUser.telegramConnected && targetUser.telegramChatId) {
+    const performer = await User.findById(userId).select("name");
+    try {
+      await bot.telegram.sendMessage(
+        targetUser.telegramChatId,
+        `🏷️ Team Invitation\n\nYou've been added to: ${team.name}\nAdded by: ${performer?.name || "Unknown"}`
+      );
+    } catch (error: any) {
+      if (error?.response?.error_code === 403) {
+        await User.findByIdAndUpdate(targetUserId, {
+          telegramConnected: false,
+          telegramChatId: null,
+        });
+      }
+      console.error("Telegram notification error:", error);
+    }
+  }
 
   const populated = await TeamModel.findById(team._id).populate("members.user", "name email");
   return populated;

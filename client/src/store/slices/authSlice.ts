@@ -8,6 +8,10 @@ export interface User {
   phone?: string;
   avatar?: string;
   googleId?: string;
+  telegramChatId?: number;
+  telegramConnected?: boolean;
+  telegramConnectToken?: string | null;
+  telegramUsername?: string;
   isEmailVerified: boolean;
   lastLogin?: string;
   createdAt: string;
@@ -89,6 +93,29 @@ export const deleteAccount = createAsyncThunk(
       await apiClient.delete("/auth/account");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const generateTelegramConnectToken = createAsyncThunk(
+  "auth/generateTelegramConnectToken",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post("/auth/telegram/connect-token");
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const disconnectTelegram = createAsyncThunk(
+  "auth/disconnectTelegram",
+  async (_, { rejectWithValue }) => {
+    try {
+      await apiClient.post("/auth/telegram/disconnect");
     } catch (error) {
       return rejectWithValue(error);
     }

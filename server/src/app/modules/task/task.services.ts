@@ -7,6 +7,9 @@ import TaskModel from "./task.model";
 import type { TaskPriority } from "./task.interface";
 import { getStorage } from "./task.storage";
 import { ActivityLogServices } from "../activityLog/activityLog.services";
+import { User } from "../auth/auth.model";
+import bot from "../auth/telegram.bot";
+import config from "../../config";
 
 const ensureTeamMember = async (teamId: string, userId: string) => {
   if (!Types.ObjectId.isValid(teamId)) {
@@ -28,6 +31,107 @@ const ensureWorkspace = async (teamId: string, workspaceId: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "Workspace not found");
   }
   return workspace;
+};
+
+const priorityEmoji: Record<string, string> = {
+  None: "⚪",
+  Lowest: "⬇️",
+  Low: "🔽",
+  Medium: "🟡",
+  High: "🔼",
+  Highest: "🔴",
+};
+
+const sendTaskAssignedNotification = async (
+  taskId: string,
+  assignedUserId: string,
+  title: string,
+  priority: string,
+  performedByName: string,
+  teamId: string,
+  workspaceId: string
+) => {
+  try {
+    const assignedUser = await User.findById(assignedUserId).select("telegramConnected telegramChatId");
+    if (!assignedUser?.telegramConnected || !assignedUser.telegramChatId) return;
+
+    const emoji = priorityEmoji[priority] || "⚪";
+
+    const taskUrl = `${config.frontendUrl}/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}`;
+    const replyMarkup = taskUrl.startsWith("https://")
+      ? {
+          reply_markup: {
+            inline_keyboard: [[{ text: "Open Task", url: taskUrl }]],
+          },
+        }
+      : {};
+
+    await bot.telegram.sendMessage(
+      assignedUser.telegramChatId,
+      `📌 New Task\n\nTitle: ${title}\nPriority: ${emoji} ${priority}\nAssigned by: ${performedByName}`,
+      replyMarkup
+    );
+  } catch (error: any) {
+    if (error?.response?.error_code === 403) {
+      await User.findByIdAndUpdate(assignedUserId, {
+        telegramConnected: false,
+        telegramChatId: null,
+      });
+    }
+    console.error("Telegram notification error:", error);
+  }
+};
+
+const fieldLabels: Record<string, string> = {
+  title: "Title",
+  isCompleted: "Completed",
+  description: "Description",
+  status: "Status",
+  priority: "Priority",
+};
+
+const sendTaskUpdateNotification = async (
+  taskId: string,
+  title: string,
+  assignedUserId: string,
+  changes: Array<{ field: string; oldValue?: string; newValue?: string }>,
+  performedByName: string,
+  teamId: string,
+  workspaceId: string
+) => {
+  try {
+    const assignedUser = await User.findById(assignedUserId).select("telegramConnected telegramChatId");
+    if (!assignedUser?.telegramConnected || !assignedUser.telegramChatId) return;
+
+    const lines = changes.map((c) => {
+      const label = fieldLabels[c.field] || c.field;
+      if (c.field === "isCompleted") {
+        const oldVal = c.oldValue === "true" ? "✅" : "❌";
+        const newVal = c.newValue === "true" ? "✅" : "❌";
+        return `• ${label}: ${oldVal} → ${newVal}`;
+      }
+      return `• ${label}: ${c.oldValue || "(empty)"} → ${c.newValue || "(empty)"}`;
+    });
+
+    const taskUrl = `${config.frontendUrl}/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}`;
+    const replyMarkup = taskUrl.startsWith("https://")
+      ? { reply_markup: { inline_keyboard: [[{ text: "Open Task", url: taskUrl }]] } }
+      : {};
+
+    await bot.telegram.sendMessage(
+      assignedUser.telegramChatId,
+      `✏️ Task Updated: ${title}\n\n${lines.join("\n")}\n\nUpdated by: ${performedByName}`,
+      replyMarkup
+    );
+  } catch (error: any) {
+    if (error?.response?.error_code === 403) {
+      await User.findByIdAndUpdate(assignedUserId, {
+        telegramConnected: false,
+        telegramChatId: null,
+      });
+    }
+    console.error("Telegram notification error:", error);
+  }
 };
 
 const getTasks = async (teamId: string, workspaceId: string, userId: string) => {
@@ -100,6 +204,19 @@ const createTask = async (
     action: "created",
     performedBy: userId,
   });
+
+  if (payload.assignedTo) {
+    const performer = await User.findById(userId).select("name");
+    sendTaskAssignedNotification(
+      String(task._id),
+      payload.assignedTo,
+      task.title,
+      task.priority,
+      performer?.name || "Unknown",
+      teamId,
+      workspaceId
+    );
+  }
 
   return populated;
 };
@@ -198,6 +315,36 @@ const updateTask = async (
           performedBy: userId,
         })
       )
+    );
+  }
+
+  if (payload.assignedTo && payload.assignedTo !== String(oldTask.assignedTo ?? "")) {
+    const performer = await User.findById(userId).select("name");
+    sendTaskAssignedNotification(
+      taskId,
+      payload.assignedTo,
+      task.title,
+      task.priority,
+      performer?.name || "Unknown",
+      teamId,
+      workspaceId
+    );
+  }
+
+  const otherChanges = changes.filter((c) => c.field !== "assignedTo");
+  if (otherChanges.length > 0 && task.assignedTo) {
+    const assignedUserId = typeof task.assignedTo === "object"
+      ? String((task.assignedTo as any)._id || task.assignedTo)
+      : String(task.assignedTo);
+    const performer = await User.findById(userId).select("name");
+    sendTaskUpdateNotification(
+      taskId,
+      task.title,
+      assignedUserId,
+      otherChanges,
+      performer?.name || "Unknown",
+      teamId,
+      workspaceId
     );
   }
 

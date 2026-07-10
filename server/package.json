@@ -5,8 +5,8 @@
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "start": "node dist/src/server.js"
+    "dev": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" ts-node-dev --respawn --transpile-only src/server.ts",
+    "start": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" node dist/src/server.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1079.0",
@@ -23,6 +23,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.9.5",
     "multer": "^2.2.0",
+    "telegraf": "^4.16.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {

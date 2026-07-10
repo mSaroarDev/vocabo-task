@@ -7,6 +7,8 @@ import {
   fetchCurrentUser,
   updateProfile as updateProfileAction,
   deleteAccount as deleteAccountAction,
+  generateTelegramConnectToken as generateTelegramConnectTokenAction,
+  disconnectTelegram as disconnectTelegramAction,
   clearError,
   setCredentials,
   type User,
@@ -54,6 +56,16 @@ export function useAuth() {
     },
     deleteAccount: async () => {
       return dispatch(deleteAccountAction()).unwrap();
+    },
+    generateTelegramToken: async () => {
+      return dispatch(generateTelegramConnectTokenAction()).unwrap();
+    },
+    disconnectTelegram: async () => {
+      await dispatch(disconnectTelegramAction()).unwrap();
+      await dispatch(fetchCurrentUser());
+    },
+    refreshUser: async () => {
+      return dispatch(fetchCurrentUser()).unwrap();
     },
     clearError: () => dispatch(clearError()),
     setCredentials: (data: { token: string; user: User }) =>

@@ -79,4 +79,26 @@ export const AuthControllers = {
       data: result,
     });
   }),
+
+  generateTelegramToken: catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id;
+    const result = await AuthServices.generateTelegramConnectToken(userId);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Telegram connect token generated",
+      data: result,
+    });
+  }),
+
+  disconnectTelegram: catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id;
+    const result = await AuthServices.disconnectTelegram(userId);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Telegram disconnected",
+      data: result,
+    });
+  }),
 };
