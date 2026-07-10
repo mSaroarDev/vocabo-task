@@ -4,6 +4,8 @@ import AppError from "../../errors/AppError";
 import TeamModel from "../team/team.model";
 import { seedDefaultColumns } from "../column/column.services";
 import WorkspaceModel from "./workspace.model";
+import { User } from "../auth/auth.model";
+import { NotificationServices } from "../notification/notification.services";
 
 const ensureTeamMember = async (teamId: string, userId: string) => {
   if (!Types.ObjectId.isValid(teamId)) {
@@ -46,6 +48,22 @@ const createWorkspace = async (
 
   await seedDefaultColumns(result._id);
 
+  const performer = await User.findById(userId).select("name avatar");
+
+  await NotificationServices.log({
+    workspaceId: String(result._id),
+    teamId,
+    actorId: userId,
+    actorName: performer?.name || "Someone",
+    actorAvatar: performer?.avatar || undefined,
+    type: "WORKSPACE_CREATED",
+    entityType: "workspace",
+    entityId: String(result._id),
+    title: "Workspace created",
+    description: `${performer?.name || "Someone"} created ${payload.name.trim()}`,
+    isSystem: true,
+  });
+
   return result;
 };
 
@@ -75,6 +93,25 @@ const updateWorkspace = async (
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, "Workspace not found");
   }
+
+  const performer = await User.findById(userId).select("name avatar");
+
+  await NotificationServices.log({
+    workspaceId,
+    teamId,
+    actorId: userId,
+    actorName: performer?.name || "Someone",
+    actorAvatar: performer?.avatar || undefined,
+    type: "WORKSPACE_UPDATED",
+    entityType: "workspace",
+    entityId: workspaceId,
+    title: "Workspace updated",
+    description: `${performer?.name || "Someone"} updated ${result.name}`,
+    metadata: {
+      ...(payload.name ? { oldName: result.name, newName: payload.name } : {}),
+      ...(payload.icon ? { icon: payload.icon } : {}),
+    },
+  });
 
   return result;
 };
@@ -134,6 +171,22 @@ const deleteWorkspace = async (teamId: string, workspaceId: string, userId: stri
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, "Workspace not found");
   }
+
+  const performer = await User.findById(userId).select("name avatar");
+
+  await NotificationServices.log({
+    workspaceId,
+    teamId,
+    actorId: userId,
+    actorName: performer?.name || "Someone",
+    actorAvatar: performer?.avatar || undefined,
+    type: "WORKSPACE_ARCHIVED",
+    entityType: "workspace",
+    entityId: workspaceId,
+    title: "Workspace archived",
+    description: `${performer?.name || "Someone"} deleted ${result.name}`,
+    isSystem: true,
+  });
 
   return result;
 };

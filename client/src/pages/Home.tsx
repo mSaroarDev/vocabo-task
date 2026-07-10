@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
-import type { FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Heart, Sun, LayoutDashboard, Filter, ArrowUpDown, Search, Settings, Plus, UserPlus } from "lucide-react";
-import { WorkspaceIcon } from "@/lib/workspace-icons";
-import { cn } from "@/lib/utils";
-import NotionTable, { type StatusOption } from "@/components/table/notion-table";
 import BoardView from "@/components/board/board-view";
-import SettingsModal from "@/components/table/settings-modal";
 import ChecklistView from "@/components/checklist/checklist-view";
+import NotionTable, { type StatusOption } from "@/components/table/notion-table";
+import SettingsModal from "@/components/table/settings-modal";
+import { useChecklist } from "@/hooks/useChecklist";
+import { useTasks } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
-import { useTasks } from "@/hooks/useTasks";
-import { useChecklist } from "@/hooks/useChecklist";
+import { cn } from "@/lib/utils";
+import { WorkspaceIcon } from "@/lib/workspace-icons";
+import { ArrowUpDown, Filter, LayoutDashboard, Plus, Search, Settings, Sun, UserPlus } from "lucide-react";
+import type { FormEvent } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -90,13 +90,6 @@ export default function Home() {
   if (workspaceId && currentWorkspace) {
     return (
       <div className="px-12 py-8">
-        <div className="ml-5 flex items-center gap-1.5 text-xs text-muted-foreground mb-6">
-          <Heart size={12} className="text-red-400" fill="currentColor" />
-          <span>Vocabo Teamspace</span>
-          <span className="text-muted-foreground/40">/</span>
-          <WorkspaceIcon name={currentWorkspace.icon} size={12} className="text-amber-400" />
-          <span>{titleValue}</span>
-        </div>
 
         <div className="ml-5 flex items-center gap-3 mb-8">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-400/10">

@@ -5,6 +5,10 @@ import { TeamRoutes } from "../modules/team/team.routes";
 import { WorkspaceRoutes } from "../modules/workspace/workspace.routes";
 import { ColumnRoutes } from "../modules/column/column.routes";
 import { TaskRoutes } from "../modules/task/task.routes";
+import {
+  NotificationRoutes,
+  NotificationGlobalRoutes,
+} from "../modules/notification/notification.routes";
 
 const router = express.Router();
 
@@ -18,5 +22,7 @@ router.use("/teams", TeamRoutes);
 router.use("/teams/:teamId/workspaces", WorkspaceRoutes);
 router.use("/teams/:teamId/workspaces/:workspaceId/columns", ColumnRoutes);
 router.use("/teams/:teamId/workspaces/:workspaceId/tasks", TaskRoutes);
+router.use("/workspaces/:workspaceId/notifications", NotificationRoutes);
+router.use("/notifications", NotificationGlobalRoutes);
 
 export default router;

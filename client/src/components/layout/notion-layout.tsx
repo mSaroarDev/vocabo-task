@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import Sidebar from "./sidebar";
+import { NotificationBell, NotificationSheet } from "@/components/notifications";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useTeams } from "@/hooks/useTeams";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
 
 interface NotionLayoutProps {
   children: ReactNode;
@@ -13,6 +19,27 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
+
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    isSheetOpen,
+    loadMore,
+    markAllRead,
+    markRead,
+    openSheet,
+    closeSheet,
+  } = useNotifications();
+
+  const { selectedTeam } = useTeams();
+  const [searchParams] = useSearchParams();
+  const activeWorkspaceId = searchParams.get("workspace");
+
+  const { workspaces } = useWorkspaces(selectedTeam?.id);
+  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -69,9 +96,39 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
           <span className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-sidebar-border opacity-0 transition-opacity group-hover:opacity-100" />
         </div>
       </div>
-      <main className="flex-1 overflow-auto bg-background">
-        {children}
-      </main>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex h-10 items-center justify-between bg-background px-4">
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
+            {selectedTeam && (
+              <>
+                <span className="truncate font-medium text-foreground">{selectedTeam.name}</span>
+                {activeWorkspace && (
+                  <>
+                    <ChevronRight size={14} className="shrink-0" />
+                    <span className="truncate">{activeWorkspace.name}</span>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+          <NotificationBell unreadCount={unreadCount} onClick={openSheet} />
+        </header>
+        <main className="flex-1 overflow-auto bg-background">
+          {children}
+        </main>
+      </div>
+      <NotificationSheet
+        isOpen={isSheetOpen}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
+        hasMore={hasMore}
+        onClose={closeSheet}
+        onLoadMore={loadMore}
+        onMarkAllRead={markAllRead}
+        onMarkRead={markRead}
+      />
     </div>
   );
 }

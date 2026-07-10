@@ -18,6 +18,7 @@ import workspacesReducer from "./slices/workspacesSlice";
 import columnsReducer from "./slices/columnsSlice";
 import tasksReducer from "./slices/tasksSlice";
 import checklistReducer from "./slices/checklistSlice";
+import notificationsReducer from "./slices/notificationsSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -26,6 +27,7 @@ const rootReducer = combineReducers({
   columns: columnsReducer,
   tasks: tasksReducer,
   checklist: checklistReducer,
+  notifications: notificationsReducer,
 });
 
 const migrations = {
