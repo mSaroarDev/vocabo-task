@@ -626,7 +626,7 @@ export default function TaskDetailModal({
                   {/* Activity Feed */}
                   <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
                     {activityLoading ? (
-                      <div className="text-xs text-muted-foreground text-center py-4">Loading activity...</div>
+                      <div className="flex items-center justify-center py-4"><Loader2 size={16} className="animate-spin text-muted-foreground" /></div>
                     ) : activity.length === 0 ? (
                       <div className="text-xs text-muted-foreground text-center py-4">No activity yet</div>
                     ) : (

@@ -11,6 +11,7 @@ import {
   Trash2,
   Pen,
   LogOut,
+  Loader2,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -60,6 +61,7 @@ interface SidebarSectionProps {
   items: SidebarItem[];
   emptyMessage?: string;
   statusMessage?: string;
+  isLoading?: boolean;
   onAdd?: () => void;
   onEdit?: (id: string, currentLabel: string) => void;
   onDelete?: (id: string) => void;
@@ -168,6 +170,7 @@ function SidebarSection({
   items,
   emptyMessage,
   statusMessage,
+  isLoading,
   onAdd,
   onEdit,
   onDelete,
@@ -206,12 +209,16 @@ function SidebarSection({
       </button>
       {!collapsed && (
         <div className="mt-0.5 space-y-0.5">
-          {statusMessage && (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-2">
+              <Loader2 size={14} className="animate-spin text-muted-foreground" />
+            </div>
+          ) : statusMessage ? (
             <p className="px-3 py-1 text-xs text-muted-foreground">
               {statusMessage}
             </p>
-          )}
-          {!statusMessage && items.length === 0 && emptyMessage && (
+          ) : null}
+          {!statusMessage && !isLoading && items.length === 0 && emptyMessage && (
             <p className="px-3 py-1 text-xs text-muted-foreground">
               {emptyMessage}
             </p>
@@ -514,7 +521,8 @@ export default function Sidebar() {
             title="Workspaces"
             items={workspaceList.map((w) => ({ ...w, active: w.id === activeWorkspace }))}
             emptyMessage={selectedTeam ? "No workspaces yet" : "Create or select a team first"}
-            statusMessage={workspacesLoading ? "Loading workspaces..." : workspacesError || undefined}
+            isLoading={workspacesLoading}
+            statusMessage={workspacesError || undefined}
             onAdd={selectedTeam ? addWorkspace : undefined}
             onEdit={editWorkspace}
             onDelete={deleteWorkspace}

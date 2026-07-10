@@ -153,11 +153,11 @@ const defaultStatusOptions: StatusOption[] = [
 
 function PersonCell({ person }: { person: Person }) {
   return (
-    <div className="flex items-center gap-2">
-      <div className={cn("flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-medium", person.color)}>
+    <div className="flex items-center gap-1.5">
+      <div className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-medium", person.color)}>
         {person.initials}
       </div>
-      <span className="text-sm text-foreground">{person.name}</span>
+      <span className="text-xs text-foreground">{person.name}</span>
     </div>
   );
 }
@@ -195,11 +195,11 @@ function AssigneeCell({
         onClick={() => setOpen(!open)}
       >
         {!isUnassigned && (
-          <div className={cn("flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-medium", task.assignedTo.color)}>
+          <div className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-medium", task.assignedTo.color)}>
             {task.assignedTo.initials}
           </div>
         )}
-        <span className="text-sm">{task.assignedTo.name}</span>
+        <span className="text-xs">{task.assignedTo.name}</span>
       </div>
       {open && (
         <>
@@ -219,7 +219,7 @@ function AssigneeCell({
                   setOpen(false);
                 }}
               >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-medium text-foreground">
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground">
                   Un
                 </div>
                 <span className="text-muted-foreground">Unassigned</span>
@@ -246,12 +246,12 @@ function AssigneeCell({
                       setOpen(false);
                     }}
                   >
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-medium">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-blue-300 text-[9px] font-medium">
                       {initials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground truncate">{member.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{member.email}</p>
+                      <p className="text-xs text-foreground truncate">{member.name}</p>
+                      <p className="text-[9px] text-muted-foreground truncate">{member.email}</p>
                     </div>
                     {isSelected && <Check size={14} className="text-blue-400 shrink-0" />}
                   </button>
@@ -982,6 +982,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
 
 interface NotionTableProps {
   tasks?: Task[];
+  isLoading?: boolean;
   wrapTaskName?: boolean;
   statusOptions?: StatusOption[];
   onStatusOptionsChange?: (options: StatusOption[]) => void;
@@ -998,6 +999,7 @@ interface NotionTableProps {
 
 export default function NotionTable({
   tasks = sampleTasks,
+  isLoading,
   wrapTaskName,
   statusOptions: externalStatusOptions,
   teamId: teamIdProp,
@@ -1143,6 +1145,14 @@ export default function NotionTable({
     const col = defaultColumns.find((c) => c.key === key)!;
     return { ...col, label: columnLabels[key] ?? col.label, width: columnWidths[key] ?? col.width };
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 size={24} className="animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <DndContext
