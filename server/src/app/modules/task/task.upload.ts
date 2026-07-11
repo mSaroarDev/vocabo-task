@@ -1,11 +1,28 @@
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import os from "os";
+import config from "../../config";
 
-const UPLOAD_DIR = path.join(process.cwd(), "uploads", "tasks");
+const isRemoteStorage =
+  Boolean(
+    config.r2.accountId &&
+    config.r2.accessKeyId &&
+    config.r2.secretAccessKey &&
+    config.r2.bucketName &&
+    config.r2.publicUrl
+  );
 
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const UPLOAD_DIR = isRemoteStorage
+  ? path.join(os.tmpdir(), "vocabo-uploads", "tasks")
+  : path.join(process.cwd(), "uploads", "tasks");
+
+try {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn(`[task.upload] Could not create upload dir ${UPLOAD_DIR}:`, err);
 }
 
 const storage = multer.diskStorage({
