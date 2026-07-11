@@ -15,13 +15,13 @@ import {
 
 export function useTeams() {
   const dispatch = useAppDispatch();
-  const { token } = useAppSelector((state) => state.auth);
+  const { token } = useAppSelector((state) => state.auth as NonNullable<typeof state.auth>);
   const { items: teams, selectedTeamId, isLoading, lastFetched, error } = useAppSelector(
-    (state) => state.teams
+    (state) => state.teams as NonNullable<typeof state.teams>
   );
 
   const selectedTeam = useMemo(
-    () => teams.find((t) => t.id === selectedTeamId) || teams[0] || null,
+    () => teams.find((team: Team) => team.id === selectedTeamId) || teams[0] || null,
     [teams, selectedTeamId]
   );
 
@@ -55,10 +55,14 @@ export function useTeams() {
       return dispatch(joinTeamAction({ inviteCode: cleanCode })).unwrap();
     },
     addTeamMember: async (teamId: string, email: string) => {
-      return dispatch(addTeamMemberAction({ teamId, email })).unwrap();
+      const result = await dispatch(addTeamMemberAction({ teamId, email })).unwrap();
+      dispatch(fetchTeamsAction());
+      return result;
     },
     removeTeamMember: async (teamId: string, memberUserId: string) => {
-      return dispatch(removeTeamMemberAction({ teamId, memberUserId })).unwrap();
+      const result = await dispatch(removeTeamMemberAction({ teamId, memberUserId })).unwrap();
+      dispatch(fetchTeamsAction());
+      return result;
     },
     deleteTeam: async (teamId: string) => {
       return dispatch(deleteTeamAction(teamId)).unwrap();

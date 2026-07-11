@@ -54,6 +54,7 @@ const notificationSchema = new Schema<INotification>(
     description: { type: String, default: "" },
     metadata: { type: Schema.Types.Mixed, default: {} },
     isSystem: { type: Boolean, default: false },
+    recipients: [{ type: Schema.Types.ObjectId, ref: "User" }],
     readBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
   },
   {
@@ -64,6 +65,7 @@ const notificationSchema = new Schema<INotification>(
 notificationSchema.index({ workspaceId: 1, createdAt: -1 });
 notificationSchema.index({ workspaceId: 1, readBy: 1 });
 notificationSchema.index({ actorId: 1, createdAt: -1 });
+notificationSchema.index({ recipients: 1, createdAt: -1 });
 
 const NotificationModel = model<INotification>("Notification", notificationSchema);
 

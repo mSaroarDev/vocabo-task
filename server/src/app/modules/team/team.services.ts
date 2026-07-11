@@ -151,13 +151,14 @@ const addMember = async (teamId: string, userId: string, email: string) => {
       actorId: userId,
       actorName: performer?.name || "Unknown",
       actorAvatar: performer?.avatar || undefined,
-      type: "MEMBER_INVITED",
-      entityType: "member",
-      entityId: String(targetUserId),
-      title: "Member invited",
-      description: `${performer?.name || "Someone"} invited ${targetUser.name || email}`,
-      metadata: { invitedEmail: email },
-    });
+        type: "MEMBER_INVITED",
+        entityType: "member",
+        entityId: String(targetUserId),
+        title: "Member invited",
+        description: `${performer?.name || "Someone"} invited ${targetUser.name || email}`,
+        metadata: { invitedEmail: email },
+        recipients: [String(targetUserId)],
+      });
   }
 
   const populated = await TeamModel.findById(team._id).populate("members.user", "name email");

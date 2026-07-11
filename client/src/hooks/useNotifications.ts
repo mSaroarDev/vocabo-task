@@ -28,12 +28,12 @@ export function useNotifications() {
     limit,
     error,
     isSheetOpen,
-  } = useAppSelector((state) => state.notifications);
+  } = useAppSelector((state) => state.notifications as NonNullable<typeof state.notifications>);
 
   const listenerAttachedRef = useRef(false);
 
   const activeWorkspaceId =
-    useAppSelector((state) => state.workspaces.currentTeamId) ||
+    useAppSelector((state) => state.workspaces as NonNullable<typeof state.workspaces>).currentTeamId ||
     (typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("workspace")
       : null);
@@ -127,6 +127,7 @@ export function useNotifications() {
     if (!socket || listenerAttachedRef.current) return;
 
     socket.on("notification:new", (notification: Notification) => {
+      if (notification.workspaceId !== workspaceId) return;
       dispatch(addNotification(notification));
     });
 

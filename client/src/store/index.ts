@@ -3,6 +3,7 @@ import {
   persistStore,
   persistReducer,
   createMigrate,
+  createTransform,
   FLUSH,
   REHYDRATE,
   PAUSE,
@@ -96,6 +97,19 @@ const persistConfig = {
   storage,
   migrate: createMigrate(migrations, { debug: false }),
   whitelist: ["auth", "teams", "workspaces", "checklist"],
+  transforms: [
+    createTransform(
+      (state: any) => {
+        const { lastFetched, isLoading, error, ...rest } = state;
+        return rest;
+      },
+      (state: any) => {
+        const { lastFetched, isLoading, error, ...rest } = state;
+        return rest;
+      },
+      { whitelist: ["teams"] }
+    ),
+  ],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

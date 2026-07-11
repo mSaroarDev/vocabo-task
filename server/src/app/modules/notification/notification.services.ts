@@ -14,13 +14,24 @@ export const setSocketIO = (socketIO: any) => {
   io = socketIO;
 };
 
-const emitToWorkspace = (workspaceId: string, event: string, data: unknown) => {
+const emitToUsers = (userIds: string[], event: string, data: unknown) => {
+  if (!io) return;
+  for (const userId of userIds) {
+    io.to(`user:${userId}`).emit(event, data);
+  }
+};
+
+const emitToTeam = (teamId: string, event: string, data: unknown) => {
   if (io) {
-    io.to(`workspace:${workspaceId}`).emit(event, data);
+    io.to(`team:${teamId}`).emit(event, data);
   }
 };
 
 const log = async (params: LogNotificationParams): Promise<INotification> => {
+  const recipients = (params.recipients || []).map(
+    (id) => new Types.ObjectId(id)
+  );
+
   const notification = await NotificationModel.create({
     workspaceId: new Types.ObjectId(params.workspaceId),
     teamId: new Types.ObjectId(params.teamId),
@@ -34,12 +45,23 @@ const log = async (params: LogNotificationParams): Promise<INotification> => {
     description: params.description,
     metadata: params.metadata || {},
     isSystem: params.isSystem || false,
+    recipients,
   });
 
   const populated = await notification.populate("actorId", "name email avatar");
 
-  emitToWorkspace(params.workspaceId, "notification:new", populated);
-  emitToWorkspace(params.workspaceId, "notification:unread-count", {});
+  if (recipients.length > 0) {
+    const recipientIds = recipients.map((id) => String(id));
+    emitToUsers(recipientIds, "notification:new", populated);
+    emitToUsers(recipientIds, "notification:unread-count", {
+      workspaceId: params.workspaceId,
+    });
+  } else {
+    emitToTeam(params.teamId, "notification:new", populated);
+    emitToTeam(params.teamId, "notification:unread-count", {
+      workspaceId: params.workspaceId,
+    });
+  }
 
   return populated;
 };
@@ -167,7 +189,7 @@ const markAllAsRead = async (workspaceId: string, userId: string) => {
     readBy: { $ne: new Types.ObjectId(userId) },
   });
 
-  emitToWorkspace(workspaceId, "notification:unread-count", { count });
+  emitToUsers([userId], "notification:unread-count", { workspaceId, count });
 
   return true;
 };

@@ -256,6 +256,7 @@ const createTask = async (
         assignedTo: payload.assignedTo,
         assignedToName: assignedUser?.name,
       },
+      recipients: [payload.assignedTo],
     });
   }
 
@@ -391,6 +392,12 @@ const updateTask = async (
 
   const performer = await User.findById(userId).select("name avatar");
 
+  const assignedUserId = task.assignedTo
+    ? typeof task.assignedTo === "object"
+      ? String((task.assignedTo as any)._id || task.assignedTo)
+      : String(task.assignedTo)
+    : null;
+
   const notificationPromises: Promise<unknown>[] = [];
 
   for (const change of changes) {
@@ -414,6 +421,7 @@ const updateTask = async (
               assignedTo: payload.assignedTo,
               assignedToName: assignedUser?.name,
             },
+            recipients: [payload.assignedTo],
           })
         );
       } else {
@@ -448,6 +456,7 @@ const updateTask = async (
           title: isCompleted ? "Task completed" : "Task reopened",
           description: `${performer?.name || "Someone"} ${isCompleted ? "completed" : "reopened"} "${task.title}"`,
           metadata: { taskTitle: task.title },
+          recipients: assignedUserId ? [assignedUserId] : undefined,
         })
       );
     } else if (change.field === "status") {
@@ -468,6 +477,7 @@ const updateTask = async (
             oldStatus: change.oldValue,
             newStatus: change.newValue,
           },
+          recipients: assignedUserId ? [assignedUserId] : undefined,
         })
       );
     } else if (change.field === "priority") {
@@ -488,6 +498,7 @@ const updateTask = async (
             oldPriority: change.oldValue,
             newPriority: change.newValue,
           },
+          recipients: assignedUserId ? [assignedUserId] : undefined,
         })
       );
     } else {
@@ -509,6 +520,7 @@ const updateTask = async (
             oldValue: change.oldValue,
             newValue: change.newValue,
           },
+          recipients: assignedUserId ? [assignedUserId] : undefined,
         })
       );
     }

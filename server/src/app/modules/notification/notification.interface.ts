@@ -49,6 +49,7 @@ export interface INotification {
   description: string;
   metadata: Record<string, unknown>;
   isSystem: boolean;
+  recipients: Types.ObjectId[];
   readBy: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
@@ -67,6 +68,7 @@ export interface LogNotificationParams {
   description: string;
   metadata?: Record<string, unknown>;
   isSystem?: boolean;
+  recipients?: string[];
 }
 
 export interface NotificationQueryParams {
