@@ -47,6 +47,14 @@ export default function Home() {
   }, [workspaceName]);
 
   useEffect(() => {
+    if (workspaceId && currentWorkspace) {
+      document.title = workspaceName || "Vocabo";
+    } else {
+      document.title = "Vocabo";
+    }
+  }, [workspaceId, currentWorkspace, workspaceName]);
+
+  useEffect(() => {
     setFilterMember(null);
     setSearchQuery("");
     setSearchOpen(false);
