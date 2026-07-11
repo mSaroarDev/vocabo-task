@@ -1,29 +1,31 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  addGroup,
-  renameGroup,
-  deleteGroup,
-  reorderGroups,
-  addItem,
-  toggleItem,
-  editItem,
-  deleteItem,
-  reorderItems,
+  createChecklistGroup,
+  renameChecklistGroup,
+  deleteChecklistGroup,
+  reorderChecklistGroups,
+  addChecklistItem,
+  toggleChecklistItem,
+  editChecklistItem,
+  deleteChecklistItem,
+  reorderChecklistItems,
   type ChecklistGroup,
 } from "@/store/slices/checklistSlice";
 
 export function useChecklist() {
   const dispatch = useAppDispatch();
-  const groups = useAppSelector((state) => state.checklist.groups);
+  const { groups, isLoading, error } = useAppSelector((state) => state.checklist);
 
   return {
     groups,
+    isLoading,
+    error,
     createGroup: useCallback(
       (title: string) => {
         const clean = title.trim();
         if (!clean) return;
-        dispatch(addGroup(clean));
+        dispatch(createChecklistGroup(clean));
       },
       [dispatch],
     ),
@@ -31,16 +33,16 @@ export function useChecklist() {
       (id: string, title: string) => {
         const clean = title.trim();
         if (!clean) return;
-        dispatch(renameGroup({ id, title: clean }));
+        dispatch(renameChecklistGroup({ id, title: clean }));
       },
       [dispatch],
     ),
     deleteGroup: useCallback(
-      (id: string) => dispatch(deleteGroup(id)),
+      (id: string) => dispatch(deleteChecklistGroup(id)),
       [dispatch],
     ),
     reorderGroups: useCallback(
-      (orderedIds: string[]) => dispatch(reorderGroups(orderedIds)),
+      (orderedIds: string[]) => dispatch(reorderChecklistGroups(orderedIds)),
       [dispatch],
     ),
 
@@ -48,28 +50,29 @@ export function useChecklist() {
       (groupId: string, title: string) => {
         const clean = title.trim();
         if (!clean) return;
-        dispatch(addItem(groupId, clean));
+        dispatch(addChecklistItem({ groupId, title: clean }));
       },
       [dispatch],
     ),
     toggleItem: useCallback(
-      (groupId: string, itemId: string) => dispatch(toggleItem({ groupId, itemId })),
+      (groupId: string, itemId: string) => dispatch(toggleChecklistItem({ groupId, itemId })),
       [dispatch],
     ),
     editItem: useCallback(
       (groupId: string, itemId: string, title: string) => {
         const clean = title.trim();
         if (!clean) return;
-        dispatch(editItem({ groupId, itemId, title: clean }));
+        dispatch(editChecklistItem({ groupId, itemId, title: clean }));
       },
       [dispatch],
     ),
     deleteItem: useCallback(
-      (groupId: string, itemId: string) => dispatch(deleteItem({ groupId, itemId })),
+      (groupId: string, itemId: string) => dispatch(deleteChecklistItem({ groupId, itemId })),
       [dispatch],
     ),
     reorderItems: useCallback(
-      (groupId: string, itemIds: string[]) => dispatch(reorderItems({ groupId, itemIds })),
+      (groupId: string, itemIds: string[]) =>
+        dispatch(reorderChecklistItems({ groupId, itemIds })),
       [dispatch],
     ),
   };

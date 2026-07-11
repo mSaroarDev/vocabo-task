@@ -9,6 +9,7 @@ import {
   NotificationRoutes,
   NotificationGlobalRoutes,
 } from "../modules/notification/notification.routes";
+import { ChecklistRoutes } from "../modules/checklist/checklist.routes";
 
 const router = express.Router();
 
@@ -24,5 +25,6 @@ router.use("/teams/:teamId/workspaces/:workspaceId/columns", ColumnRoutes);
 router.use("/teams/:teamId/workspaces/:workspaceId/tasks", TaskRoutes);
 router.use("/workspaces/:workspaceId/notifications", NotificationRoutes);
 router.use("/notifications", NotificationGlobalRoutes);
+router.use("/checklist", ChecklistRoutes);
 
 export default router;

@@ -79,11 +79,20 @@ const migrations = {
       groups: [],
     },
   }),
+  6: (state: any) => ({
+    ...state,
+    checklist: {
+      groups: state?.checklist?.groups || [],
+      isLoading: false,
+      lastFetched: null,
+      error: null,
+    },
+  }),
 };
 
 const persistConfig = {
   key: "vocabo-root",
-  version: 5,
+  version: 6,
   storage,
   migrate: createMigrate(migrations, { debug: false }),
   whitelist: ["auth", "teams", "workspaces", "checklist"],

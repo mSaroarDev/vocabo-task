@@ -6,6 +6,8 @@ import { NotificationBell, NotificationSheet } from "@/components/notifications"
 import { useNotifications } from "@/hooks/useNotifications";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { useAppDispatch } from "@/store/hooks";
+import { fetchChecklist } from "@/store/slices/checklistSlice";
 
 interface NotionLayoutProps {
   children: ReactNode;
@@ -33,6 +35,11 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
     openSheet,
     closeSheet,
   } = useNotifications();
+
+  const dispatchChecklist = useAppDispatch();
+  useEffect(() => {
+    dispatchChecklist(fetchChecklist());
+  }, [dispatchChecklist]);
 
   const { selectedTeam } = useTeams();
   const [searchParams] = useSearchParams();
