@@ -13,6 +13,8 @@ import type { FormEvent } from "react";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import type { ChecklistGroup } from "@/hooks/useChecklist";
+import type { Workspace } from "@/store/slices/workspacesSlice";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -23,8 +25,8 @@ export default function Home() {
   const { workspaces, updateWorkspace } = useWorkspaces(selectedTeam?.id);
   const { tasks, isLoading: tasksLoading, addTask, editTask, removeTask, reorder } = useTasks(selectedTeam?.id, workspaceId);
   const { groups: checklistGroups } = useChecklist();
-  const currentWorkspace = workspaceId ? workspaces.find((w) => w.id === workspaceId) : null;
-  const currentChecklist = checklistId ? checklistGroups.find((g) => g.id === checklistId) : null;
+  const currentWorkspace = workspaceId ? workspaces.find((w: Workspace) => w.id === workspaceId) : null;
+  const currentChecklist = checklistId ? checklistGroups.find((g: ChecklistGroup) => g.id === checklistId) : null;
   const workspaceName = currentWorkspace?.name || "";
   const [activeTab, setActiveTab] = useState<"all" | "board">("all");
   const [settingsOpen, setSettingsOpen] = useState(false);

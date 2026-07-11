@@ -7,6 +7,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { useAppDispatch } from "@/store/hooks";
+import type { Workspace } from "@/store/slices/workspacesSlice";
 import { fetchChecklist } from "@/store/slices/checklistSlice";
 
 interface NotionLayoutProps {
@@ -49,7 +50,7 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
   const activeWorkspaceId = searchParams.get("workspace");
 
   const { workspaces } = useWorkspaces(selectedTeam?.id);
-  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
+  const activeWorkspace = workspaces.find((w: Workspace) => w.id === activeWorkspaceId);
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {

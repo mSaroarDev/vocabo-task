@@ -40,7 +40,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { useChecklist } from "@/hooks/useChecklist";
+import type { ChecklistGroup } from "@/hooks/useChecklist";
 import { WorkspaceIcon } from "@/lib/workspace-icons";
+import type { Workspace } from "@/store/slices/workspacesSlice";
 
 interface SidebarItem {
   id: string;
@@ -291,8 +293,8 @@ export default function Sidebar() {
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
 
   const workspaceList: SidebarItem[] = workspaces
-    .filter((workspace) => workspace.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
-    .map((w) => ({
+    .filter((workspace: Workspace) => workspace.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    .map((w: Workspace) => ({
       id: w.id,
       label: w.name,
       icon: <WorkspaceIcon name={w.icon} size={16} />,
@@ -347,7 +349,7 @@ export default function Sidebar() {
   const editWorkspace = (_id: string) => {
     if (!selectedTeam) return;
 
-    const workspace = workspaces.find((item) => item.id === _id);
+    const workspace = workspaces.find((item: Workspace) => item.id === _id);
     if (!workspace) return;
 
     setEditingWorkspace({
@@ -398,7 +400,7 @@ export default function Sidebar() {
   const userInitials = user
     ? user.name
         .split(" ")
-        .map((n) => n[0])
+      .map((n: string) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2)
@@ -550,7 +552,7 @@ export default function Sidebar() {
 
           <SidebarSection
             title="Personal Checklist"
-            items={checklistGroups.map((g) => ({
+            items={checklistGroups.map((g: ChecklistGroup) => ({
               id: g.id,
               label: g.title,
               icon: <ListTodo size={16} />,
