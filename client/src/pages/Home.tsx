@@ -375,19 +375,19 @@ export default function Home() {
   return (
     <div className="max-w-3xl mx-auto px-16 py-20">
       <div className="mb-1 text-xs text-muted-foreground">
-        Vocabo / Home
+        Geting Started with
       </div>
 
-      <h1 className="text-4xl font-semibold text-foreground mb-1">
-        Getting Started
+      <h1 className="text-4xl font-semibold text-foreground mb-1 my-5">
+        Plano
       </h1>
 
-      <p className="text-sm text-muted-foreground mb-8">
+      <p className="text-sm text-muted-foreground mb-8 mt-5">
         Select a workspace from the sidebar to view tasks.
       </p>
 
       <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">Welcome to Vocabo.</p>
+        <p className="text-sm text-muted-foreground">Welcome to Plano.</p>
         <p className="text-sm text-muted-foreground">
           This is your workspace. Start typing or select a page from the sidebar.
         </p>
