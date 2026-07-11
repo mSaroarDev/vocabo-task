@@ -101,13 +101,25 @@ export function useNotifications() {
     dispatch(toggleSheet());
   }, [dispatch]);
 
+  const prevWorkspaceId = useRef(workspaceId);
+  const dataFetched = useRef(false);
+
   useEffect(() => {
-    if (workspaceId) {
-      refetch();
-      getUnreadCount();
-    } else {
-      dispatch(resetNotifications());
+    if (prevWorkspaceId.current !== workspaceId) {
+      prevWorkspaceId.current = workspaceId;
+      dataFetched.current = false;
     }
+
+    if (!workspaceId) {
+      dispatch(resetNotifications());
+      return;
+    }
+
+    if (dataFetched.current) return;
+    dataFetched.current = true;
+
+    refetch();
+    getUnreadCount();
   }, [workspaceId, refetch, getUnreadCount, dispatch]);
 
   useEffect(() => {

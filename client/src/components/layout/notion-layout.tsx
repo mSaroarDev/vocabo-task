@@ -37,7 +37,10 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
   } = useNotifications();
 
   const dispatchChecklist = useAppDispatch();
+  const checklistFetched = useRef(false);
   useEffect(() => {
+    if (checklistFetched.current) return;
+    checklistFetched.current = true;
     dispatchChecklist(fetchChecklist());
   }, [dispatchChecklist]);
 
