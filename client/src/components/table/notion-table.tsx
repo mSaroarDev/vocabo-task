@@ -21,7 +21,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check, Loader2, ImagePlus, Eye } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check, Loader2, ImagePlus, Eye, ListTodo, UserRoundCheck } from "lucide-react";
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
 import Swal from "sweetalert2";
@@ -268,13 +268,13 @@ function AssigneeCell({
 }
 
 const columnIcons: Record<string, React.ReactNode> = {
-  title: <FileText className="size-3.5" />,
-  status: <Circle className="size-3.5" />,
-  priority: <Flag className="size-3.5" />,
-  description: <AlignLeft className="size-3.5" />,
-  assignee: <User className="size-3.5" />,
-  createdBy: <UserPlus className="size-3.5" />,
-  attachments: <Paperclip className="size-3.5" />,
+  title: <FileText className="size-3.5 flex-shrink-0" />,
+  status: <ListTodo className="size-3.5 flex-shrink-0" />,
+  priority: <Flag className="size-3.5 flex-shrink-0" />,
+  description: <AlignLeft className="size-3.5 flex-shrink-0" />,
+  assignee: <UserRoundCheck className="size-3.5 flex-shrink-0" />,
+  createdBy: <UserPlus className="size-3.5 flex-shrink-0" />,
+  attachments: <Paperclip className="size-3.5 flex-shrink-0" />,
 };
 
 const defaultColumns = [
@@ -1296,7 +1296,7 @@ export default function NotionTable({
               </tr>
             )}
             <tr>
-              <td colSpan={columnOrder.length + 1} className="pl-8 pr-3 py-1">
+              <td colSpan={columnOrder.length + 1} className="pl-16 pr-3 py-1">
                 <button
                   onClick={() => setAddingNew(true)}
                   className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer"
