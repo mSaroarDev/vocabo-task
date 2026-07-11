@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, ChevronDown, Send } from "lucide-react";
+import { X, ChevronDown, Send, LogOut, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import TelegramConnectModal from "@/components/auth/TelegramConnectModal";
 import { useTeams } from "@/hooks/useTeams";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export default function Profile() {
   const navigate = useNavigate();
   const { user, isAuthenticated, updateProfile, deleteAccount, disconnectTelegram } = useAuth();
-  const { teams, addTeamMember, removeTeamMember } = useTeams();
+  const { teams, addTeamMember, removeTeamMember, deleteTeam, leaveTeam } = useTeams();
   const [name, setName] = useState(user?.name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [email, setEmail] = useState(user?.email || "");
@@ -21,6 +21,8 @@ export default function Profile() {
   const [memberMessages, setMemberMessages] = useState<Record<string, string>>({});
   const [addingMember, setAddingMember] = useState<Record<string, boolean>>({});
   const [confirmRemove, setConfirmRemove] = useState<{ teamId: string; memberUserId: string; memberName: string } | null>(null);
+  const [confirmDeleteTeam, setConfirmDeleteTeam] = useState<{ teamId: string; teamName: string } | null>(null);
+  const [confirmLeaveTeam, setConfirmLeaveTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
   const [telegramModalOpen, setTelegramModalOpen] = useState(false);
 
@@ -80,6 +82,26 @@ export default function Profile() {
       // error handled by Redux
     }
     setConfirmRemove(null);
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!confirmDeleteTeam) return;
+    try {
+      await deleteTeam(confirmDeleteTeam.teamId);
+    } catch {
+      // error handled by Redux
+    }
+    setConfirmDeleteTeam(null);
+  };
+
+  const handleLeaveTeam = async () => {
+    if (!confirmLeaveTeam) return;
+    try {
+      await leaveTeam(confirmLeaveTeam.teamId);
+    } catch {
+      // error handled by Redux
+    }
+    setConfirmLeaveTeam(null);
   };
 
   if (!isAuthenticated || !user) {
@@ -211,6 +233,15 @@ export default function Profile() {
                     {user._id === team.owner ? "Owner" : "Member"}
                   </p>
                 </div>
+                {user._id !== team.owner && (
+                  <button
+                    onClick={() => setConfirmLeaveTeam({ teamId: team.id, teamName: team.name })}
+                    title="Leave team"
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400 cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -347,6 +378,17 @@ export default function Profile() {
                           </p>
                         )}
                       </div>
+
+                      {/* Delete Team */}
+                      <div className="pt-2 border-t border-white/[0.06]">
+                        <button
+                          onClick={() => setConfirmDeleteTeam({ teamId: team.id, teamName: team.name })}
+                          className="flex items-center gap-2 rounded-md bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                          Delete team
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -378,6 +420,59 @@ export default function Profile() {
                 className="rounded-md bg-red-500/10 px-4 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 cursor-pointer"
               >
                 Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Team Confirmation */}
+      {confirmLeaveTeam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-sm rounded-lg border border-white/[0.06] bg-[#0a0a0a] p-6 shadow-xl">
+            <h3 className="text-sm font-medium text-foreground mb-2">Leave Team</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Are you sure you want to leave <strong className="text-foreground">{confirmLeaveTeam.teamName}</strong>?
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setConfirmLeaveTeam(null)}
+                className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLeaveTeam}
+                className="rounded-md bg-amber-500/10 px-4 py-1.5 text-sm font-medium text-amber-400 transition-colors hover:bg-amber-500/20 cursor-pointer"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Team Confirmation */}
+      {confirmDeleteTeam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-sm rounded-lg border border-white/[0.06] bg-[#0a0a0a] p-6 shadow-xl">
+            <h3 className="text-sm font-medium text-foreground mb-2">Delete Team</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Are you sure you want to delete <strong className="text-foreground">{confirmDeleteTeam.teamName}</strong>?
+              This will permanently delete all workspaces, tasks, and data in this team.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setConfirmDeleteTeam(null)}
+                className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteTeam}
+                className="rounded-md bg-red-500/10 px-4 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 cursor-pointer"
+              >
+                Delete
               </button>
             </div>
           </div>

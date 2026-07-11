@@ -13,5 +13,7 @@ router.post("/", validatorMiddleware(createTeamValidator), TeamControllers.creat
 router.post("/join", validatorMiddleware(joinTeamValidator), TeamControllers.joinTeam);
 router.post("/:teamId/members", validatorMiddleware(addMemberValidator), TeamControllers.addMember);
 router.delete("/:teamId/members/:memberUserId", TeamControllers.removeMember);
+router.delete("/:teamId", TeamControllers.deleteTeam);
+router.post("/:teamId/leave", TeamControllers.leaveTeam);
 
 export const TeamRoutes = router;

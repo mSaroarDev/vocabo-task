@@ -6,6 +6,8 @@ import {
   joinTeam as joinTeamAction,
   addTeamMember as addTeamMemberAction,
   removeTeamMember as removeTeamMemberAction,
+  deleteTeam as deleteTeamAction,
+  leaveTeam as leaveTeamAction,
   selectTeam as selectTeamAction,
   setTeams as setTeamsAction,
   type Team,
@@ -57,6 +59,12 @@ export function useTeams() {
     },
     removeTeamMember: async (teamId: string, memberUserId: string) => {
       return dispatch(removeTeamMemberAction({ teamId, memberUserId })).unwrap();
+    },
+    deleteTeam: async (teamId: string) => {
+      return dispatch(deleteTeamAction(teamId)).unwrap();
+    },
+    leaveTeam: async (teamId: string) => {
+      return dispatch(leaveTeamAction(teamId)).unwrap();
     },
     setSelectedTeam: (team: Team) => dispatch(selectTeamAction(team.id)),
     setTeams: (newTeams: Team[]) => dispatch(setTeamsAction(newTeams)),

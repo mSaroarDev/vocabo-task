@@ -79,10 +79,38 @@ const removeMember: RequestHandler = catchAsync(async (req: Request, res: Respon
   });
 });
 
+const deleteTeam: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const userId = getUserId(req as AuthRequest);
+  const teamId = req.params.teamId as string;
+  await TeamServices.deleteTeam(teamId, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Team deleted successfully",
+    data: { teamId },
+  });
+});
+
+const leaveTeam: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const userId = getUserId(req as AuthRequest);
+  const teamId = req.params.teamId as string;
+  const result = await TeamServices.leaveTeam(teamId, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Left team successfully",
+    data: result,
+  });
+});
+
 export const TeamControllers = {
   createTeam,
   getMyTeams,
   joinTeam,
   addMember,
   removeMember,
+  deleteTeam,
+  leaveTeam,
 };

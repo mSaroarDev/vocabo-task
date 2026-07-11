@@ -5,6 +5,9 @@ import { User } from "../auth/auth.model";
 import TeamModel from "./team.model";
 import bot from "../auth/telegram.bot";
 import WorkspaceModel from "../workspace/workspace.model";
+import TaskModel from "../task/task.model";
+import ColumnModel from "../column/column.model";
+import NotificationModel from "../notification/notification.model";
 import { NotificationServices } from "../notification/notification.services";
 
 const createInviteCode = () => {
@@ -208,10 +211,64 @@ const removeMember = async (teamId: string, userId: string, memberUserId: string
   return populated;
 };
 
+const deleteTeam = async (teamId: string, userId: string) => {
+  const team = await TeamModel.findById(teamId);
+  if (!team) {
+    throw new AppError(httpStatus.NOT_FOUND, "Team not found");
+  }
+
+  const ownerId = new Types.ObjectId(userId);
+  if (!team.owner.equals(ownerId)) {
+    throw new AppError(httpStatus.FORBIDDEN, "Only the team owner can delete the team");
+  }
+
+  // Cascade delete: notifications, workspaces, columns, tasks
+  await NotificationModel.deleteMany({ teamId: team._id });
+
+  const workspaces = await WorkspaceModel.find({ team: team._id }).select("_id");
+  const workspaceIds = workspaces.map((w) => w._id);
+
+  if (workspaceIds.length > 0) {
+    await TaskModel.deleteMany({ workspace: { $in: workspaceIds } });
+    await ColumnModel.deleteMany({ workspace: { $in: workspaceIds } });
+    await WorkspaceModel.deleteMany({ _id: { $in: workspaceIds } });
+  }
+
+  await TeamModel.findByIdAndDelete(teamId);
+
+  return team;
+};
+
+const leaveTeam = async (teamId: string, userId: string) => {
+  const team = await TeamModel.findById(teamId);
+  if (!team) {
+    throw new AppError(httpStatus.NOT_FOUND, "Team not found");
+  }
+
+  const userObjectId = new Types.ObjectId(userId);
+
+  if (team.owner.equals(userObjectId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Team owner cannot leave. Delete the team instead.");
+  }
+
+  const memberIndex = team.members.findIndex((m) => m.user.equals(userObjectId));
+  if (memberIndex === -1) {
+    throw new AppError(httpStatus.NOT_FOUND, "You are not a member of this team");
+  }
+
+  team.members.splice(memberIndex, 1);
+  await team.save();
+
+  const populated = await TeamModel.findById(team._id).populate("members.user", "name email");
+  return populated;
+};
+
 export const TeamServices = {
   createTeam,
   getMyTeams,
   joinTeam,
   addMember,
   removeMember,
+  deleteTeam,
+  leaveTeam,
 };

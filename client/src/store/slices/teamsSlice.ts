@@ -152,6 +152,30 @@ export const joinTeam = createAsyncThunk<Team, { inviteCode: string }, { rejectV
   }
 );
 
+export const deleteTeam = createAsyncThunk<string, string, { rejectValue: string }>(
+  "teams/deleteTeam",
+  async (teamId, { rejectWithValue }) => {
+    try {
+      await apiClient.delete(`/teams/${teamId}`);
+      return teamId;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, "Failed to delete team"));
+    }
+  }
+);
+
+export const leaveTeam = createAsyncThunk<Team, string, { rejectValue: string }>(
+  "teams/leaveTeam",
+  async (teamId, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post(`/teams/${teamId}/leave`);
+      return mapTeam(response.data.data as ApiTeam);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, "Failed to leave team"));
+    }
+  }
+);
+
 const teamsSlice = createSlice({
   name: "teams",
   initialState,
@@ -266,6 +290,26 @@ const teamsSlice = createSlice({
       })
       .addCase(removeTeamMember.rejected, (state, action) => {
         state.error = action.payload || "Failed to remove member";
+      })
+      .addCase(deleteTeam.fulfilled, (state, action) => {
+        state.items = state.items.filter((t) => t.id !== action.payload);
+        if (state.selectedTeamId === action.payload) {
+          state.selectedTeamId = state.items[0]?.id || null;
+        }
+        state.error = null;
+      })
+      .addCase(deleteTeam.rejected, (state, action) => {
+        state.error = action.payload || "Failed to delete team";
+      })
+      .addCase(leaveTeam.fulfilled, (state, action) => {
+        state.items = state.items.filter((t) => t.id !== action.payload.id);
+        if (state.selectedTeamId === action.payload.id) {
+          state.selectedTeamId = state.items[0]?.id || null;
+        }
+        state.error = null;
+      })
+      .addCase(leaveTeam.rejected, (state, action) => {
+        state.error = action.payload || "Failed to leave team";
       });
   },
 });
