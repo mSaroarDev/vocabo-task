@@ -252,12 +252,20 @@ export const updateTask = createAsyncThunk<
 export const deleteTask = createAsyncThunk<
   string,
   { teamId: string; workspaceId: string; taskId: string },
-  { rejectValue: string }
->("tasks/deleteTask", async ({ teamId, workspaceId, taskId }, { rejectWithValue }) => {
+  { state: { tasks: TasksState }; rejectValue: string }
+>("tasks/deleteTask", async ({ teamId, workspaceId, taskId }, { dispatch, getState, rejectWithValue }) => {
+  const task = getState().tasks.items.find((t) => t.id === taskId);
+  if (task) {
+    dispatch(removeOptimisticTask(taskId));
+  }
+
   try {
     await apiClient.delete(`/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}`);
     return taskId;
   } catch (error) {
+    if (task) {
+      dispatch(restoreDeletedTask(task));
+    }
     return rejectWithValue(getErrorMessage(error, "Failed to delete task"));
   }
 });
@@ -365,6 +373,9 @@ const tasksSlice = createSlice({
         state.items[idx] = action.payload.previousState;
       }
     },
+    restoreDeletedTask: (state, action: PayloadAction<Task>) => {
+      state.items.push(action.payload);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -442,5 +453,6 @@ export const {
   confirmOptimisticTask,
   applyOptimisticUpdate,
   revertTaskUpdate,
+  restoreDeletedTask,
 } = tasksSlice.actions;
 export default tasksSlice.reducer;

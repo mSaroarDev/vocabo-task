@@ -24,6 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check, Loader2, ImagePlus, Eye } from "lucide-react";
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
+import Swal from "sweetalert2";
 import TaskDetailModal from "./task-detail-modal";
 import ImagePreview from "@/components/ui/image-preview";
 import { useAppDispatch } from "@/store/hooks";
@@ -963,7 +964,23 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
             <GripVertical size={14} />
           </span>
           <button
-            onClick={() => onTaskDelete(task.id)}
+            onClick={async () => {
+              const result = await Swal.fire({
+                title: "Delete task?",
+                text: `"${task.title}" will be permanently deleted.`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#ef4444",
+                cancelButtonColor: "#6b7280",
+                confirmButtonText: "Delete",
+                cancelButtonText: "Cancel",
+                background: "#252525",
+                color: "#e5e7eb",
+              });
+              if (result.isConfirmed) {
+                onTaskDelete(task.id);
+              }
+            }}
             className="invisible group-hover:visible inline-flex cursor-pointer text-muted-foreground/30 hover:text-red-400 transition-colors px-1"
             title="Delete task"
           >
@@ -971,8 +988,8 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
           </button>
         </div>
       </td>
-      {columnOrder.map((key) => (
-        <td key={key} className={cn("h-9 px-3 border-b border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")} style={key === "description" ? { maxWidth: 300 } : undefined}>
+      {columnOrder.map((key, i) => (
+        <td key={key} className={cn("h-9 px-3 border-b border-border/50", i < columnOrder.length - 1 && "border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")} style={key === "description" ? { maxWidth: 300 } : undefined}>
           {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId)}
         </td>
       ))}
@@ -1162,7 +1179,7 @@ export default function NotionTable({
       onDragEnd={handleDragEnd}
     >
       <div className="overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden">
-        <table className="w-full border-collapse text-sm table-fixed">
+        <table className="w-full border-collapse text-sm table-fixed text-left">
           <thead>
             <DndContext
               sensors={colSensors}
@@ -1239,8 +1256,8 @@ export default function NotionTable({
             {addingNew && (
               <tr className="group">
                 <td style={{ width: 56, minWidth: 56 }} className="h-9 px-1" />
-                {columnOrder.map((key) => (
-                  <td key={key} className="h-9 px-3 border-b border-border/50">
+                {columnOrder.map((key, i) => (
+                  <td key={key} className={cn("h-9 px-3 border-b border-border/50", i < columnOrder.length - 1 && "border-r border-border/50")}>
                     {key === "title" ? (
                       <input
                         ref={newTaskInputRef}
