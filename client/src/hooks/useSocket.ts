@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAppSelector } from "@/store/hooks";
 
-const SOCKET_URL = "http://localhost:5000";
+const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
