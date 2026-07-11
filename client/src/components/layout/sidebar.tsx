@@ -52,8 +52,8 @@ interface SidebarItem {
 
 const favorites: SidebarItem[] = [
   { id: "1", label: "Getting Started", icon: <Star size={16} />, active: true },
-  { id: "2", label: "Meeting Notes", icon: <Star size={16} /> },
-  { id: "3", label: "Project Ideas", icon: <Star size={16} /> },
+  // { id: "2", label: "Meeting Notes", icon: <Star size={16} /> },
+  // { id: "3", label: "Project Ideas", icon: <Star size={16} /> },
 ];
 
 interface SidebarSectionProps {
@@ -515,7 +515,13 @@ export default function Sidebar() {
         </div>
 
         <ScrollArea className="flex-1 px-2">
-          <SidebarSection title="Favorites" items={favorites} />
+          <SidebarSection
+            title="Favorites"
+            items={favorites}
+            onItemClick={() => {
+              navigate("/dashboard");
+            }}
+          />
 
           <SidebarSection
             title="Workspaces"
