@@ -10,6 +10,7 @@ import {
   PERSIST,
   PURGE,
   REGISTER,
+  type PersistConfig,
 } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 
@@ -30,6 +31,8 @@ const rootReducer = combineReducers({
   checklist: checklistReducer,
   notifications: notificationsReducer,
 });
+
+export type RootState = ReturnType<typeof rootReducer>;
 
 const migrations = {
   2: (state: any) => {
@@ -91,7 +94,7 @@ const migrations = {
   }),
 };
 
-const persistConfig = {
+const persistConfig: PersistConfig<RootState> = {
   key: "vocabo-root",
   version: 6,
   storage,
@@ -112,10 +115,13 @@ const persistConfig = {
   ],
 };
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+const persistedReducer = persistReducer(
+  persistConfig,
+  rootReducer
+);
 
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer: persistedReducer as any,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
@@ -126,5 +132,4 @@ export const store = configureStore({
 
 export const persistor = persistStore(store);
 
-export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

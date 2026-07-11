@@ -21,7 +21,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Circle, Paperclip, FileText, Flag, AlignLeft, User, UserPlus, Check, Loader2, ImagePlus, Eye, ListTodo, UserRoundCheck } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil,   Trash2, Paperclip, FileText, Flag, AlignLeft, UserPlus, Check, Loader2, ImagePlus, Eye, ListTodo, UserRoundCheck } from "lucide-react";
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
 import Swal from "sweetalert2";
