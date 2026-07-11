@@ -277,7 +277,7 @@ const columnIcons: Record<string, React.ReactNode> = {
 };
 
 const defaultColumns = [
-  { key: "title", label: "Title", width: 380 },
+  { key: "title", label: "Title", width: 350 },
   { key: "status", label: "Status", width: 120 },
   { key: "priority", label: "Priority", width: 100 },
   { key: "description", label: "Description", width: 300 },
@@ -1162,7 +1162,7 @@ export default function NotionTable({
       onDragEnd={handleDragEnd}
     >
       <div className="overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden">
-        <table className="w-full border-collapse text-sm">
+        <table className="w-full border-collapse text-sm table-fixed">
           <thead>
             <DndContext
               sensors={colSensors}
