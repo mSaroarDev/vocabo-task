@@ -163,11 +163,12 @@ export default function ImagePickerModal({
               <div
                 ref={pasteAreaRef}
                 tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
                 onPaste={handlePasteEvent}
                 onFocus={() => setPasteActive(true)}
                 onBlur={() => setPasteActive(false)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors cursor-text",
+                  "flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors cursor-pointer",
                   pasteActive
                     ? "border-blue-500/50 bg-blue-500/10"
                     : "border-border/50 hover:border-foreground/50 hover:bg-accent/30"
@@ -183,7 +184,7 @@ export default function ImagePickerModal({
                     {uploading ? "Uploading..." : "Paste image here"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {uploading ? "Please wait" : "Press Ctrl+V / Cmd+V to paste"}
+                    {uploading ? "Please wait" : "Click to upload or press Ctrl+V / Cmd+V to paste"}
                   </p>
                 </div>
               </div>

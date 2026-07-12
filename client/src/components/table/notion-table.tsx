@@ -512,11 +512,12 @@ function StatusCell({
       <span
         ref={triggerRef}
         className={cn(
-          "inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium cursor-pointer select-none",
+          "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-medium cursor-pointer select-none",
           currentColor
         )}
         onClick={() => setOpen(!open)}
       >
+        <span className="h-2 w-2 rounded-full bg-current" />
         {task.status}
       </span>
       {open && (
@@ -536,7 +537,8 @@ function StatusCell({
                     setOpen(false);
                   }}
                 >
-                  <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", s.color)}>
+                  <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium", s.color)}>
+                    <span className="h-2.5 w-2.5 rounded-full bg-current" />
                     {s.label}
                   </span>
                 </button>
@@ -636,6 +638,7 @@ function AttachmentCell({
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const pasteRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -701,9 +704,10 @@ function AttachmentCell({
         <div
           ref={pasteRef}
           tabIndex={0}
+          onClick={() => fileRef.current?.click()}
           onPaste={handlePaste}
           className={cn(
-            "flex h-7 items-center gap-1 rounded border border-dashed px-2 text-xs cursor-text transition-colors",
+            "flex h-7 items-center gap-1 rounded border border-dashed px-2 text-xs cursor-pointer transition-colors",
             "border-blue-500/50 bg-blue-500/10 text-blue-400"
           )}
         >
@@ -714,6 +718,13 @@ function AttachmentCell({
           )}
           <span className="whitespace-nowrap">{uploading ? "Uploading..." : "Paste here"}</span>
         </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileInput}
+        />
       </div>
     );
   }
