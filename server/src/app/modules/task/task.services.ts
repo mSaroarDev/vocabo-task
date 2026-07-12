@@ -7,6 +7,8 @@ import TaskModel from "./task.model";
 import type { TaskPriority } from "./task.interface";
 import { getStorage } from "./task.storage";
 import { ActivityLogServices } from "../activityLog/activityLog.services";
+import { NotificationServices } from "../notification/notification.services";
+import { emitToUser } from "../../socket";
 import { User } from "../auth/auth.model";
 import bot from "../auth/telegram.bot";
 import config from "../../config";
@@ -79,6 +81,31 @@ const sendTaskAssignedNotification = async (
       });
     }
     console.error("Telegram notification error:", error);
+  }
+};
+
+const createAssignmentNotification = async (
+  taskId: string,
+  assignedUserId: string,
+  title: string,
+  performedByName: string,
+  teamId: string,
+  workspaceId: string,
+  createdBy: string
+) => {
+  try {
+    const notification = await NotificationServices.createNotification(createdBy, {
+      title: "New task assigned",
+      body: `${performedByName} assigned you "${title}"`,
+      type: "task",
+      recipientIds: [assignedUserId],
+      teamId,
+      workspaceId,
+      taskId,
+    });
+    emitToUser(assignedUserId, "notification:new", notification);
+  } catch (error) {
+    console.error("Failed to create assignment notification:", error);
   }
 };
 
@@ -207,16 +234,25 @@ const createTask = async (
 
   if (payload.assignedTo) {
     const performer = await User.findById(userId).select("name");
+    const performerName = performer?.name || "Unknown";
     sendTaskAssignedNotification(
       String(task._id),
       payload.assignedTo,
       task.title,
       task.priority,
-      performer?.name || "Unknown",
+      performerName,
       teamId,
       workspaceId
     );
-
+    createAssignmentNotification(
+      String(task._id),
+      payload.assignedTo,
+      task.title,
+      performerName,
+      teamId,
+      workspaceId,
+      userId
+    );
   }
 
   return populated;
@@ -321,14 +357,24 @@ const updateTask = async (
 
   if (payload.assignedTo && payload.assignedTo !== String(oldTask.assignedTo ?? "")) {
     const performer = await User.findById(userId).select("name");
+    const performerName = performer?.name || "Unknown";
     sendTaskAssignedNotification(
       taskId,
       payload.assignedTo,
       task.title,
       task.priority,
-      performer?.name || "Unknown",
+      performerName,
       teamId,
       workspaceId
+    );
+    createAssignmentNotification(
+      taskId,
+      payload.assignedTo,
+      task.title,
+      performerName,
+      teamId,
+      workspaceId,
+      userId
     );
   }
 

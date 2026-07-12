@@ -2,11 +2,14 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import Sidebar from "./sidebar";
+import NotificationBell from "@/components/notifications/notification-bell";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
+import { useSocket } from "@/hooks/useSocket";
 import { useAppDispatch } from "@/store/hooks";
 import type { Workspace } from "@/store/slices/workspacesSlice";
 import { fetchChecklist } from "@/store/slices/checklistSlice";
+import { fetchNotifications } from "@/store/slices/notificationsSlice";
 
 interface NotionLayoutProps {
   children: ReactNode;
@@ -17,17 +20,26 @@ const MAX_SIDEBAR_WIDTH = 420;
 const DEFAULT_SIDEBAR_WIDTH = 320;
 
 export default function NotionLayout({ children }: NotionLayoutProps) {
+  useSocket();
+
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
 
-  const dispatchChecklist = useAppDispatch();
+  const dispatch = useAppDispatch();
   const checklistFetched = useRef(false);
   useEffect(() => {
     if (checklistFetched.current) return;
     checklistFetched.current = true;
-    dispatchChecklist(fetchChecklist());
-  }, [dispatchChecklist]);
+    dispatch(fetchChecklist());
+  }, [dispatch]);
+
+  const notificationsFetched = useRef(false);
+  useEffect(() => {
+    if (notificationsFetched.current) return;
+    notificationsFetched.current = true;
+    dispatch(fetchNotifications());
+  }, [dispatch]);
 
   const { selectedTeam } = useTeams();
   const [searchParams] = useSearchParams();
@@ -105,6 +117,9 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
                 )}
               </>
             )}
+          </div>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
           </div>
         </header>
         <main className="flex-1 overflow-auto bg-background">

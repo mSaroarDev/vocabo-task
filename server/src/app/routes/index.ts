@@ -6,6 +6,7 @@ import { WorkspaceRoutes } from "../modules/workspace/workspace.routes";
 import { ColumnRoutes } from "../modules/column/column.routes";
 import { TaskRoutes } from "../modules/task/task.routes";
 import { ChecklistRoutes } from "../modules/checklist/checklist.routes";
+import { NotificationRoutes } from "../modules/notification/notification.routes";
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use("/teams/:teamId/workspaces", WorkspaceRoutes);
 router.use("/teams/:teamId/workspaces/:workspaceId/columns", ColumnRoutes);
 router.use("/teams/:teamId/workspaces/:workspaceId/tasks", TaskRoutes);
 router.use("/checklist", ChecklistRoutes);
+router.use("/notifications", NotificationRoutes);
 
 export default router;
