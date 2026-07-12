@@ -7,8 +7,6 @@ import bot from "../auth/telegram.bot";
 import WorkspaceModel from "../workspace/workspace.model";
 import TaskModel from "../task/task.model";
 import ColumnModel from "../column/column.model";
-import NotificationModel from "../notification/notification.model";
-import { NotificationServices } from "../notification/notification.services";
 
 const createInviteCode = () => {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -71,24 +69,6 @@ const joinTeam = async (userId: string, payload: { inviteCode: string }) => {
       joinedAt: new Date(),
     });
     await team.save();
-
-    const performer = await User.findById(userId).select("name avatar");
-    const workspaces = await WorkspaceModel.find({ team: team._id }).select("_id");
-
-    for (const workspace of workspaces) {
-      await NotificationServices.log({
-        workspaceId: String(workspace._id),
-        teamId: String(team._id),
-        actorId: userId,
-        actorName: performer?.name || "Someone",
-        actorAvatar: performer?.avatar || undefined,
-        type: "MEMBER_JOINED",
-        entityType: "member",
-        entityId: String(userObjectId),
-        title: "Member joined",
-        description: `${performer?.name || "Someone"} joined the team`,
-      });
-    }
   }
 
   return team;
@@ -141,26 +121,6 @@ const addMember = async (teamId: string, userId: string, email: string) => {
     }
   }
 
-  const performer = await User.findById(userId).select("name avatar");
-  const workspaces = await WorkspaceModel.find({ team: team._id }).select("_id");
-
-  for (const workspace of workspaces) {
-    await NotificationServices.log({
-      workspaceId: String(workspace._id),
-      teamId: String(team._id),
-      actorId: userId,
-      actorName: performer?.name || "Unknown",
-      actorAvatar: performer?.avatar || undefined,
-        type: "MEMBER_INVITED",
-        entityType: "member",
-        entityId: String(targetUserId),
-        title: "Member invited",
-        description: `${performer?.name || "Someone"} invited ${targetUser.name || email}`,
-        metadata: { invitedEmail: email },
-        recipients: [String(targetUserId)],
-      });
-  }
-
   const populated = await TeamModel.findById(team._id).populate("members.user", "name email");
   return populated;
 };
@@ -189,25 +149,6 @@ const removeMember = async (teamId: string, userId: string, memberUserId: string
   team.members.splice(memberIndex, 1);
   await team.save();
 
-  const performer = await User.findById(userId).select("name avatar");
-  const workspaces = await WorkspaceModel.find({ team: team._id }).select("_id");
-
-  for (const workspace of workspaces) {
-    await NotificationServices.log({
-      workspaceId: String(workspace._id),
-      teamId: String(team._id),
-      actorId: userId,
-      actorName: performer?.name || "Someone",
-      actorAvatar: performer?.avatar || undefined,
-      type: "MEMBER_REMOVED",
-      entityType: "member",
-      entityId: memberUserId,
-      title: "Member removed",
-      description: `${performer?.name || "Someone"} removed a member from the team`,
-      metadata: { removedUserId: memberUserId },
-    });
-  }
-
   const populated = await TeamModel.findById(team._id).populate("members.user", "name email");
   return populated;
 };
@@ -223,9 +164,7 @@ const deleteTeam = async (teamId: string, userId: string) => {
     throw new AppError(httpStatus.FORBIDDEN, "Only the team owner can delete the team");
   }
 
-  // Cascade delete: notifications, workspaces, columns, tasks
-  await NotificationModel.deleteMany({ teamId: team._id });
-
+  // Cascade delete: workspaces, columns, tasks
   const workspaces = await WorkspaceModel.find({ team: team._id }).select("_id");
   const workspaceIds = workspaces.map((w) => w._id);
 

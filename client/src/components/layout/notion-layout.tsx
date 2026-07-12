@@ -2,8 +2,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import Sidebar from "./sidebar";
-import { NotificationBell, NotificationSheet } from "@/components/notifications";
-import { useNotifications } from "@/hooks/useNotifications";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { useAppDispatch } from "@/store/hooks";
@@ -22,20 +20,6 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
-
-  const {
-    notifications,
-    unreadCount,
-    isLoading,
-    isLoadingMore,
-    hasMore,
-    isSheetOpen,
-    loadMore,
-    markAllRead,
-    markRead,
-    openSheet,
-    closeSheet,
-  } = useNotifications();
 
   const dispatchChecklist = useAppDispatch();
   const checklistFetched = useRef(false);
@@ -122,24 +106,11 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
               </>
             )}
           </div>
-          <NotificationBell unreadCount={unreadCount} onClick={openSheet} />
         </header>
         <main className="flex-1 overflow-auto bg-background">
           {children}
         </main>
       </div>
-      <NotificationSheet
-        isOpen={isSheetOpen}
-        notifications={notifications}
-        unreadCount={unreadCount}
-        isLoading={isLoading}
-        isLoadingMore={isLoadingMore}
-        hasMore={hasMore}
-        onClose={closeSheet}
-        onLoadMore={loadMore}
-        onMarkAllRead={markAllRead}
-        onMarkRead={markRead}
-      />
     </div>
   );
 }

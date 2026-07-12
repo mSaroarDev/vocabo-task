@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Users,
   BarChart3,
-  Bell,
   GripVertical,
   Moon,
   ArrowRight,
@@ -25,11 +24,6 @@ const features = [
     icon: BarChart3,
     title: "Analytics & Reports",
     description: "Track progress with visual charts and detailed reports. Know exactly where your team stands.",
-  },
-  {
-    icon: Bell,
-    title: "Smart Notifications",
-    description: "Stay updated with intelligent notifications. Never miss a deadline or important update.",
   },
   {
     icon: GripVertical,

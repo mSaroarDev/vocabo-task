@@ -10,7 +10,6 @@ import { ActivityLogServices } from "../activityLog/activityLog.services";
 import { User } from "../auth/auth.model";
 import bot from "../auth/telegram.bot";
 import config from "../../config";
-import { NotificationServices } from "../notification/notification.services";
 
 const ensureTeamMember = async (teamId: string, userId: string) => {
   if (!Types.ObjectId.isValid(teamId)) {
@@ -206,26 +205,6 @@ const createTask = async (
     performedBy: userId,
   });
 
-  const performer = await User.findById(userId).select("name avatar");
-
-  await NotificationServices.log({
-    workspaceId,
-    teamId,
-    actorId: userId,
-    actorName: performer?.name || "Someone",
-    actorAvatar: performer?.avatar || undefined,
-    type: "TASK_CREATED",
-    entityType: "task",
-    entityId: String(task._id),
-    title: "Task created",
-    description: `${performer?.name || "Someone"} created "${task.title}"`,
-    metadata: {
-      taskTitle: task.title,
-      status: task.status,
-      priority: task.priority,
-    },
-  });
-
   if (payload.assignedTo) {
     const performer = await User.findById(userId).select("name");
     sendTaskAssignedNotification(
@@ -238,26 +217,6 @@ const createTask = async (
       workspaceId
     );
 
-    const assignedUser = await User.findById(payload.assignedTo).select("name");
-
-    await NotificationServices.log({
-      workspaceId,
-      teamId,
-      actorId: userId,
-      actorName: performer?.name || "Someone",
-      actorAvatar: performer?.avatar || undefined,
-      type: "TASK_ASSIGNED",
-      entityType: "task",
-      entityId: String(task._id),
-      title: "Task assigned",
-      description: `${performer?.name || "Someone"} assigned "${task.title}" to ${assignedUser?.name || "a user"}`,
-      metadata: {
-        taskTitle: task.title,
-        assignedTo: payload.assignedTo,
-        assignedToName: assignedUser?.name,
-      },
-      recipients: [payload.assignedTo],
-    });
   }
 
   return populated;
@@ -390,144 +349,6 @@ const updateTask = async (
     );
   }
 
-  const performer = await User.findById(userId).select("name avatar");
-
-  const assignedUserId = task.assignedTo
-    ? typeof task.assignedTo === "object"
-      ? String((task.assignedTo as any)._id || task.assignedTo)
-      : String(task.assignedTo)
-    : null;
-
-  const notificationPromises: Promise<unknown>[] = [];
-
-  for (const change of changes) {
-    if (change.field === "assignedTo") {
-      if (payload.assignedTo) {
-        const assignedUser = await User.findById(payload.assignedTo).select("name");
-        notificationPromises.push(
-          NotificationServices.log({
-            workspaceId,
-            teamId,
-            actorId: userId,
-            actorName: performer?.name || "Someone",
-            actorAvatar: performer?.avatar || undefined,
-            type: "TASK_ASSIGNED",
-            entityType: "task",
-            entityId: taskId,
-            title: "Task assigned",
-            description: `${performer?.name || "Someone"} assigned "${task.title}" to ${assignedUser?.name || "a user"}`,
-            metadata: {
-              taskTitle: task.title,
-              assignedTo: payload.assignedTo,
-              assignedToName: assignedUser?.name,
-            },
-            recipients: [payload.assignedTo],
-          })
-        );
-      } else {
-        notificationPromises.push(
-          NotificationServices.log({
-            workspaceId,
-            teamId,
-            actorId: userId,
-            actorName: performer?.name || "Someone",
-            actorAvatar: performer?.avatar || undefined,
-            type: "TASK_UNASSIGNED",
-            entityType: "task",
-            entityId: taskId,
-            title: "Task unassigned",
-            description: `${performer?.name || "Someone"} unassigned "${task.title}"`,
-            metadata: { taskTitle: task.title },
-          })
-        );
-      }
-    } else if (change.field === "isCompleted") {
-      const isCompleted = change.newValue === "true";
-      notificationPromises.push(
-        NotificationServices.log({
-          workspaceId,
-          teamId,
-          actorId: userId,
-          actorName: performer?.name || "Someone",
-          actorAvatar: performer?.avatar || undefined,
-          type: isCompleted ? "TASK_COMPLETED" : "TASK_REOPENED",
-          entityType: "task",
-          entityId: taskId,
-          title: isCompleted ? "Task completed" : "Task reopened",
-          description: `${performer?.name || "Someone"} ${isCompleted ? "completed" : "reopened"} "${task.title}"`,
-          metadata: { taskTitle: task.title },
-          recipients: assignedUserId ? [assignedUserId] : undefined,
-        })
-      );
-    } else if (change.field === "status") {
-      notificationPromises.push(
-        NotificationServices.log({
-          workspaceId,
-          teamId,
-          actorId: userId,
-          actorName: performer?.name || "Someone",
-          actorAvatar: performer?.avatar || undefined,
-          type: "TASK_STATUS_CHANGED",
-          entityType: "task",
-          entityId: taskId,
-          title: "Status changed",
-          description: `${performer?.name || "Someone"} changed "${task.title}" from ${change.oldValue || "(none)"} to ${change.newValue || "(none)"}`,
-          metadata: {
-            taskTitle: task.title,
-            oldStatus: change.oldValue,
-            newStatus: change.newValue,
-          },
-          recipients: assignedUserId ? [assignedUserId] : undefined,
-        })
-      );
-    } else if (change.field === "priority") {
-      notificationPromises.push(
-        NotificationServices.log({
-          workspaceId,
-          teamId,
-          actorId: userId,
-          actorName: performer?.name || "Someone",
-          actorAvatar: performer?.avatar || undefined,
-          type: "TASK_PRIORITY_CHANGED",
-          entityType: "task",
-          entityId: taskId,
-          title: "Priority changed",
-          description: `${performer?.name || "Someone"} changed "${task.title}" priority from ${change.oldValue || "(none)"} to ${change.newValue || "(none)"}`,
-          metadata: {
-            taskTitle: task.title,
-            oldPriority: change.oldValue,
-            newPriority: change.newValue,
-          },
-          recipients: assignedUserId ? [assignedUserId] : undefined,
-        })
-      );
-    } else {
-      notificationPromises.push(
-        NotificationServices.log({
-          workspaceId,
-          teamId,
-          actorId: userId,
-          actorName: performer?.name || "Someone",
-          actorAvatar: performer?.avatar || undefined,
-          type: "TASK_UPDATED",
-          entityType: "task",
-          entityId: taskId,
-          title: "Task updated",
-          description: `${performer?.name || "Someone"} updated "${task.title}" (${change.field})`,
-          metadata: {
-            taskTitle: task.title,
-            field: change.field,
-            oldValue: change.oldValue,
-            newValue: change.newValue,
-          },
-          recipients: assignedUserId ? [assignedUserId] : undefined,
-        })
-      );
-    }
-  }
-
-  await Promise.all(notificationPromises);
-
   return task;
 };
 
@@ -556,22 +377,6 @@ const deleteTask = async (
     team: teamId,
     action: "deleted",
     performedBy: userId,
-  });
-
-  const performer = await User.findById(userId).select("name avatar");
-
-  await NotificationServices.log({
-    workspaceId,
-    teamId,
-    actorId: userId,
-    actorName: performer?.name || "Someone",
-    actorAvatar: performer?.avatar || undefined,
-    type: "TASK_DELETED",
-    entityType: "task",
-    entityId: taskId,
-    title: "Task deleted",
-    description: `${performer?.name || "Someone"} deleted "${task.title}"`,
-    metadata: { taskTitle: task.title },
   });
 
   const storage = getStorage();
@@ -677,27 +482,6 @@ const addAttachment = async (
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
   }
 
-  const performer = await User.findById(userId).select("name avatar");
-
-  await NotificationServices.log({
-    workspaceId,
-    teamId,
-    actorId: userId,
-    actorName: performer?.name || "Someone",
-    actorAvatar: performer?.avatar || undefined,
-    type: "FILE_UPLOADED",
-    entityType: "task",
-    entityId: taskId,
-    title: "File uploaded",
-    description: `${performer?.name || "Someone"} uploaded "${file.originalname}" to "${task.title}"`,
-    metadata: {
-      taskTitle: task.title,
-      fileName: file.originalname,
-      fileSize: file.size,
-      mimeType: file.mimetype,
-    },
-  });
-
   return task;
 };
 
@@ -736,25 +520,6 @@ const removeAttachment = async (
   if (updated) {
     await getStorage().delete(attachment.url);
   }
-
-  const performer = await User.findById(userId).select("name avatar");
-
-  await NotificationServices.log({
-    workspaceId,
-    teamId,
-    actorId: userId,
-    actorName: performer?.name || "Someone",
-    actorAvatar: performer?.avatar || undefined,
-    type: "ATTACHMENT_REMOVED",
-    entityType: "task",
-    entityId: taskId,
-    title: "Attachment removed",
-    description: `${performer?.name || "Someone"} removed an attachment from "${updated?.title || "a task"}"`,
-    metadata: {
-      taskTitle: updated?.title,
-      fileName: attachment.url,
-    },
-  });
 
   return updated;
 };

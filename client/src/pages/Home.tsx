@@ -50,9 +50,11 @@ export default function Home() {
 
   useEffect(() => {
     if (workspaceId && currentWorkspace) {
-      document.title = workspaceName || "Vocabo";
+      document.title = workspaceName
+        ? `${workspaceName} - Plano`
+        : "Plano - The Ultimate task management software";
     } else {
-      document.title = "Vocabo";
+      document.title = "Plano - The Ultimate task management software";
     }
   }, [workspaceId, currentWorkspace, workspaceName]);
 
