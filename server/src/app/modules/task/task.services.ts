@@ -109,6 +109,31 @@ const createAssignmentNotification = async (
   }
 };
 
+const createTaskUpdateNotification = async (
+  taskId: string,
+  assignedUserId: string,
+  title: string,
+  performedByName: string,
+  teamId: string,
+  workspaceId: string,
+  createdBy: string
+) => {
+  try {
+    const notification = await NotificationServices.createNotification(createdBy, {
+      title: "Task updated",
+      body: `${performedByName} updated "${title}"`,
+      type: "task",
+      recipientIds: [assignedUserId],
+      teamId,
+      workspaceId,
+      taskId,
+    });
+    emitToUser(assignedUserId, "notification:new", notification);
+  } catch (error) {
+    console.error("Failed to create task update notification:", error);
+  }
+};
+
 const fieldLabels: Record<string, string> = {
   title: "Title",
   isCompleted: "Completed",
@@ -384,15 +409,28 @@ const updateTask = async (
       ? String((task.assignedTo as any)._id || task.assignedTo)
       : String(task.assignedTo);
     const performer = await User.findById(userId).select("name");
+    const performerName = performer?.name || "Unknown";
     sendTaskUpdateNotification(
       taskId,
       task.title,
       assignedUserId,
       otherChanges,
-      performer?.name || "Unknown",
+      performerName,
       teamId,
       workspaceId
     );
+
+    if (assignedUserId !== userId) {
+      createTaskUpdateNotification(
+        taskId,
+        assignedUserId,
+        task.title,
+        performerName,
+        teamId,
+        workspaceId,
+        userId
+      );
+    }
   }
 
   return task;

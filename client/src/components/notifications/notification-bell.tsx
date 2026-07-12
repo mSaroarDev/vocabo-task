@@ -15,7 +15,7 @@ export default function NotificationBell() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open notifications"
-        className="relative flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <Bell size={18} />
         {unreadCount > 0 && (

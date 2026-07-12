@@ -92,15 +92,25 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return apiError.response?.data?.message || fallback;
 };
 
+let fetchTeamsRequest: Promise<Team[]> | null = null;
+
 export const fetchTeams = createAsyncThunk<Team[], void, { rejectValue: string }>(
   "teams/fetchTeams",
   async (_, { rejectWithValue }) => {
-    try {
-      const response = await apiClient.get("/teams");
-      return (response.data.data as ApiTeam[]).map(mapTeam);
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error, "Failed to load teams"));
-    }
+    if (fetchTeamsRequest) return fetchTeamsRequest;
+
+    fetchTeamsRequest = (async () => {
+      try {
+        const response = await apiClient.get("/teams");
+        return (response.data.data as ApiTeam[]).map(mapTeam);
+      } catch (error) {
+        throw rejectWithValue(getErrorMessage(error, "Failed to load teams"));
+      } finally {
+        fetchTeamsRequest = null;
+      }
+    })();
+
+    return fetchTeamsRequest;
   }
 );
 

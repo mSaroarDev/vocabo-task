@@ -89,7 +89,7 @@ export default function NotificationDrawer({ open, onOpenChange }: NotificationD
             <button
               type="button"
               onClick={handleMarkAllRead}
-              className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               <CheckCheck size={14} />
               Mark all read
