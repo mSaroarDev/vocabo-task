@@ -44,14 +44,14 @@ export const AuthServices = {
     return { user: userWithoutPassword, token };
   },
 
-  googleLogin: async (code: string) => {
+  googleLogin: async (code: string, redirectUri: string) => {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      redirectUri
     );
 
-    const { tokens } = await oauth2Client.getToken(code);
+    const { tokens } = await oauth2Client.getToken({ code, redirect_uri: redirectUri });
     oauth2Client.setCredentials(tokens);
 
     const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });

@@ -18,6 +18,7 @@ export const loginSchema: ZodSchema = z
 export const googleCodeSchema: ZodSchema = z
   .object({
     code: z.string().min(1, "Google auth code is required"),
+    redirect_uri: z.string().url("Invalid redirect URI"),
   })
   .strict();
 

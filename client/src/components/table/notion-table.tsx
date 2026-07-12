@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -152,6 +152,20 @@ const defaultStatusOptions: StatusOption[] = [
   { label: "Rejected", color: "bg-zinc-600/30 text-zinc-300" },
 ];
 
+function getAutoMenuPosition(
+  triggerRect: DOMRect,
+  menuHeight: number
+): { top: number; left: number } {
+  const margin = 6;
+  const spaceBelow = window.innerHeight - triggerRect.bottom;
+  const openUp =
+    spaceBelow < menuHeight + margin && triggerRect.top > spaceBelow;
+  const top = openUp
+    ? triggerRect.top - menuHeight - margin
+    : triggerRect.bottom + margin;
+  return { top, left: triggerRect.left };
+}
+
 function PersonCell({ person }: { person: Person }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -175,11 +189,13 @@ function AssigneeCell({
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (open && triggerRef.current) {
+  useLayoutEffect(() => {
+    if (open && triggerRef.current && menuRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 6, left: rect.left });
+      const pos = getAutoMenuPosition(rect, menuRef.current.offsetHeight);
+      setMenuPos(pos);
     }
   }, [open]);
 
@@ -207,6 +223,7 @@ function AssigneeCell({
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           {createPortal(
             <div
+              ref={menuRef}
               className="fixed z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[200px] max-h-[240px] overflow-y-auto"
               style={{ top: menuPos.top, left: menuPos.left }}
             >
@@ -498,12 +515,14 @@ function StatusCell({
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLSpanElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const currentColor = statusOptions.find((s) => s.label === task.status)?.color || "";
 
-  useEffect(() => {
-    if (open && triggerRef.current) {
+  useLayoutEffect(() => {
+    if (open && triggerRef.current && menuRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 6, left: rect.left });
+      const pos = getAutoMenuPosition(rect, menuRef.current.offsetHeight);
+      setMenuPos(pos);
     }
   }, [open]);
 
@@ -525,6 +544,7 @@ function StatusCell({
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           {createPortal(
             <div
+              ref={menuRef}
               className="fixed z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
               style={{ top: menuPos.top, left: menuPos.left }}
             >
@@ -562,11 +582,13 @@ function PriorityCell({
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLSpanElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (open && triggerRef.current) {
+  useLayoutEffect(() => {
+    if (open && triggerRef.current && menuRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setMenuPos({ top: rect.bottom + 6, left: rect.left });
+      const pos = getAutoMenuPosition(rect, menuRef.current.offsetHeight);
+      setMenuPos(pos);
     }
   }, [open]);
 
@@ -587,6 +609,7 @@ function PriorityCell({
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           {createPortal(
             <div
+              ref={menuRef}
               className="fixed z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
               style={{ top: menuPos.top, left: menuPos.left }}
             >

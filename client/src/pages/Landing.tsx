@@ -60,10 +60,7 @@ export default function Landing() {
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.06] bg-[#0a0a0a]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-white/[0.15] text-xs font-bold text-white">V</div>
-            <span className="text-sm font-semibold">ocabo</span>
-          </div>
+          <span className="text-sm font-semibold">Plano</span>
           <div className="hidden items-center gap-6 sm:flex">
             <a href="#features" className="text-sm text-[#a1a1a1] transition-colors hover:text-white">Features</a>
             <a href="#how-it-works" className="text-sm text-[#a1a1a1] transition-colors hover:text-white">How it Works</a>
@@ -73,45 +70,87 @@ export default function Landing() {
       </nav>
 
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center px-4 pt-32 pb-20">
+      <section className="relative flex flex-col items-center justify-center overflow-hidden px-4 pt-32 pb-20">
+        {/* Animated gradient backdrop */}
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute top-[-15%] left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-gradient-to-r from-violet-600/30 to-fuchsia-500/30 blur-[130px] animate-[aurora_9s_ease-in-out_infinite]" />
+          <div className="absolute top-[18%] left-[15%] h-[320px] w-[320px] rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-400/20 blur-[110px] animate-[aurora_11s_ease-in-out_infinite]" />
+          <div className="absolute top-[8%] right-[12%] h-[360px] w-[360px] rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-[120px] animate-[aurora_13s_ease-in-out_infinite]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,white/[0.035]_1px,transparent_1px),linear-gradient(to_bottom,white/[0.035]_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_72%)]" />
+        </div>
+
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-5xl font-bold leading-tight tracking-tight text-white sm:text-6xl lg:text-7xl">
-            Manage Your Tasks<br />with Ease
+          {/* Badge */}
+          <div className="animate-[fade-up_0.6s_ease-out_0s_both] inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-1.5 text-xs text-[#c7c7c7] backdrop-blur-md">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400 opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400" />
+            </span>
+            Real-time collaboration is now live
+          </div>
+
+          <h1 className="animate-[fade-up_0.6s_ease-out_0.1s_both] mt-6 text-5xl font-bold leading-[1.08] tracking-tight text-white sm:text-6xl lg:text-7xl">
+            Manage your tasks <br className="hidden sm:block" />
+            <span className="bg-[linear-gradient(110deg,#a78bfa,#e879f9,#22d3ee,#a78bfa)] bg-[length:200%_auto] bg-clip-text text-transparent animate-[gradient-pan_6s_linear_infinite]">
+              with effortless flow
+            </span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-base text-[#a1a1a1] leading-relaxed">
+
+          <p className="animate-[fade-up_0.6s_ease-out_0.2s_both] mx-auto mt-6 max-w-xl text-base text-[#a1a1a1] leading-relaxed">
             A modern task management platform for teams and individuals. Organize, prioritize, and ship work faster than ever.
           </p>
-          <div className="mt-8 flex items-center justify-center gap-4">
-            <button onClick={() => navigate("/login")} className="flex items-center gap-2 rounded-md border border-white/[0.15] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white hover:text-black cursor-pointer">
-              Get Started Free <ArrowRight size={16} />
+
+          <div className="animate-[fade-up_0.6s_ease-out_0.3s_both] mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <button onClick={() => navigate("/login")} className="group relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 px-7 py-3 text-sm font-semibold text-white shadow-[0_0_40px_-10px_rgba(168,85,247,0.7)] transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_60px_-8px_rgba(217,70,239,0.9)] cursor-pointer">
+              Get Started Free
+              <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
             </button>
-            <a href="#features" className="rounded-md border border-white/[0.08] px-6 py-2.5 text-sm font-medium text-[#a1a1a1] transition-colors hover:border-white/[0.15] hover:text-white">Learn More</a>
+            <a href="#features" className="inline-flex items-center gap-2 rounded-full border border-white/[0.1] px-7 py-3 text-sm font-medium text-[#c7c7c7] backdrop-blur-md transition-all duration-300 hover:border-white/[0.25] hover:text-white">
+              Learn More
+            </a>
           </div>
 
           {/* Dashboard mockup */}
-          <div className="mt-16 mx-auto max-w-4xl rounded-xl border border-white/[0.08] bg-[#121212] overflow-hidden">
-            <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-4 py-2.5">
-              <div className="h-2.5 w-2.5 rounded-full bg-white/[0.2]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-white/[0.2]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-white/[0.2]" />
-              <span className="ml-3 text-xs text-[#666]">Vocabo Dashboard</span>
-            </div>
-            <div className="flex">
-              <div className="hidden w-48 border-r border-white/[0.06] p-3 sm:block">
-                <div className="mb-3 h-6 rounded bg-white/[0.04]" />
-                <div className="mb-2 h-4 rounded bg-white/[0.04]" />
-                <div className="mb-2 h-4 rounded bg-white/[0.04]" />
-                <div className="mb-2 h-4 rounded bg-white/[0.04]" />
-              </div>
-              <div className="flex-1 p-4">
-                <div className="mb-3 h-6 w-1/3 rounded bg-white/[0.04]" />
-                <div className="mb-2 h-4 rounded bg-white/[0.04]" />
-                <div className="mb-2 h-4 w-3/4 rounded bg-white/[0.04]" />
-                <div className="mb-2 h-4 w-1/2 rounded bg-white/[0.04]" />
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  <div className="h-16 rounded bg-white/[0.04]" />
-                  <div className="h-16 rounded bg-white/[0.04]" />
-                  <div className="h-16 rounded bg-white/[0.04]" />
+          <div className="animate-[fade-up_0.8s_ease-out_0.45s_both] mt-16 mx-auto max-w-4xl">
+            <div className="animate-[float_7s_ease-in-out_infinite] rounded-2xl border border-white/[0.08] bg-[#121212]/80 p-1.5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+              <div className="overflow-hidden rounded-xl">
+                <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                  <div className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]/70" />
+                  <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]/70" />
+                  <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]/70" />
+                  <span className="ml-3 text-xs text-[#666]">Plano Dashboard</span>
+                </div>
+                <div className="flex">
+                  <div className="hidden w-48 border-r border-white/[0.06] p-3 sm:block">
+                    <div className="mb-3 h-6 w-3/4 rounded-md bg-gradient-to-r from-white/[0.06] to-white/[0.02]" />
+                    <div className="mb-2 h-4 w-full rounded bg-white/[0.04]" />
+                    <div className="mb-2 h-4 w-5/6 rounded bg-white/[0.04]" />
+                    <div className="mb-2 h-4 w-2/3 rounded bg-white/[0.04]" />
+                    <div className="mt-4 space-y-2">
+                      <div className="h-10 rounded-md bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-white/[0.04]" />
+                      <div className="h-10 rounded-md bg-white/[0.02] border border-white/[0.04]" />
+                    </div>
+                  </div>
+                  <div className="flex-1 p-4">
+                    <div className="mb-3 h-6 w-1/3 rounded bg-gradient-to-r from-violet-400/30 to-fuchsia-400/30" />
+                    <div className="mb-2 h-4 w-full rounded bg-white/[0.04]" />
+                    <div className="mb-2 h-4 w-3/4 rounded bg-white/[0.04]" />
+                    <div className="mb-2 h-4 w-1/2 rounded bg-white/[0.04]" />
+                    <div className="mt-4 grid grid-cols-3 gap-3">
+                      <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-3">
+                        <div className="mb-2 h-3 w-1/2 rounded bg-violet-400/30" />
+                        <div className="h-8 rounded bg-white/[0.04]" />
+                      </div>
+                      <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-3">
+                        <div className="mb-2 h-3 w-1/2 rounded bg-fuchsia-400/30" />
+                        <div className="h-8 rounded bg-white/[0.04]" />
+                      </div>
+                      <div className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-3">
+                        <div className="mb-2 h-3 w-1/2 rounded bg-cyan-400/30" />
+                        <div className="h-8 rounded bg-white/[0.04]" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -167,7 +206,7 @@ export default function Landing() {
         <div className="mx-auto max-w-3xl rounded-2xl border border-white/[0.06] bg-white/[0.02] p-12 text-center">
           <h2 className="text-3xl font-bold text-white sm:text-4xl">Ready to get started?</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-[#a1a1a1]">
-            Join thousands of teams already using Vocabo to manage their tasks and ship work faster.
+            Join thousands of teams already using Plano to manage their tasks and ship work faster.
           </p>
           <button onClick={() => navigate("/login")} className="mt-8 inline-flex items-center gap-2 rounded-md border border-white/[0.15] px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white hover:text-black cursor-pointer">
             Get Started Free <ArrowRight size={16} />
@@ -179,10 +218,9 @@ export default function Landing() {
       <footer className="border-t border-white/[0.06] px-4 py-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.15] text-[10px] font-bold text-white">V</div>
-            <span className="text-xs text-[#666]">ocabo</span>
+          <span className="text-xs text-[#666]">Plano</span>
           </div>
-          <p className="text-xs text-[#555]">&copy; {new Date().getFullYear()} Vocabo. All rights reserved.</p>
+          <p className="text-xs text-[#555]">&copy; {new Date().getFullYear()} Plano. All rights reserved.</p>
         </div>
       </footer>
     </div>

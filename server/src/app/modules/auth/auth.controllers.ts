@@ -26,8 +26,8 @@ export const AuthControllers = {
   }),
 
   googleLogin: catchAsync(async (req: Request, res: Response) => {
-    const { code } = req.body;
-    const result = await AuthServices.googleLogin(code);
+    const { code, redirect_uri } = req.body;
+    const result = await AuthServices.googleLogin(code, redirect_uri);
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,

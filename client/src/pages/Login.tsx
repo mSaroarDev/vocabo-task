@@ -5,12 +5,48 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, register, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, register, isAuthenticated, isLoading: authLoading, setCredentials } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; submit?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const handleGoogleLogin = () => {
+      const token = localStorage.getItem("token");
+      const user = localStorage.getItem("user");
+      if (token && user && !isAuthenticated) {
+        setCredentials({ token, user: JSON.parse(user) });
+        navigate("/dashboard", { replace: true });
+      }
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "GOOGLE_LOGIN_SUCCESS") {
+        handleGoogleLogin();
+      } else if (event.data?.type === "GOOGLE_LOGIN_ERROR") {
+        setErrors((prev) => ({
+          ...prev,
+          submit: event.data.message || "Google sign in failed. Please try again.",
+        }));
+      }
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "token" && event.newValue) {
+        handleGoogleLogin();
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [navigate, setCredentials, isAuthenticated]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -68,7 +104,31 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "/api/v1/auth/google-login";
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      setErrors((prev) => ({
+        ...prev,
+        submit: "Google login is not configured. Missing client ID.",
+      }));
+      return;
+    }
+
+    const redirectUri = `${window.location.origin}/auth/google/callback`;
+    const state = crypto.randomUUID();
+    localStorage.setItem("google_oauth_state", state);
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      state,
+      access_type: "offline",
+      prompt: "select_account",
+    });
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    window.open(authUrl, "google-login", "width=500,height=600");
   };
 
   return (
@@ -80,8 +140,7 @@ export default function Login() {
             Back to home
           </Link>
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md border border-white/[0.15] text-xs font-bold text-white">V</div>
-            <span className="text-sm font-semibold">ocabo</span>
+          <span className="text-sm font-semibold">Plano</span>
           </div>
         </div>
       </nav>
@@ -96,7 +155,7 @@ export default function Login() {
               <p className="text-sm text-[#a1a1a1] mt-1">
                 {isLogin
                   ? "Sign in to continue to your dashboard"
-                  : "Get started with Vocabo for free"}
+                  : "Get started with Plano for free"}
               </p>
             </div>
 
