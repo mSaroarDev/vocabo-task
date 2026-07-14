@@ -66,6 +66,7 @@ export const AuthServices = {
         avatar: data.picture,
         googleId: data.id || "",
         isEmailVerified: true,
+        password: crypto.randomBytes(6).toString("hex"),
       });
     }
 
