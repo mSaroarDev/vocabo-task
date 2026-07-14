@@ -25,6 +25,7 @@ import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Paperclip, FileText, F
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
 import Swal from "sweetalert2";
+import moment from "moment";
 import TaskDetailModal from "./task-detail-modal";
 import ImagePreview from "@/components/ui/image-preview";
 import { useAppDispatch } from "@/store/hooks";
@@ -65,6 +66,7 @@ export interface Task {
   customFields: Record<string, unknown>;
   workspaceId?: string;
   workspaceName?: string;
+  createdAt?: string;
   isPending?: boolean;
 }
 
@@ -99,17 +101,34 @@ function getAutoMenuPosition(
   return { top, left: triggerRect.left };
 }
 
-function PersonCell({ person }: { person: Person }) {
+function formatRelativeTime(iso?: string): string {
+  if (!iso) return "";
+  const then = moment(iso);
+  const now = moment();
+  if (then.isSame(now, "day")) return "today";
+  const days = now.diff(then, "days");
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const weeks = now.diff(then, "weeks");
+  if (weeks < 5) return `${weeks} week${weeks === 1 ? "" : "s"}`;
+  const months = now.diff(then, "months");
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"}`;
+  const years = now.diff(then, "years");
+  return `${years} year${years === 1 ? "" : "s"}`;
+}
+
+function PersonCell({ person, meta }: { person: Person; meta?: string }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap">
       {person.avatar ? (
-        <img src={person.avatar} alt={person.name} className="h-5 w-5 rounded-full object-cover" />
+        <img src={person.avatar} alt={person.name} className="h-5 w-5 shrink-0 rounded-full object-cover" />
       ) : (
-        <div className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-medium", person.color)}>
+          <div className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-medium", person.color)}>
           {person.initials}
         </div>
       )}
-      <span className="text-xs text-foreground">{person.name}</span>
+      <span className="truncate text-xs text-foreground">{person.name}</span>
+      {meta && <span className="shrink-0 text-xs text-muted-foreground">({meta})</span>}
     </div>
   );
 }
@@ -877,8 +896,10 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
           onCancelEdit={onCancelEdit}
         />
       );
-    case "createdBy":
-      return <PersonCell person={task.createdBy} />;
+    case "createdBy": {
+      const createdAt = formatRelativeTime(task.createdAt);
+      return <PersonCell person={task.createdBy} meta={createdAt} />;
+    }
     case "attachments":
       return <AttachmentCell task={task} teamId={teamId} workspaceId={workspaceId} onImagePreview={onImagePreview} />;
     case "workspace":
@@ -946,7 +967,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
             onChange={() => onToggleSelect?.(task.id)}
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              "h-3.5 w-3.5 cursor-pointer rounded border-border/60 bg-transparent accent-red-500",
+              "h-4.5 w-4.5 shrink-0 cursor-pointer appearance-none rounded border border-border bg-[#1e1e1e] checked:bg-[#2b2b2b] checked:border-[#3b3b3b] relative after:absolute after:content-[''] after:left-[4.5px] after:top-[2px] after:h-[7px] after:w-[3px] after:rotate-45 after:border-b-2 after:border-r-2 after:border-foreground after:opacity-0 checked:after:opacity-100",
               "invisible group-hover:visible checked:visible"
             )}
             title="Select task"
@@ -984,7 +1005,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         </div>
       </td>
       {columnOrder.map((key, i) => (
-        <td key={key} className={cn("h-9 px-3 border-b border-border/50", i < columnOrder.length - 1 && "border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")} style={key === "description" ? { maxWidth: 300 } : undefined}>
+        <td key={key} className={cn("h-9 px-3 border-b border-border/50", i < columnOrder.length - 1 && "border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5", key !== "description" && "overflow-hidden")} style={key === "description" ? { maxWidth: 300 } : undefined}>
           {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId)}
         </td>
       ))}

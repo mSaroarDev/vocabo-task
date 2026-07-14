@@ -79,6 +79,7 @@ export interface ApiTask {
   customFields: Record<string, unknown>;
   workspace: string;
   workspaceName?: string;
+  createdAt?: string;
   order: number;
 }
 
@@ -114,6 +115,7 @@ export function mapTask(task: ApiTask): Task {
     customFields: task.customFields ?? {},
     workspaceId: task.workspace,
     workspaceName: task.workspaceName,
+    createdAt: task.createdAt,
   };
 }
 
