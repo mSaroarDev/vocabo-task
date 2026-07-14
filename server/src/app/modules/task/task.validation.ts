@@ -7,6 +7,7 @@ const createTaskValidator = z.object({
   priority: z.enum(["None", "Lowest", "Low", "Medium", "High", "Highest"]).optional(),
   assignedTo: z.string().optional(),
   customFields: z.record(z.string(), z.unknown()).optional(),
+  isArchived: z.boolean().optional(),
 });
 
 const updateTaskValidator = z.object({
@@ -18,6 +19,7 @@ const updateTaskValidator = z.object({
   priority: z.enum(["None", "Lowest", "Low", "Medium", "High", "Highest"]).optional(),
   assignedTo: z.string().nullable().optional(),
   customFields: z.record(z.string(), z.unknown()).optional(),
+  isArchived: z.boolean().optional(),
 });
 
 const reorderTasksValidator = z.object({

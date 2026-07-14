@@ -22,6 +22,7 @@ router.patch(
   TaskControllers.reorderTasks
 );
 
+router.patch("/archive", TaskControllers.archiveTasks);
 router.get("/:taskId", TaskControllers.getTask);
 router.patch("/:taskId", validatorMiddleware(updateTaskValidator), TaskControllers.updateTask);
 router.delete("/:taskId", TaskControllers.deleteTask);

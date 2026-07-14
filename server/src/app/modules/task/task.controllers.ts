@@ -87,6 +87,34 @@ const deleteTask: RequestHandler = catchAsync(async (req: Request, res: Response
   });
 });
 
+const archiveTasks: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const taskIds = req.body.taskIds;
+  const isArchived = typeof req.body.isArchived === "boolean" ? req.body.isArchived : true;
+
+  if (!Array.isArray(taskIds) || taskIds.length === 0) {
+    sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: "taskIds array is required",
+    });
+    return;
+  }
+
+  const result = await TaskServices.setTasksArchive(
+    req.params.teamId as string,
+    req.params.workspaceId as string,
+    getUserId(req as AuthRequest),
+    taskIds as string[],
+    isArchived
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: isArchived ? "Tasks archived successfully" : "Tasks unarchived successfully",
+    data: result,
+  });
+});
+
 const reorderTasks: RequestHandler = catchAsync(async (req: Request, res: Response) => {
   const result = await TaskServices.reorderTasks(
     req.params.teamId as string,
@@ -218,6 +246,7 @@ export const TaskControllers = {
   createTask,
   updateTask,
   deleteTask,
+  archiveTasks,
   reorderTasks,
   addAttachment,
   addAttachments,

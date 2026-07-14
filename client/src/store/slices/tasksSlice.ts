@@ -69,6 +69,7 @@ interface ApiTask {
   status: string;
   priority: Task["priority"];
   isCompleted: boolean;
+  isArchived?: boolean;
   description?: string;
   banner?: string;
   attachments: ApiAttachment[];
@@ -91,6 +92,7 @@ function mapTask(task: ApiTask): Task {
     status: task.status,
     priority: task.priority,
     isCompleted: task.isCompleted,
+    isArchived: task.isArchived,
     description: task.description,
     banner: task.banner,
     attachments: (task.attachments || []).map((a) => ({
@@ -218,6 +220,30 @@ export const createTask = createAsyncThunk<
     }
   }
 );
+
+export const archiveTasks = createAsyncThunk<
+  { taskIds: string[]; isArchived: boolean },
+  { teamId: string; workspaceId: string; taskIds: string[]; isArchived: boolean },
+  { state: { tasks: TasksState }; rejectValue: string }
+>("tasks/archiveTasks", async ({ teamId, workspaceId, taskIds, isArchived }, { dispatch, getState, rejectWithValue }) => {
+  const previous = getState().tasks.items.filter((t) => taskIds.includes(t.id));
+  previous.forEach((t) =>
+    dispatch(applyOptimisticUpdate({ taskId: t.id, updates: { isArchived } }))
+  );
+
+  try {
+    await apiClient.patch(
+      `/teams/${teamId}/workspaces/${workspaceId}/tasks/archive`,
+      { taskIds, isArchived }
+    );
+    return { taskIds, isArchived };
+  } catch (error) {
+    previous.forEach((t) =>
+      dispatch(revertTaskUpdate({ taskId: t.id, previousState: t }))
+    );
+    return rejectWithValue(getErrorMessage(error, "Failed to archive tasks"));
+  }
+});
 
 export const updateTask = createAsyncThunk<
   Task,
@@ -422,6 +448,12 @@ const tasksSlice = createSlice({
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.error = action.payload || "Failed to delete task";
+      })
+      .addCase(archiveTasks.fulfilled, (state) => {
+        state.error = null;
+      })
+      .addCase(archiveTasks.rejected, (state, action) => {
+        state.error = action.payload || "Failed to archive tasks";
       })
       .addCase(addTaskAttachment.fulfilled, (state, action) => {
         const idx = state.items.findIndex((t) => t.id === action.payload.id);

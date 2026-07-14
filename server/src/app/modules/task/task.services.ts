@@ -292,6 +292,7 @@ interface UpdateTaskPayload {
   priority?: TaskPriority;
   assignedTo?: string | null;
   customFields?: Record<string, unknown>;
+  isArchived?: boolean;
 }
 
 const updateTask = async (
@@ -351,6 +352,14 @@ const updateTask = async (
   }
   if (payload.customFields !== undefined) {
     updateData.customFields = new Map(Object.entries(payload.customFields));
+  }
+  if (payload.isArchived !== undefined) {
+    updateData.isArchived = payload.isArchived;
+    changes.push({
+      field: "isArchived",
+      oldValue: String(oldTask.isArchived),
+      newValue: String(payload.isArchived),
+    });
   }
 
   const task = await TaskModel.findOneAndUpdate(
@@ -678,6 +687,43 @@ const removeBanner = async (
   return updated;
 };
 
+const setTasksArchive = async (
+  teamId: string,
+  workspaceId: string,
+  userId: string,
+  taskIds: string[],
+  isArchived: boolean
+) => {
+  await ensureTeamMember(teamId, userId);
+  await ensureWorkspace(teamId, workspaceId);
+
+  const validIds = taskIds.filter((id) => Types.ObjectId.isValid(id));
+  if (validIds.length === 0) {
+    throw new AppError(httpStatus.BAD_REQUEST, "No valid task ids provided");
+  }
+
+  const matching = await TaskModel.find({
+    _id: { $in: validIds },
+    workspace: workspaceId,
+  });
+
+  if (matching.length === 0) {
+    throw new AppError(httpStatus.NOT_FOUND, "No tasks found");
+  }
+
+  await TaskModel.updateMany(
+    { _id: { $in: matching.map((t) => t._id) }, workspace: workspaceId },
+    { $set: { isArchived } }
+  );
+
+  const updated = await TaskModel.find({
+    _id: { $in: matching.map((t) => t._id) },
+    workspace: workspaceId,
+  }).populate(["createdBy", "assignedTo"]);
+
+  return updated;
+};
+
 export const TaskServices = {
   getTasks,
   getTask,
@@ -687,6 +733,7 @@ export const TaskServices = {
   reorderTasks,
   addAttachment,
   removeAttachment,
+  setTasksArchive,
   setBanner,
   removeBanner,
 };

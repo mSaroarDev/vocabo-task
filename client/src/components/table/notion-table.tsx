@@ -21,7 +21,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil,   Trash2, Paperclip, FileText, Flag, AlignLeft, UserPlus, Check, Loader2, ImagePlus, Eye, ListTodo, UserRoundCheck } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Paperclip, FileText, Flag, AlignLeft, UserPlus, Check, Loader2, ImagePlus, Eye, ListTodo, UserRoundCheck } from "lucide-react";
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
 import Swal from "sweetalert2";
@@ -55,6 +55,7 @@ export interface Task {
   status: string;
   priority: Priority;
   isCompleted: boolean;
+  isArchived?: boolean;
   description?: string;
   banner?: string;
   attachments: Attachment[];
@@ -68,77 +69,6 @@ interface StatusOption {
   label: string;
   color: string;
 }
-
-const avatarColors = [
-  "bg-red-500/20 text-red-300",
-  "bg-blue-500/20 text-blue-300",
-  "bg-green-500/20 text-green-300",
-  "bg-purple-500/20 text-purple-300",
-  "bg-amber-500/20 text-amber-300",
-  "bg-pink-500/20 text-pink-300",
-  "bg-cyan-500/20 text-cyan-300",
-];
-
-const sampleTasks: Task[] = [
-  {
-    id: "1",
-    title: "User cannot login with Google OAuth after profile update — returns 401 error",
-    status: "In review",
-    priority: "Highest",
-    isCompleted: false,
-    description: "Users are reporting a 401 error when trying to log in via Google OAuth after updating their profile information. This needs immediate investigation.",
-    attachments: [
-      { id: "a1", filename: "error-screenshot.png", originalName: "error-screenshot.png", url: "", size: 0, mimeType: "image/png", uploadedBy: "", uploadedAt: "Jun 22, 2026, 12:30 PM" },
-    ],
-    createdBy: { name: "Sihab Bin Toriq", initials: "St", color: avatarColors[0] },
-    assignedTo: { name: "Harun Ar Rashid", initials: "Ha", color: avatarColors[1] },
-    customFields: {},
-  },
-  {
-    id: "2",
-    title: "Dashboard chart not rendering on Safari — WebGL compatibility issue",
-    status: "Re Open",
-    priority: "Highest",
-    isCompleted: false,
-    attachments: [],
-    createdBy: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
-    assignedTo: { name: "Sihab Bin Toriq", initials: "St", color: avatarColors[0] },
-    customFields: {},
-  },
-  {
-    id: "3",
-    title: "Fix pagination offset when filtering by date range on the invoices page",
-    status: "Done",
-    priority: "Medium",
-    isCompleted: true,
-    attachments: [],
-    createdBy: { name: "Harun Ar Rashid", initials: "Ha", color: avatarColors[1] },
-    assignedTo: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
-    customFields: {},
-  },
-  {
-    id: "4",
-    title: "Email notification delay — sometimes arrives 30+ minutes after trigger",
-    status: "Rejected",
-    priority: "Low",
-    isCompleted: false,
-    attachments: [],
-    createdBy: { name: "Sihab Bin Toriq", initials: "St", color: avatarColors[0] },
-    assignedTo: { name: "Sihab Bin Toriq", initials: "St", color: avatarColors[0] },
-    customFields: {},
-  },
-  {
-    id: "5",
-    title: "Mobile nav menu overlaps with page content on iPhone SE",
-    status: "In review",
-    priority: "High",
-    isCompleted: false,
-    attachments: [],
-    createdBy: { name: "Muhammad Saroar", initials: "Ms", color: avatarColors[2] },
-    assignedTo: { name: "Harun Ar Rashid", initials: "Ha", color: avatarColors[1] },
-    customFields: {},
-  },
-];
 
 const defaultStatusOptions: StatusOption[] = [
   { label: "New", color: "bg-purple-500/20 text-purple-300" },
@@ -956,6 +886,8 @@ interface DraggableRowProps {
   onPriorityUpdate: (id: string, priority: string) => void;
   onAssigneeUpdate: (id: string, assignedTo: string | null) => void;
   onTaskDelete: (id: string) => void;
+  selectedIds?: string[];
+  onToggleSelect?: (id: string) => void;
   wrapTaskName?: boolean;
   onImagePreview?: (url: string) => void;
   members?: TeamMember[];
@@ -971,7 +903,7 @@ interface DraggableRowProps {
   workspaceId?: string;
 }
 
-function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onAssigneeUpdate, onTaskDelete, wrapTaskName, onImagePreview, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId }: DraggableRowProps) {
+function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onAssigneeUpdate, onTaskDelete, selectedIds, onToggleSelect, wrapTaskName, onImagePreview, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
   const style = {
@@ -988,8 +920,19 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         isDragging && "opacity-40"
       )}
     >
-      <td style={{ width: 56, minWidth: 56 }} className="h-9 px-1">
-        <div className="flex items-center justify-center flex-nowrap w-full">
+      <td style={{ width: 56, minWidth: 56 }} className="h-9 px-1 pl-3">
+        <div className="flex items-center justify-center flex-nowrap w-full gap-1">
+          <input
+            type="checkbox"
+            checked={selectedIds?.includes(task.id) ?? false}
+            onChange={() => onToggleSelect?.(task.id)}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "h-3.5 w-3.5 cursor-pointer rounded border-border/60 bg-transparent accent-red-500",
+              "invisible group-hover:visible checked:visible"
+            )}
+            title="Select task"
+          />
           <span
             {...attributes}
             {...listeners}
@@ -1046,10 +989,12 @@ interface NotionTableProps {
   onTaskReorder?: (taskIds: string[], optimisticTasks?: Task[]) => Promise<{ workspaceId: string; tasks: Task[] } | null>;
   createModalOpen?: boolean;
   onCreateModalChange?: (open: boolean) => void;
+  selectedIds?: string[];
+  onToggleSelect?: (id: string) => void;
 }
 
 export default function NotionTable({
-  tasks = sampleTasks,
+  tasks = [],
   isLoading,
   wrapTaskName,
   statusOptions: externalStatusOptions,
@@ -1062,6 +1007,8 @@ export default function NotionTable({
   onTaskReorder,
   createModalOpen: externalCreateOpen,
   onCreateModalChange,
+  selectedIds,
+  onToggleSelect,
 }: NotionTableProps) {
   const [localStatusOptions] = useState<StatusOption[]>(defaultStatusOptions);
   const [columnOrder, setColumnOrder] = useState<string[]>(defaultColumns.map((c) => c.key));
@@ -1247,30 +1194,32 @@ export default function NotionTable({
           <tbody>
             <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               {sorted.map((task) => (
-                  <DraggableRow
+                <DraggableRow
                   key={task.id}
                   task={task}
                   isDragging={isDragging(task.id)}
                   columnOrder={columnOrder}
                   statusOptions={statusOptions}
-                   onSelect={(t) => {
-                     setSelectedTaskId(t.id);
-                     setSearchParams(prev => { prev.set("task", t.id); return prev; }, { replace: true });
-                   }}
+                  onSelect={(t) => {
+                    setSelectedTaskId(t.id);
+                    setSearchParams(prev => { prev.set("task", t.id); return prev; }, { replace: true });
+                  }}
                   onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
                   onPriorityUpdate={(id, priority) => onTaskUpdate?.(id, { priority: priority as Task["priority"] })}
                   onAssigneeUpdate={(id, assignedTo) => {
                     const member = members?.find(m => m.userId === assignedTo);
-                    const optimisticAssignedTo = member 
+                    const optimisticAssignedTo = member
                       ? {
-                          name: member.name,
-                          initials: member.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
-                          color: "bg-blue-500/20 text-blue-300"
-                        }
+                        name: member.name,
+                        initials: member.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
+                        color: "bg-blue-500/20 text-blue-300"
+                      }
                       : { name: "Unassigned", initials: "Un", color: "bg-blue-500/20 text-blue-300" };
                     onTaskUpdate?.(id, { assignedTo: assignedTo as unknown as Task["assignedTo"] }, { assignedTo: optimisticAssignedTo });
                   }}
                   onTaskDelete={(id) => onTaskDelete?.(id)}
+                  selectedIds={selectedIds}
+                  onToggleSelect={onToggleSelect}
                   wrapTaskName={wrapTaskName}
                   onImagePreview={(url) => setPreviewUrl(url)}
                   members={members}
@@ -1369,12 +1318,12 @@ export default function NotionTable({
         <TaskDetailModal
           task={selectedTask}
           open
-           onOpenChange={(open) => {
-             if (!open) {
-               setSelectedTaskId(null);
-               setSearchParams(prev => { prev.delete("task"); return prev; }, { replace: true });
-             }
-           }}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedTaskId(null);
+              setSearchParams(prev => { prev.delete("task"); return prev; }, { replace: true });
+            }
+          }}
           onUpdate={handleTaskUpdate}
           statusOptions={statusOptions}
           mode="view"

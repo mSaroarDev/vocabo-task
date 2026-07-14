@@ -8,7 +8,7 @@ import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { cn } from "@/lib/utils";
 import { WorkspaceIcon } from "@/lib/workspace-icons";
-import { Filter, LayoutDashboard, Plus, Search, Sun, UserPlus, Check, X } from "lucide-react";
+import { Filter, LayoutDashboard, Plus, Search, Sun, UserPlus, Check, X, Archive } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -23,7 +23,7 @@ export default function Home() {
   const workspaceId = searchParams.get("workspace");
   const checklistId = searchParams.get("checklist");
   const { workspaces, updateWorkspace } = useWorkspaces(selectedTeam?.id);
-  const { tasks, isLoading: tasksLoading, addTask, editTask, removeTask, reorder } = useTasks(selectedTeam?.id, workspaceId);
+  const { tasks, isLoading: tasksLoading, addTask, editTask, removeTask, reorder, archiveTask } = useTasks(selectedTeam?.id, workspaceId);
   const { groups: checklistGroups } = useChecklist();
   const currentWorkspace = workspaceId ? workspaces.find((w: Workspace) => w.id === workspaceId) : null;
   const currentChecklist = checklistId ? checklistGroups.find((g: ChecklistGroup) => g.id === checklistId) : null;
@@ -40,6 +40,8 @@ export default function Home() {
   const filterRef = useRef<HTMLButtonElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const [teamMode, setTeamMode] = useState<"create" | "join">("create");
   const [teamName, setTeamName] = useState("");
@@ -62,6 +64,8 @@ export default function Home() {
     setFilterMember(null);
     setSearchQuery("");
     setSearchOpen(false);
+    setShowArchived(false);
+    setSelectedIds([]);
   }, [workspaceId]);
 
   useEffect(() => {
@@ -112,8 +116,9 @@ export default function Home() {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter((t) => t.title.toLowerCase().includes(q));
     }
+    result = result.filter((t) => (showArchived ? t.isArchived : !t.isArchived));
     return result;
-  }, [tasks, filterMember, selectedTeam?.members, searchQuery]);
+  }, [tasks, filterMember, selectedTeam?.members, searchQuery, showArchived]);
 
   const handleCreateTeam = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -192,6 +197,22 @@ export default function Home() {
               <LayoutDashboard size={14} />
               Board View
             </button>
+            {selectedIds.length > 0 && (
+              <button
+                onClick={() => {
+                  if (selectedIds.length === 0) return;
+                  archiveTask([...selectedIds], !showArchived);
+                  setSelectedIds([]);
+                }}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer bg-red-500/15 text-red-400 hover:bg-red-500/25"
+              >
+                <Archive size={14} />
+                {showArchived ? "Remove from archive" : "Add to archive"}
+                <span className="rounded-full bg-red-500/20 px-1.5 text-xs">
+                  {selectedIds.length}
+                </span>
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <div className="relative flex items-center">
@@ -270,6 +291,38 @@ export default function Home() {
             </button> */}
             <div className="w-2" />
             <button
+              onClick={() => setShowArchived((v) => !v)}
+              className={cn(
+                "relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer",
+                showArchived
+                  ? "bg-red-500/15 text-red-400 hover:bg-red-500/25"
+                  : "text-red-400/80 hover:bg-red-500/10 hover:text-red-400"
+              )}
+            >
+              <Archive size={14} />
+              Archived
+              {showArchived && (
+                <>
+                  <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400/75 opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                  </span>
+                  <span
+                    role="button"
+                    aria-label="Clear archive filter"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowArchived(false);
+                    }}
+                    className="flex h-4 w-4 items-center justify-center rounded hover:bg-red-500/20 cursor-pointer"
+                  >
+                    <X size={10} />
+                  </span>
+                </>
+              )}
+            </button>
+            <div className="w-2" />
+            <button
               onClick={() => setShowCreateModal(true)}
               className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 cursor-pointer"
             >
@@ -334,7 +387,7 @@ export default function Home() {
         </div>
 
         {activeTab === "all" ? (
-          <div className="-ml-5">
+          <div className="-ml-10">
             <NotionTable
               isLoading={tasksLoading}
               wrapTaskName={wrapTaskName}
@@ -350,6 +403,12 @@ export default function Home() {
               onTaskReorder={reorder}
               createModalOpen={showCreateModal}
               onCreateModalChange={setShowCreateModal}
+              selectedIds={selectedIds}
+              onToggleSelect={(id) =>
+                setSelectedIds((prev) =>
+                  prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+                )
+              }
             />
           </div>
         ) : (

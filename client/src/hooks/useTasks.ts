@@ -7,6 +7,7 @@ import {
   updateTask as updateTaskAction,
   deleteTask as deleteTaskAction,
   reorderTasks as reorderTasksAction,
+  archiveTasks as archiveTasksAction,
   setTasks as setTasksAction,
 } from "@/store/slices/tasksSlice";
 import type { Task } from "@/components/table/notion-table";
@@ -89,6 +90,20 @@ export function useTasks(teamId?: string | null, workspaceId?: string | null) {
     [dispatch, teamId, workspaceId]
   );
 
+  const archiveTask = useCallback(
+    async (taskIds: string[], isArchived: boolean) => {
+      if (!teamId || !workspaceId) return null;
+      try {
+        return await dispatch(
+          archiveTasksAction({ teamId, workspaceId, taskIds, isArchived })
+        ).unwrap();
+      } catch (error) {
+        throw error;
+      }
+    },
+    [dispatch, teamId, workspaceId]
+  );
+
   const setTasks = useCallback(
     (tasks: Task[]) => {
       if (!workspaceId) return;
@@ -106,6 +121,7 @@ export function useTasks(teamId?: string | null, workspaceId?: string | null) {
     editTask,
     removeTask,
     reorder,
+    archiveTask,
     setTasks,
   };
 }
