@@ -86,9 +86,13 @@ export default function TaskDetailSidebar({ task, open, onClose }: TaskDetailSid
             <div>
               <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Created By</label>
               <div className="flex items-center gap-2.5">
-                <div className={cn("flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-medium", task.createdBy.color)}>
-                  {task.createdBy.initials}
-                </div>
+                {task.createdBy.avatar ? (
+                  <img src={task.createdBy.avatar} alt={task.createdBy.name} className="h-7 w-7 rounded-full object-cover" />
+                ) : (
+                  <div className={cn("flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-medium", task.createdBy.color)}>
+                    {task.createdBy.initials}
+                  </div>
+                )}
                 <span className="text-sm text-foreground">{task.createdBy.name}</span>
               </div>
             </div>
@@ -97,9 +101,13 @@ export default function TaskDetailSidebar({ task, open, onClose }: TaskDetailSid
             <div>
               <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Assigned To</label>
               <div className="flex items-center gap-2.5">
-                <div className={cn("flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-medium", task.assignedTo.color)}>
-                  {task.assignedTo.initials}
-                </div>
+                {task.assignedTo.avatar ? (
+                  <img src={task.assignedTo.avatar} alt={task.assignedTo.name} className="h-7 w-7 rounded-full object-cover" />
+                ) : (
+                  <div className={cn("flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-medium", task.assignedTo.color)}>
+                    {task.assignedTo.initials}
+                  </div>
+                )}
                 <span className="text-sm text-foreground">{task.assignedTo.name}</span>
               </div>
             </div>

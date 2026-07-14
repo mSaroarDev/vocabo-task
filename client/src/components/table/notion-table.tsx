@@ -36,6 +36,7 @@ interface Person {
   name: string;
   initials: string;
   color: string;
+  avatar?: string;
 }
 
 export interface Attachment {
@@ -99,9 +100,13 @@ function getAutoMenuPosition(
 function PersonCell({ person }: { person: Person }) {
   return (
     <div className="flex items-center gap-1.5">
-      <div className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-medium", person.color)}>
-        {person.initials}
-      </div>
+      {person.avatar ? (
+        <img src={person.avatar} alt={person.name} className="h-5 w-5 rounded-full object-cover" />
+      ) : (
+        <div className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-medium", person.color)}>
+          {person.initials}
+        </div>
+      )}
       <span className="text-xs text-foreground">{person.name}</span>
     </div>
   );
@@ -142,9 +147,13 @@ function AssigneeCell({
         onClick={() => setOpen(!open)}
       >
         {!isUnassigned && (
-          <div className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-medium", task.assignedTo.color)}>
-            {task.assignedTo.initials}
-          </div>
+          task.assignedTo.avatar ? (
+            <img src={task.assignedTo.avatar} alt={task.assignedTo.name} className="h-5 w-5 rounded-full object-cover" />
+          ) : (
+            <div className={cn("flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-medium", task.assignedTo.color)}>
+              {task.assignedTo.initials}
+            </div>
+          )
         )}
         <span className="text-xs">{task.assignedTo.name}</span>
       </div>
@@ -194,9 +203,13 @@ function AssigneeCell({
                       setOpen(false);
                     }}
                   >
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-blue-300 text-[9px] font-medium">
-                      {initials}
-                    </div>
+                    {member.avatar ? (
+                      <img src={member.avatar} alt={member.name} className="h-5 w-5 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-blue-300 text-[9px] font-medium">
+                        {initials}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-foreground truncate">{member.name}</p>
                       <p className="text-[9px] text-muted-foreground truncate">{member.email}</p>

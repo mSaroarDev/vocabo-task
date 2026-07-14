@@ -8,6 +8,7 @@ import {
   removeTeamMember as removeTeamMemberAction,
   deleteTeam as deleteTeamAction,
   leaveTeam as leaveTeamAction,
+  uploadTeamAvatar as uploadTeamAvatarAction,
   selectTeam as selectTeamAction,
   setTeams as setTeamsAction,
   type Team,
@@ -69,6 +70,9 @@ export function useTeams() {
     },
     leaveTeam: async (teamId: string) => {
       return dispatch(leaveTeamAction(teamId)).unwrap();
+    },
+    uploadTeamAvatar: async (teamId: string, file: File) => {
+      return dispatch(uploadTeamAvatarAction({ teamId, file })).unwrap();
     },
     setSelectedTeam: (team: Team) => dispatch(selectTeamAction(team.id)),
     setTeams: (newTeams: Team[]) => dispatch(setTeamsAction(newTeams)),

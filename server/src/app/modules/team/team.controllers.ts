@@ -105,6 +105,22 @@ const leaveTeam: RequestHandler = catchAsync(async (req: Request, res: Response)
   });
 });
 
+const uploadAvatar: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const userId = getUserId(req as AuthRequest);
+  const teamId = req.params.teamId as string;
+  const file = req.file;
+  if (!file) {
+    throw new AppError(httpStatus.BAD_REQUEST, "No file uploaded");
+  }
+  const result = await TeamServices.uploadAvatar(teamId, userId, file);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Team avatar updated successfully",
+    data: result,
+  });
+});
+
 export const TeamControllers = {
   createTeam,
   getMyTeams,
@@ -113,4 +129,5 @@ export const TeamControllers = {
   removeMember,
   deleteTeam,
   leaveTeam,
+  uploadAvatar,
 };

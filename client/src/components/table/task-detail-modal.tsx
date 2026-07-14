@@ -48,7 +48,7 @@ interface ActivityItem {
   field?: string;
   oldValue?: string;
   newValue?: string;
-  performedBy: { _id: string; name: string; email: string };
+  performedBy: { _id: string; name: string; email: string; avatar?: string };
   createdAt: string;
 }
 
@@ -449,9 +449,13 @@ export default function TaskDetailModal({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 px-1 py-1">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-medium text-foreground">
-                        {task ? getInitials(task.assignedTo.name) : "?"}
-                      </div>
+                      {task?.assignedTo?.avatar ? (
+                        <img src={task.assignedTo.avatar} alt={task.assignedTo.name} className="h-6 w-6 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-medium text-foreground">
+                          {task ? getInitials(task.assignedTo.name) : "?"}
+                        </div>
+                      )}
                       <span className="text-sm text-foreground">
                         {task?.assignedTo?.name || "Unassigned"}
                       </span>
@@ -463,9 +467,13 @@ export default function TaskDetailModal({
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Created By</label>
                   <div className="flex items-center gap-2 px-1 py-1">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-medium text-foreground">
-                      {task ? getInitials(task.createdBy.name) : getInitials("You")}
-                    </div>
+                    {task?.createdBy?.avatar ? (
+                      <img src={task.createdBy.avatar} alt={task.createdBy.name} className="h-6 w-6 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-medium text-foreground">
+                        {task ? getInitials(task.createdBy.name) : getInitials("You")}
+                      </div>
+                    )}
                     <span className="text-sm text-foreground">
                       {task ? task.createdBy.name : "You"}
                     </span>
@@ -632,9 +640,13 @@ export default function TaskDetailModal({
                     ) : (
                       activity.map((item) => (
                         <div key={item._id} className="flex items-start gap-2">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground mt-0.5">
-                            {getInitials(item.performedBy.name)}
-                          </div>
+                          {item.performedBy.avatar ? (
+                            <img src={item.performedBy.avatar} alt={item.performedBy.name} className="h-6 w-6 shrink-0 rounded-full object-cover mt-0.5" />
+                          ) : (
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground mt-0.5">
+                              {getInitials(item.performedBy.name)}
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-muted-foreground">
                               <span className="font-medium text-foreground">{item.performedBy.name}</span>{" "}

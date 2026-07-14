@@ -5,6 +5,7 @@ export interface TeamMember {
   userId: string;
   name: string;
   email: string;
+  avatar?: string;
   role: string;
   joinedAt?: string;
 }
@@ -36,7 +37,7 @@ const initialState: TeamsState = {
 };
 
 interface ApiTeamMember {
-  user: { _id: string; name: string; email: string } | string;
+  user: { _id: string; name: string; email: string; avatar?: string } | string;
   role: string;
   joinedAt?: string;
 }
@@ -47,6 +48,7 @@ interface ApiTeam {
   inviteCode: string;
   owner: string;
   members: ApiTeamMember[];
+  avatar?: string;
 }
 
 const mapMember = (m: ApiTeamMember): TeamMember => {
@@ -55,6 +57,7 @@ const mapMember = (m: ApiTeamMember): TeamMember => {
       userId: m.user._id,
       name: m.user.name,
       email: m.user.email,
+      avatar: m.user.avatar,
       role: m.role,
       joinedAt: m.joinedAt,
     };
@@ -80,7 +83,7 @@ const teamColors = [
 const mapTeam = (team: ApiTeam, index = 0): Team => ({
   id: team._id,
   name: team.name,
-  avatar: team.name.charAt(0).toUpperCase(),
+  avatar: team.avatar || team.name.charAt(0).toUpperCase(),
   color: teamColors[index % teamColors.length],
   inviteCode: team.inviteCode,
   owner: team.owner,
@@ -182,6 +185,22 @@ export const leaveTeam = createAsyncThunk<Team, string, { rejectValue: string }>
       return mapTeam(response.data.data as ApiTeam);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, "Failed to leave team"));
+    }
+  }
+);
+
+export const uploadTeamAvatar = createAsyncThunk<ApiTeam, { teamId: string; file: File }, { rejectValue: string }>(
+  "teams/uploadTeamAvatar",
+  async ({ teamId, file }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const response = await apiClient.post(`/teams/${teamId}/avatar`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return response.data.data as ApiTeam;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, "Failed to upload avatar"));
     }
   }
 );
@@ -320,6 +339,31 @@ const teamsSlice = createSlice({
       })
       .addCase(leaveTeam.rejected, (state, action) => {
         state.error = action.payload || "Failed to leave team";
+      })
+      .addCase(uploadTeamAvatar.pending, (state, action) => {
+        const { teamId, file } = action.meta.arg;
+        const team = state.items.find((t) => t.id === teamId);
+        if (team && file) {
+          team.avatar = URL.createObjectURL(file);
+        }
+      })
+      .addCase(uploadTeamAvatar.fulfilled, (state, action) => {
+        const apiTeam = action.payload;
+        const index = state.items.findIndex((t) => t.id === apiTeam._id);
+        if (index !== -1) {
+          const color = state.items[index].color;
+          state.items[index] = mapTeam(apiTeam, index);
+          state.items[index].color = color;
+        }
+        state.error = null;
+      })
+      .addCase(uploadTeamAvatar.rejected, (state, action) => {
+        const { teamId } = action.meta.arg;
+        const team = state.items.find((t) => t.id === teamId);
+        if (team) {
+          team.avatar = team.name.charAt(0).toUpperCase();
+        }
+        state.error = action.payload || "Failed to upload avatar";
       });
   },
 });

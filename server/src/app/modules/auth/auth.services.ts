@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { google } from "googleapis";
 import { getBotUsername } from "./telegram.bot";
+import { getStorage } from "../task/task.storage";
 
 export const AuthServices = {
   register: async (userData: any) => {
@@ -154,5 +155,30 @@ export const AuthServices = {
     await user.save();
 
     return { message: "Telegram disconnected successfully" };
+  },
+
+  uploadAvatar: async (userId: string, file: Express.Multer.File) => {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    const storage = getStorage();
+    let url: string;
+    try {
+      url = await storage.upload(file.path, file.filename, file.mimetype);
+    } catch {
+      throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to upload avatar");
+    }
+
+    if (!url.startsWith("http")) {
+      url = `/uploads/avatars/${file.filename}`;
+    }
+
+    user.avatar = url;
+    await user.save();
+
+    const { password: _, ...userWithoutPassword } = user.toObject();
+    return userWithoutPassword;
   },
 };

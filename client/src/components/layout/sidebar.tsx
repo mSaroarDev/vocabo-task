@@ -458,11 +458,19 @@ export default function Sidebar() {
           >
             <div
               className={cn(
-                "flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white",
-                selectedTeam ? selectedTeam.color : "bg-sidebar-accent"
+                "flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white overflow-hidden",
+                selectedTeam
+                  ? selectedTeam.avatar.startsWith("http") || selectedTeam.avatar.startsWith("/uploads")
+                    ? ""
+                    : selectedTeam.color
+                  : "bg-sidebar-accent"
               )}
             >
-              {selectedTeam?.avatar || "+"}
+              {selectedTeam?.avatar.startsWith("http") || selectedTeam?.avatar.startsWith("/uploads") ? (
+                <img src={selectedTeam.avatar} alt={selectedTeam.name} className="h-full w-full object-cover" />
+              ) : (
+                selectedTeam?.avatar || "+"
+              )}
             </div>
             <span className="flex-1 truncate text-left">
               {selectedTeam?.name || "No team"}
@@ -483,8 +491,12 @@ export default function Sidebar() {
                     }}
                     className="flex w-full cursor-pointer items-center gap-3 px-3 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
                   >
-                    <div className={`flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white ${team.color}`}>
-                      {team.avatar}
+                    <div className={`flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white overflow-hidden ${team.avatar.startsWith("http") || team.avatar.startsWith("/uploads") ? "" : team.color}`}>
+                      {team.avatar.startsWith("http") || team.avatar.startsWith("/uploads") ? (
+                        <img src={team.avatar} alt={team.name} className="h-full w-full object-cover" />
+                      ) : (
+                        team.avatar
+                      )}
                     </div>
                     <span className="flex-1 truncate text-left">{team.name}</span>
                     {selectedTeam?.id === team.id && <Check size={14} className="text-muted-foreground" />}

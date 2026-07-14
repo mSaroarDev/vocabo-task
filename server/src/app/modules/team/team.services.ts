@@ -7,6 +7,7 @@ import bot from "../auth/telegram.bot";
 import WorkspaceModel from "../workspace/workspace.model";
 import TaskModel from "../task/task.model";
 import ColumnModel from "../column/column.model";
+import { getStorage } from "../task/task.storage";
 
 const createInviteCode = () => {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -46,7 +47,7 @@ const createTeam = async (userId: string, payload: { name: string }) => {
 
 const getMyTeams = async (userId: string) => {
   const result = await TeamModel.find({ "members.user": userId })
-    .populate("members.user", "name email")
+    .populate("members.user", "name email avatar")
     .sort({ createdAt: -1 });
   return result;
 };
@@ -121,7 +122,7 @@ const addMember = async (teamId: string, userId: string, email: string) => {
     }
   }
 
-  const populated = await TeamModel.findById(team._id).populate("members.user", "name email");
+  const populated = await TeamModel.findById(team._id).populate("members.user", "name email avatar");
   return populated;
 };
 
@@ -149,7 +150,7 @@ const removeMember = async (teamId: string, userId: string, memberUserId: string
   team.members.splice(memberIndex, 1);
   await team.save();
 
-  const populated = await TeamModel.findById(team._id).populate("members.user", "name email");
+  const populated = await TeamModel.findById(team._id).populate("members.user", "name email avatar");
   return populated;
 };
 
@@ -199,7 +200,37 @@ const leaveTeam = async (teamId: string, userId: string) => {
   team.members.splice(memberIndex, 1);
   await team.save();
 
-  const populated = await TeamModel.findById(team._id).populate("members.user", "name email");
+  const populated = await TeamModel.findById(team._id).populate("members.user", "name email avatar");
+  return populated;
+};
+
+const uploadAvatar = async (teamId: string, userId: string, file: Express.Multer.File) => {
+  const team = await TeamModel.findById(teamId);
+  if (!team) {
+    throw new AppError(httpStatus.NOT_FOUND, "Team not found");
+  }
+
+  const ownerId = new Types.ObjectId(userId);
+  if (!team.owner.equals(ownerId)) {
+    throw new AppError(httpStatus.FORBIDDEN, "Only the team owner can update the avatar");
+  }
+
+  const storage = getStorage();
+  let url: string;
+  try {
+    url = await storage.upload(file.path, file.filename, file.mimetype);
+  } catch {
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to upload avatar");
+  }
+
+  if (!url.startsWith("http")) {
+    url = `/uploads/team-avatars/${file.filename}`;
+  }
+
+  team.avatar = url;
+  await team.save();
+
+  const populated = await TeamModel.findById(team._id).populate("members.user", "name email avatar");
   return populated;
 };
 
@@ -211,4 +242,5 @@ export const TeamServices = {
   removeMember,
   deleteTeam,
   leaveTeam,
+  uploadAvatar,
 };

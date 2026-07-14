@@ -1,15 +1,21 @@
+import TelegramConnectModal from "@/components/auth/TelegramConnectModal";
+import AccountSettingsTab from "@/components/profile/AccountSettingsTab";
+import BasicInfoTab from "@/components/profile/BasicInfoTab";
+import ProfileHeader from "@/components/profile/ProfileHeader";
+import type { TabId } from "@/components/profile/ProfileTabs";
+import ProfileTabs from "@/components/profile/ProfileTabs";
+import TeamsTab from "@/components/profile/TeamsTab";
+import { useAuth } from "@/hooks/useAuth";
+import { useTeams } from "@/hooks/useTeams";
+import { Send } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, ChevronDown, Send, LogOut, Trash2 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import TelegramConnectModal from "@/components/auth/TelegramConnectModal";
-import { useTeams } from "@/hooks/useTeams";
-import { cn } from "@/lib/utils";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, updateProfile, deleteAccount, disconnectTelegram } = useAuth();
-  const { teams, addTeamMember, removeTeamMember, deleteTeam, leaveTeam } = useTeams();
+  const { user, isAuthenticated, updateProfile, deleteAccount, disconnectTelegram, uploadAvatar } = useAuth();
+  const { teams, addTeamMember, removeTeamMember, deleteTeam, leaveTeam, uploadTeamAvatar } = useTeams();
+  const [activeTab, setActiveTab] = useState<TabId>("basic-info");
   const [name, setName] = useState(user?.name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [email, setEmail] = useState(user?.email || "");
@@ -23,7 +29,6 @@ export default function Profile() {
   const [confirmRemove, setConfirmRemove] = useState<{ teamId: string; memberUserId: string; memberName: string } | null>(null);
   const [confirmDeleteTeam, setConfirmDeleteTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const [confirmLeaveTeam, setConfirmLeaveTeam] = useState<{ teamId: string; teamName: string } | null>(null);
-  const [expandedTeams, setExpandedTeams] = useState<Record<string, boolean>>({});
   const [telegramModalOpen, setTelegramModalOpen] = useState(false);
 
   const createdTeams = teams.filter((t) => t.owner === user?._id);
@@ -108,295 +113,135 @@ export default function Profile() {
     return null;
   }
 
-  return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-10">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#2b2b2b] text-lg font-semibold text-foreground">
-          {userInitials}
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">{user.name}</h1>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
-        </div>
-      </div>
-
-      {/* Telegram Connection */}
-      <section className="mb-10">
-        <h2 className="text-sm font-medium text-foreground mb-4">Telegram</h2>
-        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {user.telegramConnected ? "✅ Connected" : "❌ Not Connected"}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {user.telegramConnected
-                ? "Your account is linked to Telegram"
-                : "Connect to receive notifications on Telegram"}
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              if (user.telegramConnected) {
-                disconnectTelegram();
-              } else {
-                setTelegramModalOpen(true);
-              }
-            }}
-            className={cn(
-              "flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer",
-              user.telegramConnected
-                ? "bg-[#2b2b2b] text-foreground hover:bg-[#3b3b3b]"
-                : "bg-[#0088cc] text-white hover:bg-[#0077b5]"
-            )}
-          >
-            <Send size={14} />
-            {user.telegramConnected ? "Disconnect" : "Connect Telegram"}
-          </button>
-        </div>
-      </section>
-
-      {/* Edit Profile */}
-      <section className="mb-10">
-        <h2 className="text-sm font-medium text-foreground mb-4">Edit Profile</h2>
-        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-5 space-y-4">
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1.5">Name</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-white/[0.08] bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-white/[0.15]"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1.5">Phone</label>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+1234567890"
-              className="w-full rounded-md border border-white/[0.08] bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-white/[0.15]"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1.5">Email</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-white/[0.08] bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-white/[0.15]"
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="rounded-md bg-[#2b2b2b] px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-[#3b3b3b] disabled:opacity-50 cursor-pointer"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-            {saveMessage && (
-              <span
-                className={cn(
-                  "text-xs",
-                  saveMessage.includes("success") ? "text-green-400" : "text-red-400"
-                )}
-              >
-                {saveMessage}
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Joined Teams */}
-      <section className="mb-10">
-        <h2 className="text-sm font-medium text-foreground mb-4">Joined Teams</h2>
-        {teams.length === 0 ? (
-          <p className="text-sm text-muted-foreground">You haven't joined any teams yet.</p>
-        ) : (
-          <div className="grid gap-3">
-            {teams.map((team) => (
-              <div
-                key={team.id}
-                className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3"
-              >
-                <div
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium",
-                    team.color
-                  )}
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case "basic-info":
+        return (
+          <div className="space-y-6">
+            {user.telegramConnected ? (
+              <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-5">
+                <h3 className="text-sm font-semibold text-foreground">✅ Connected</h3>
+                <p className="text-xs text-muted-foreground mt-1">Your account is linked to Telegram</p>
+                <ul className="mt-3 space-y-1.5">
+                  <li className="text-xs text-muted-foreground flex items-start gap-2">
+                    <span className="text-foreground mt-0.5">•</span>
+                    Receive instant task assignment notifications
+                  </li>
+                  <li className="text-xs text-muted-foreground flex items-start gap-2">
+                    <span className="text-foreground mt-0.5">•</span>
+                    Get notified when you're mentioned in comments
+                  </li>
+                  <li className="text-xs text-muted-foreground flex items-start gap-2">
+                    <span className="text-foreground mt-0.5">•</span>
+                    Stay informed about team updates and changes
+                  </li>
+                </ul>
+                <button
+                  onClick={disconnectTelegram}
+                  className="mt-4 flex items-center gap-2 rounded-md bg-red-500/10 px-4 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 cursor-pointer"
                 >
-                  {team.avatar}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{team.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {user._id === team.owner ? "Owner" : "Member"}
-                  </p>
-                </div>
-                {user._id !== team.owner && (
-                  <button
-                    onClick={() => setConfirmLeaveTeam({ teamId: team.id, teamName: team.name })}
-                    title="Leave team"
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400 cursor-pointer"
-                  >
-                    <LogOut size={14} />
-                  </button>
-                )}
+                  <Send size={14} />
+                  Disconnect
+                </button>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* My Created Teams */}
-      {createdTeams.length > 0 && (
-        <section className="mb-10">
-          <h2 className="text-sm font-medium text-foreground mb-4">My Created Teams</h2>
-          <div className="grid gap-4">
-            {createdTeams.map((team) => {
-              const isExpanded = expandedTeams[team.id] ?? true;
-              return (
-                <div
-                  key={team.id}
-                  className="rounded-lg border border-white/[0.06] bg-white/[0.02]"
-                >
+            ) : (
+                <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-5">
+                  <h3 className="text-sm font-semibold text-foreground">Connect Telegram</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Link your Telegram account to stay updated wherever you go.
+                  </p>
+                  <ul className="mt-3 space-y-1.5">
+                    <li className="text-xs text-muted-foreground flex items-start gap-2">
+                      <span className="text-foreground mt-0.5">•</span>
+                      Receive instant task assignment notifications
+                    </li>
+                    <li className="text-xs text-muted-foreground flex items-start gap-2">
+                      <span className="text-foreground mt-0.5">•</span>
+                      Get notified when you're mentioned in comments
+                    </li>
+                    <li className="text-xs text-muted-foreground flex items-start gap-2">
+                      <span className="text-foreground mt-0.5">•</span>
+                      Stay informed about team updates and changes
+                    </li>
+                  </ul>
                   <button
-                    onClick={() =>
-                      setExpandedTeams((prev) => ({
-                        ...prev,
-                        [team.id]: !isExpanded,
-                      }))
-                    }
-                    className="flex w-full items-center gap-3 px-5 py-4 cursor-pointer"
+                    onClick={() => setTelegramModalOpen(true)}
+                    className="mt-4 flex items-center gap-2 rounded-md bg-[#0088cc] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#0077b5] cursor-pointer"
                   >
-                    <div
-                      className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium",
-                        team.color
-                      )}
-                    >
-                      {team.avatar}
-                    </div>
-                    <div className="min-w-0 flex-1 text-left">
-                      <p className="text-sm font-medium text-foreground">{team.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Team ID: {team.inviteCode}
-                      </p>
-                    </div>
-                    <ChevronDown
-                      size={16}
-                      className={cn(
-                        "text-muted-foreground transition-transform",
-                        isExpanded && "rotate-180"
-                      )}
-                    />
+                    <Send size={14} />
+                    Connect Telegram
                   </button>
+              </div>
+            )}
 
-                  {isExpanded && (
-                    <div className="px-5 pb-5 space-y-3 border-t border-white/[0.06] pt-3">
-                      {/* Members List */}
-                      {team.members && team.members.length > 0 && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Members ({team.members.length})
-                          </p>
-                          <div className="space-y-1.5">
-                            {team.members.map((member) => (
-                              <div
-                                key={member.userId}
-                                className="flex items-center gap-2 rounded-md bg-white/[0.03] px-3 py-2 group"
-                              >
-                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2b2b2b] text-[10px] font-medium">
-                                  {member.name
-                                    ? member.name
-                                        .split(" ")
-        .map((n: string) => n[0])
-                                        .join("")
-                                        .toUpperCase()
-                                        .slice(0, 2)
-                                    : "U"}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm text-foreground truncate">
-                                    {member.name || "Unknown"}
-                                  </p>
-                                  <p className="text-[11px] text-muted-foreground truncate">
-                                    {member.email} {member.role === "owner" ? "(Owner)" : ""}
-                                  </p>
-                                </div>
-                                {member.role !== "owner" && (
-                                  <button
-                                    onClick={() =>
-                                      setConfirmRemove({
-                                        teamId: team.id,
-                                        memberUserId: member.userId,
-                                        memberName: member.name || member.email,
-                                      })
-                                    }
-                                    title="Remove member"
-                                    className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100 cursor-pointer"
-                                  >
-                                    <X size={12} />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Add Member */}
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-2">Add Member by Email</p>
-                        <div className="flex items-center gap-2">
-                          <input
-                            value={memberEmails[team.id] || ""}
-                            onChange={(e) =>
-                              setMemberEmails((prev) => ({ ...prev, [team.id]: e.target.value }))
-                            }
-                            placeholder="member@example.com"
-                            className="flex-1 rounded-md border border-white/[0.08] bg-transparent px-3 py-1.5 text-sm text-foreground outline-none focus:border-white/[0.15]"
-                          />
-                          <button
-                            onClick={() => handleAddMember(team.id)}
-                            disabled={addingMember[team.id] || !memberEmails[team.id]?.trim()}
-                            className="rounded-md bg-[#2b2b2b] px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-[#3b3b3b] disabled:opacity-50 cursor-pointer"
-                          >
-                            {addingMember[team.id] ? "Adding..." : "Add"}
-                          </button>
-                        </div>
-                        {memberMessages[team.id] && (
-                          <p
-                            className={cn(
-                              "text-xs mt-1.5",
-                              memberMessages[team.id].includes("success")
-                                ? "text-green-400"
-                                : "text-red-400"
-                            )}
-                          >
-                            {memberMessages[team.id]}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Delete Team */}
-                      <div className="pt-2 border-t border-white/[0.06]">
-                        <button
-                          onClick={() => setConfirmDeleteTeam({ teamId: team.id, teamName: team.name })}
-                          className="flex items-center gap-2 rounded-md bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 cursor-pointer"
-                        >
-                          <Trash2 size={13} />
-                          Delete team
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            <BasicInfoTab
+              name={name}
+              phone={phone}
+              email={email}
+              saving={saving}
+              saveMessage={saveMessage}
+              onNameChange={setName}
+              onPhoneChange={setPhone}
+              onEmailChange={setEmail}
+              onSave={handleSave}
+            />
           </div>
-        </section>
-      )}
+        );
+      case "teams":
+        return (
+          <TeamsTab
+            teams={teams}
+            createdTeams={createdTeams}
+            currentUserId={user._id}
+            memberEmails={memberEmails}
+            memberMessages={memberMessages}
+            addingMember={addingMember}
+            onMemberEmailChange={(teamId, value) =>
+              setMemberEmails((prev) => ({ ...prev, [teamId]: value }))
+            }
+            onAddMember={handleAddMember}
+            onRemoveMember={(teamId, memberUserId, memberName) =>
+              setConfirmRemove({ teamId, memberUserId, memberName })
+            }
+            onDeleteTeam={(teamId, teamName) => setConfirmDeleteTeam({ teamId, teamName })}
+            onLeaveTeam={(teamId, teamName) => setConfirmLeaveTeam({ teamId, teamName })}
+            onUploadAvatar={(teamId, file) => uploadTeamAvatar(teamId, file)}
+          />
+        );
+      case "settings":
+        return (
+          <div>
+            <AccountSettingsTab
+              confirmDelete={confirmDelete}
+              deleteInput={deleteInput}
+              onDeleteClick={() => setConfirmDelete(true)}
+              onDeleteConfirm={handleDeleteAccount}
+              onDeleteCancel={() => {
+                setConfirmDelete(false);
+                setDeleteInput("");
+              }}
+              onDeleteInputChange={setDeleteInput}
+            />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="px-6 py-10">
+      <ProfileHeader
+        name={user.name}
+        email={user.email}
+        initials={userInitials}
+        avatar={user.avatar}
+        onAvatarUpload={uploadAvatar}
+      />
+
+      <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {renderActiveTab()}
 
       <TelegramConnectModal open={telegramModalOpen} onOpenChange={setTelegramModalOpen} />
 
@@ -478,59 +323,6 @@ export default function Profile() {
           </div>
         </div>
       )}
-
-      {/* Danger Zone */}
-      <section>
-        <h2 className="text-sm font-medium text-red-400 mb-4">Danger Zone</h2>
-        <div className="rounded-lg border border-red-500/20 bg-red-500/[0.03] p-5">
-          {!confirmDelete ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Delete Account</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Permanently delete your account and all associated data.
-                </p>
-              </div>
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="rounded-md bg-red-500/10 px-4 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 cursor-pointer"
-              >
-                Delete
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-foreground">
-                This action is irreversible. Type <strong>DELETE</strong> to confirm.
-              </p>
-              <input
-                value={deleteInput}
-                onChange={(e) => setDeleteInput(e.target.value)}
-                placeholder="Type DELETE to confirm"
-                className="w-full rounded-md border border-red-500/30 bg-transparent px-3 py-2 text-sm text-foreground outline-none focus:border-red-500/50"
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleteInput !== "DELETE"}
-                  className="rounded-md bg-red-500/10 px-4 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-30 cursor-pointer"
-                >
-                  Delete My Account
-                </button>
-                <button
-                  onClick={() => {
-                    setConfirmDelete(false);
-                    setDeleteInput("");
-                  }}
-                  className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
     </div>
   );
 }

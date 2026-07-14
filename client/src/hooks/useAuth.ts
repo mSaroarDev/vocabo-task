@@ -7,6 +7,7 @@ import {
   fetchCurrentUser,
   updateProfile as updateProfileAction,
   deleteAccount as deleteAccountAction,
+  uploadAvatar as uploadAvatarAction,
   generateTelegramConnectToken as generateTelegramConnectTokenAction,
   disconnectTelegram as disconnectTelegramAction,
   clearError,
@@ -53,6 +54,9 @@ export function useAuth() {
     },
     updateProfile: async (data: { name?: string; email?: string; phone?: string }) => {
       return dispatch(updateProfileAction(data)).unwrap();
+    },
+    uploadAvatar: async (file: File) => {
+      return dispatch(uploadAvatarAction(file)).unwrap();
     },
     deleteAccount: async () => {
       return dispatch(deleteAccountAction()).unwrap();

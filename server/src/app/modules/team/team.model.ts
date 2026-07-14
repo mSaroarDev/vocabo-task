@@ -42,6 +42,10 @@ const teamSchema = new Schema<ITeam>(
       ref: "User",
       required: true,
     },
+    avatar: {
+      type: String,
+      default: "",
+    },
     members: {
       type: [teamMemberSchema],
       default: [],

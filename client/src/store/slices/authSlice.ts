@@ -122,6 +122,24 @@ export const disconnectTelegram = createAsyncThunk(
   }
 );
 
+export const uploadAvatar = createAsyncThunk(
+  "auth/uploadAvatar",
+  async (file: File, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+      const response = await apiClient.post("/auth/avatar", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const updatedUser = response.data.data;
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      return updatedUser;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
 export const fetchCurrentUser = createAsyncThunk(
   "auth/fetchCurrentUser",
   async (_, { rejectWithValue }) => {
@@ -223,6 +241,13 @@ const authSlice = createSlice({
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.error = action.error.message || "Failed to update profile";
+      })
+      .addCase(uploadAvatar.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(uploadAvatar.rejected, (state, action) => {
+        state.error = action.error.message || "Failed to upload avatar";
       })
       .addCase(deleteAccount.fulfilled, (state) => {
         state.user = null;

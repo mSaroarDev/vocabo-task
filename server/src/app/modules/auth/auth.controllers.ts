@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import httpStatus from "http-status";
 import catchAsync from "../../utils/asyncCatch";
 import sendResponse from "../../utils/sendResponse";
+import AppError from "../../errors/AppError";
 import { AuthServices } from "./auth.services";
 
 export const AuthControllers = {
@@ -98,6 +99,21 @@ export const AuthControllers = {
       statusCode: httpStatus.OK,
       success: true,
       message: "Telegram disconnected",
+      data: result,
+    });
+  }),
+
+  uploadAvatar: catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user?.id;
+    const file = req.file;
+    if (!file) {
+      throw new AppError(httpStatus.BAD_REQUEST, "No file uploaded");
+    }
+    const result = await AuthServices.uploadAvatar(userId, file);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Avatar updated successfully",
       data: result,
     });
   }),

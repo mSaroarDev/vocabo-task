@@ -13,6 +13,7 @@ export interface ITeam {
   inviteCode: string;
   owner: Types.ObjectId;
   members: ITeamMember[];
+  avatar?: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -50,6 +50,7 @@ interface ApiUser {
   _id: string;
   name: string;
   email: string;
+  avatar?: string;
 }
 
 interface ApiAttachment {
@@ -84,6 +85,7 @@ function mapTask(task: ApiTask): Task {
     name: user.name,
     initials: getInitials(user.name),
     color: getColor(user.name),
+    avatar: user.avatar,
   });
 
   return {
