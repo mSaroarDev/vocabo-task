@@ -1215,7 +1215,7 @@ export default function NotionTable({
       onDragEnd={handleDragEnd}
     >
       <div className="overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden">
-        <table className="w-full border-collapse text-sm table-fixed text-left">
+        <table className="border-collapse text-sm table-fixed text-left w-max">
           <thead>
             <DndContext
               sensors={colSensors}

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { LuUserRoundCheck, LuUserRoundCog } from "react-icons/lu";
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   DndContext,
   PointerSensor,
@@ -54,7 +54,7 @@ interface SidebarItem {
 }
 
 const favorites: SidebarItem[] = [
-  { id: "1", label: "Getting Started", icon: <Star size={16} />, active: true },
+  { id: "1", label: "Getting Started", icon: <Star size={16} /> },
   // { id: "2", label: "Meeting Notes", icon: <Star size={16} /> },
   // { id: "3", label: "Project Ideas", icon: <Star size={16} /> },
 ];
@@ -302,8 +302,17 @@ export default function Sidebar() {
     reorderGroups,
   } = useChecklist();
   const [searchParams] = useSearchParams();
+  const { pathname } = useLocation();
   const activeWorkspace = searchParams.get("workspace");
   const activeChecklist = searchParams.get("checklist");
+  const activeMenu =
+    pathname === "/assigned-tasks"
+      ? searchParams.get("view") === "members"
+        ? "members-assigned"
+        : "assigned"
+      : null;
+  const favoritesActive =
+    pathname === "/dashboard" && !activeWorkspace && !activeChecklist;
   const [searchQuery, setSearchQuery] = useState("");
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
 
@@ -546,7 +555,7 @@ export default function Sidebar() {
         <ScrollArea className="flex-1 px-2">
           <SidebarSection
             title="Favorites"
-            items={favorites}
+            items={favorites.map((f) => ({ ...f, active: favoritesActive }))}
             onItemClick={() => {
               navigate("/dashboard");
             }}
@@ -579,7 +588,7 @@ export default function Sidebar() {
 
           <SidebarSection
             title="Menus"
-            items={menus}
+            items={menus.map((m) => ({ ...m, active: m.id === activeMenu }))}
             collapsible={false}
             onItemClick={(id) => {
               if (id === "assigned") navigate("/assigned-tasks?userId=me");
