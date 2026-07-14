@@ -58,6 +58,9 @@ export const AuthServices = {
     const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
     const { data } = await oauth2.userinfo.get();
 
+    const password = crypto.randomBytes(6).toString("hex");
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     let user = await User.findOne({ email: data.email });
     if (!user) {
       user = await User.create({
@@ -66,7 +69,7 @@ export const AuthServices = {
         avatar: data.picture,
         googleId: data.id || "",
         isEmailVerified: true,
-        password: crypto.randomBytes(6).toString("hex"),
+        password: hashedPassword,
       });
     }
 
