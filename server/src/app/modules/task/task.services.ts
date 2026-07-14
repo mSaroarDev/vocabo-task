@@ -211,6 +211,38 @@ const getTask = async (teamId: string, workspaceId: string, taskId: string, user
   return task;
 };
 
+const getAssignedToMe = async (teamId: string, requesterId: string, targetUserId?: string) => {
+  const team = await ensureTeamMember(teamId, requesterId);
+
+  let effectiveUserId = requesterId;
+  if (targetUserId && targetUserId !== "me") {
+    const isMember = team.members.some(
+      (member) => member.user.toString() === targetUserId
+    );
+    if (!isMember) {
+      throw new AppError(httpStatus.FORBIDDEN, "User is not a member of this team");
+    }
+    effectiveUserId = targetUserId;
+  }
+
+  const workspaces = await WorkspaceModel.find({ team: teamId });
+  const workspaceIds = workspaces.map((workspace) => workspace._id);
+  const workspaceNameMap = new Map(
+    workspaces.map((workspace) => [workspace._id.toString(), workspace.name])
+  );
+  const tasks = await TaskModel.find({
+    workspace: { $in: workspaceIds },
+    assignedTo: effectiveUserId,
+  })
+    .sort({ order: 1, createdAt: -1 })
+    .populate("createdBy", "name email avatar")
+    .populate("assignedTo", "name email avatar");
+  return tasks.map((task) => ({
+    ...task.toObject(),
+    workspaceName: workspaceNameMap.get(task.workspace.toString()) ?? "Unknown",
+  }));
+};
+
 interface CreateTaskPayload {
   title: string;
   description?: string;
@@ -727,6 +759,7 @@ const setTasksArchive = async (
 export const TaskServices = {
   getTasks,
   getTask,
+  getAssignedToMe,
   createTask,
   updateTask,
   deleteTask,

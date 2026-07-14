@@ -42,6 +42,21 @@ const getTask: RequestHandler = catchAsync(async (req: Request, res: Response) =
   });
 });
 
+const getAssignedToMe: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const targetUserId = typeof req.query.userId === "string" ? req.query.userId : undefined;
+  const result = await TaskServices.getAssignedToMe(
+    req.params.teamId as string,
+    getUserId(req as AuthRequest),
+    targetUserId
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Assigned tasks retrieved successfully",
+    data: result,
+  });
+});
+
 const createTask: RequestHandler = catchAsync(async (req: Request, res: Response) => {
   const result = await TaskServices.createTask(
     req.params.teamId as string,
@@ -243,6 +258,7 @@ const removeBanner: RequestHandler = catchAsync(async (req: Request, res: Respon
 export const TaskControllers = {
   getTasks,
   getTask,
+  getAssignedToMe,
   createTask,
   updateTask,
   deleteTask,

@@ -63,6 +63,8 @@ export interface Task {
   createdBy: Person;
   assignedTo: Person;
   customFields: Record<string, unknown>;
+  workspaceId?: string;
+  workspaceName?: string;
   isPending?: boolean;
 }
 
@@ -245,6 +247,7 @@ const defaultColumns = [
   { key: "assignee", label: "Assigned To", width: 200 },
   { key: "createdBy", label: "Created By", width: 200 },
   { key: "attachments", label: "Attachments", width: 100 },
+  { key: "workspace", label: "Workspace", width: 160 },
 ];
 
 function ColumnHeaderDropdown({
@@ -878,6 +881,8 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
       return <PersonCell person={task.createdBy} />;
     case "attachments":
       return <AttachmentCell task={task} teamId={teamId} workspaceId={workspaceId} onImagePreview={onImagePreview} />;
+    case "workspace":
+      return <span className="truncate text-xs text-muted-foreground">{task.workspaceName || "—"}</span>;
     case "assignedTo":
     case "assignee":
       return <AssigneeCell task={task} members={members} onUpdate={onAssigneeUpdate} />;
@@ -1004,6 +1009,9 @@ interface NotionTableProps {
   onCreateModalChange?: (open: boolean) => void;
   selectedIds?: string[];
   onToggleSelect?: (id: string) => void;
+  hideAssignee?: boolean;
+  hideCreatedBy?: boolean;
+  showWorkspace?: boolean;
 }
 
 export default function NotionTable({
@@ -1022,14 +1030,27 @@ export default function NotionTable({
   onCreateModalChange,
   selectedIds,
   onToggleSelect,
+  hideAssignee,
+  hideCreatedBy,
+  showWorkspace,
 }: NotionTableProps) {
+  const baseColumns = defaultColumns.filter((c) => {
+    if (c.key === "workspace") return false;
+    if (hideAssignee && c.key === "assignee") return false;
+    if (hideCreatedBy && c.key === "createdBy") return false;
+    return true;
+  });
+  const workspaceColumn = defaultColumns.find((c) => c.key === "workspace")!;
+  const visibleColumns = showWorkspace
+    ? [...baseColumns, workspaceColumn]
+    : baseColumns;
   const [localStatusOptions] = useState<StatusOption[]>(defaultStatusOptions);
-  const [columnOrder, setColumnOrder] = useState<string[]>(defaultColumns.map((c) => c.key));
+  const [columnOrder, setColumnOrder] = useState<string[]>(visibleColumns.map((c) => c.key));
   const [columnLabels, setColumnLabels] = useState<Record<string, string>>(
-    Object.fromEntries(defaultColumns.map((c) => [c.key, c.label]))
+    Object.fromEntries(visibleColumns.map((c) => [c.key, c.label]))
   );
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(
-    Object.fromEntries(defaultColumns.map((c) => [c.key, c.width]))
+    Object.fromEntries(visibleColumns.map((c) => [c.key, c.width]))
   );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);

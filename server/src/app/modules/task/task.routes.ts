@@ -36,3 +36,11 @@ router.delete("/:taskId/banner", TaskControllers.removeBanner);
 router.use("/:taskId/activity", ActivityLogRoutes);
 
 export const TaskRoutes = router;
+
+const teamTaskRouter = express.Router({ mergeParams: true });
+
+teamTaskRouter.use(authMiddleware);
+
+teamTaskRouter.get("/assigned-to-me", TaskControllers.getAssignedToMe);
+
+export const TeamTaskRoutes = teamTaskRouter;

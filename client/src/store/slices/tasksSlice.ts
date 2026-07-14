@@ -64,7 +64,7 @@ interface ApiAttachment {
   uploadedAt: string;
 }
 
-interface ApiTask {
+export interface ApiTask {
   _id: string;
   title: string;
   status: string;
@@ -77,10 +77,12 @@ interface ApiTask {
   createdBy: ApiUser;
   assignedTo?: ApiUser;
   customFields: Record<string, unknown>;
+  workspace: string;
+  workspaceName?: string;
   order: number;
 }
 
-function mapTask(task: ApiTask): Task {
+export function mapTask(task: ApiTask): Task {
   const toPerson = (user: ApiUser) => ({
     name: user.name,
     initials: getInitials(user.name),
@@ -110,6 +112,8 @@ function mapTask(task: ApiTask): Task {
     createdBy: toPerson(task.createdBy),
     assignedTo: task.assignedTo ? toPerson(task.assignedTo) : { name: "Unassigned", initials: "Un", color: avatarColors[1] },
     customFields: task.customFields ?? {},
+    workspaceId: task.workspace,
+    workspaceName: task.workspaceName,
   };
 }
 

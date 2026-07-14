@@ -13,6 +13,7 @@ import {
   LogOut,
   Loader2,
 } from "lucide-react";
+import { LuUserRoundCheck, LuUserRoundCog } from "react-icons/lu";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -58,12 +59,18 @@ const favorites: SidebarItem[] = [
   // { id: "3", label: "Project Ideas", icon: <Star size={16} /> },
 ];
 
+const menus: SidebarItem[] = [
+  { id: "assigned", label: "Assigned Me", icon: <LuUserRoundCheck size={16} /> },
+  { id: "members-assigned", label: "Members Assings", icon: <LuUserRoundCog size={16} /> },
+];
+
 interface SidebarSectionProps {
   title: string;
   items: SidebarItem[];
   emptyMessage?: string;
   statusMessage?: string;
   isLoading?: boolean;
+  collapsible?: boolean;
   onAdd?: () => void;
   onEdit?: (id: string, currentLabel: string) => void;
   onDelete?: (id: string) => void;
@@ -173,6 +180,7 @@ function SidebarSection({
   emptyMessage,
   statusMessage,
   isLoading,
+  collapsible = true,
   onAdd,
   onEdit,
   onDelete,
@@ -199,17 +207,24 @@ function SidebarSection({
   };
 
   const sortable = Boolean(onReorder);
+  const showContent = !collapsible || !collapsed;
 
   return (
     <div className="mb-6">
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="flex cursor-pointer items-center gap-1 px-3 py-1 text-xs font-medium text-sidebar-foreground/60 hover:text-sidebar-foreground w-full"
-      >
-        {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-        {title}
-      </button>
-      {!collapsed && (
+      {collapsible ? (
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex cursor-pointer items-center gap-1 px-3 py-1 text-xs font-medium text-sidebar-foreground/60 hover:text-sidebar-foreground w-full"
+        >
+          {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+          {title}
+        </button>
+      ) : (
+        <div className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-sidebar-foreground/60 w-full">
+          {title}
+        </div>
+      )}
+      {showContent && (
         <div className="mt-0.5 space-y-0.5">
           {isLoading ? (
             <div className="flex items-center justify-center py-2">
@@ -560,6 +575,16 @@ export default function Sidebar() {
               if (ws) navigate(`/dashboard?workspace=${ws.id}`);
             }}
             addLabel="Add workspace"
+          />
+
+          <SidebarSection
+            title="Menus"
+            items={menus}
+            collapsible={false}
+            onItemClick={(id) => {
+              if (id === "assigned") navigate("/assigned-tasks?userId=me");
+              if (id === "members-assigned") navigate("/assigned-tasks?view=members");
+            }}
           />
 
           <SidebarSection

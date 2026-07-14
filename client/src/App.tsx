@@ -8,6 +8,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
+import AssignedTasks from "./pages/AssignedTasks";
 import GoogleCallback from "./pages/GoogleCallback";
 
 function App() {
@@ -35,6 +36,16 @@ function App() {
                 <ProtectedRoute>
                   <NotionLayout>
                     <Profile />
+                  </NotionLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/assigned-tasks"
+              element={
+                <ProtectedRoute>
+                  <NotionLayout>
+                    <AssignedTasks />
                   </NotionLayout>
                 </ProtectedRoute>
               }
