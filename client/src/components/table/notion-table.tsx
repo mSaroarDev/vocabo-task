@@ -621,7 +621,7 @@ function AttachmentCell({
   task: Task;
   teamId?: string;
   workspaceId?: string;
-  onImagePreview?: (url: string) => void;
+  onImagePreview?: (urls: string[], index: number) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -746,7 +746,12 @@ function AttachmentCell({
             src={att.url}
             alt={att.originalName}
             className="h-7 w-7 rounded object-cover border border-white/[0.06] cursor-pointer hover:ring-2 hover:ring-blue-500/50 transition-all"
-            onClick={() => onImagePreview?.(att.url)}
+            onClick={() =>
+              onImagePreview?.(
+                imageAttachments.filter((a) => a.url).map((a) => a.url),
+                imageAttachments.findIndex((a) => a.id === att.id)
+              )
+            }
           />
         ) : (
           <span
@@ -834,7 +839,7 @@ function DescriptionEditor({
   );
 }
 
-function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (url: string) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[], editingTaskId?: string | null, editingField?: "title" | "description" | null, editingValue?: string, editingInputRef?: React.RefObject<HTMLInputElement | null>, onStartEdit?: (task: Task, field: "title" | "description") => void, onEditingChange?: (value: string) => void, onSaveEdit?: (taskId: string, value: string) => void, onCancelEdit?: () => void, teamId?: string, workspaceId?: string) {
+function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) => void, onStatusUpdate: (id: string, status: string) => void, statusOptions: StatusOption[], wrapTaskName?: boolean, onImagePreview?: (urls: string[], index: number) => void, onPriorityUpdate?: (id: string, priority: string) => void, onAssigneeUpdate?: (id: string, assignedTo: string | null) => void, members?: TeamMember[], editingTaskId?: string | null, editingField?: "title" | "description" | null, editingValue?: string, editingInputRef?: React.RefObject<HTMLInputElement | null>, onStartEdit?: (task: Task, field: "title" | "description") => void, onEditingChange?: (value: string) => void, onSaveEdit?: (taskId: string, value: string) => void, onCancelEdit?: () => void, teamId?: string, workspaceId?: string) {
   const isEditing = editingTaskId === task.id && editingField === columnKey;
   switch (columnKey) {
     case "title":
@@ -928,7 +933,7 @@ interface DraggableRowProps {
   selectedIds?: string[];
   onToggleSelect?: (id: string) => void;
   wrapTaskName?: boolean;
-  onImagePreview?: (url: string) => void;
+  onImagePreview?: (urls: string[], index: number) => void;
   members?: TeamMember[];
   editingTaskId?: string | null;
   editingField?: "title" | "description" | null;
@@ -1085,7 +1090,8 @@ export default function NotionTable({
   const editingInputRef = useRef<HTMLInputElement>(null);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -1276,7 +1282,10 @@ export default function NotionTable({
                   selectedIds={selectedIds}
                   onToggleSelect={onToggleSelect}
                   wrapTaskName={wrapTaskName}
-                  onImagePreview={(url) => setPreviewUrl(url)}
+                  onImagePreview={(urls, index) => {
+                    setPreviewUrls(urls);
+                    setPreviewIndex(index);
+                  }}
                   members={members}
                   editingTaskId={editingTaskId}
                   editingField={editingField}
@@ -1387,9 +1396,11 @@ export default function NotionTable({
         />
       )}
       <ImagePreview
-        url={previewUrl || ""}
-        open={!!previewUrl}
-        onClose={() => setPreviewUrl(null)}
+        urls={previewUrls}
+        index={previewIndex}
+        open={previewUrls.length > 0}
+        onClose={() => setPreviewUrls([])}
+        onIndexChange={setPreviewIndex}
       />
     </DndContext>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -110,7 +110,7 @@ function formatTimeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
-function AttachmentCard({ attachment, onImagePreview }: { attachment: Attachment; onImagePreview?: (url: string) => void }) {
+function AttachmentCard({ attachment, onImagePreview }: { attachment: Attachment; onImagePreview?: (urls: string[], index: number) => void }) {
   const isImage = attachment.mimeType.startsWith("image/");
   return (
     <div
@@ -118,7 +118,7 @@ function AttachmentCard({ attachment, onImagePreview }: { attachment: Attachment
         "flex items-center gap-3 rounded-lg border border-border/50 p-3 hover:bg-accent/30 transition-colors group",
         isImage && "cursor-pointer"
       )}
-      onClick={() => isImage && onImagePreview?.(attachment.url)}
+      onClick={() => isImage && onImagePreview?.([attachment.url], 0)}
     >
       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-zinc-800 border border-border/30 overflow-hidden">
         {isImage ? (
@@ -138,7 +138,7 @@ function AttachmentCard({ attachment, onImagePreview }: { attachment: Attachment
       {isImage && (
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={(e) => { e.stopPropagation(); onImagePreview?.(attachment.url); }}
+            onClick={(e) => { e.stopPropagation(); onImagePreview?.([attachment.url], 0); }}
             className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
           >
             <ExternalLink size={14} />
@@ -175,7 +175,8 @@ export default function TaskDetailModal({
   const [activityLoading, setActivityLoading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<{ file: File; preview: string }[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const dispatch = useAppDispatch();
 
@@ -201,6 +202,16 @@ export default function TaskDetailModal({
       setAssignedToName(task.assignedTo?.name || "");
     }
   }, [task?.id, task?.title, task?.description, task?.status, task?.priority, task?.assignedTo?.name]);
+
+  const allImageUrls = useMemo(() => {
+    const existing = (task?.attachments || [])
+      .filter((a) => a.mimeType.startsWith("image/"))
+      .map((a) => a.url);
+    const pending = pendingAttachments
+      .filter((p) => p.file.type.startsWith("image/"))
+      .map((p) => p.preview);
+    return [...existing, ...pending];
+  }, [task, pendingAttachments]);
 
   useEffect(() => {
     if (open && isCreate) {
@@ -501,7 +512,11 @@ export default function TaskDetailModal({
                       .map((attachment) => (
                         <button
                           key={attachment.id}
-                          onClick={() => setPreviewUrl(attachment.url)}
+                          onClick={() => {
+                            const idx = allImageUrls.indexOf(attachment.url);
+                            setPreviewUrls(allImageUrls);
+                            setPreviewIndex(idx >= 0 ? idx : 0);
+                          }}
                           className="relative group rounded-lg overflow-hidden border border-border/50 hover:border-foreground/50 transition-colors cursor-pointer"
                         >
                           <img
@@ -548,7 +563,7 @@ export default function TaskDetailModal({
                     {!isCreate && task && task.attachments
                       .filter(a => !a.mimeType.startsWith("image/"))
                       .map((attachment) => (
-                        <AttachmentCard key={attachment.id} attachment={attachment} onImagePreview={(url) => setPreviewUrl(url)} />
+                        <AttachmentCard key={attachment.id} attachment={attachment} onImagePreview={(urls, index) => { setPreviewUrls(urls); setPreviewIndex(index); }} />
                       ))}
                     {pendingAttachments
                       .filter(p => !p.file.type.startsWith("image/"))
@@ -667,9 +682,11 @@ export default function TaskDetailModal({
         </DialogContent>
       </Dialog>
       <ImagePreview
-        url={previewUrl || ""}
-        open={!!previewUrl}
-        onClose={() => setPreviewUrl(null)}
+        urls={previewUrls}
+        index={previewIndex}
+        open={previewUrls.length > 0}
+        onClose={() => setPreviewUrls([])}
+        onIndexChange={setPreviewIndex}
       />
       <ImagePickerModal
         open={imagePickerOpen}
