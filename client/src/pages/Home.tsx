@@ -120,6 +120,8 @@ export default function Home() {
     return result;
   }, [tasks, filterMember, selectedTeam?.members, searchQuery, showArchived]);
 
+  const archivedCount = useMemo(() => tasks.filter((t) => t.isArchived).length, [tasks]);
+
   const handleCreateTeam = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
@@ -306,6 +308,11 @@ export default function Home() {
             >
               <Archive size={14} />
               Archived
+              {archivedCount > 0 && (
+                <span className="rounded-full bg-red-500/20 px-1.5 text-xs font-medium">
+                  {archivedCount}
+                </span>
+              )}
               {showArchived && (
                 <>
                   <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">

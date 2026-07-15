@@ -21,15 +21,17 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Paperclip, FileText, Flag, AlignLeft, UserPlus, Check, Loader2, ImagePlus, Eye, ListTodo, UserRoundCheck } from "lucide-react";
+import { Plus, GripVertical, ArrowUpDown, Pencil, Trash2, Paperclip, FileText, Flag, AlignLeft, UserPlus, Check, Loader2, ImagePlus, ListTodo, UserRoundCheck, CalendarClock } from "lucide-react";
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import { cn } from "@/lib/utils";
 import Swal from "sweetalert2";
 import moment from "moment";
 import TaskDetailModal from "./task-detail-modal";
 import ImagePreview from "@/components/ui/image-preview";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAppDispatch } from "@/store/hooks";
 import { addTaskAttachment } from "@/store/slices/tasksSlice";
+import { CgRatio } from "react-icons/cg";
 
 type Priority = "None" | "Lowest" | "Low" | "Medium" | "High" | "Highest";
 
@@ -103,8 +105,8 @@ function getAutoMenuPosition(
 
 function formatRelativeTime(iso?: string): string {
   if (!iso) return "";
-  const then = moment(iso);
-  const now = moment();
+  const then = moment(iso).utcOffset("+06:00");
+  const now = moment().utcOffset("+06:00");
   if (then.isSame(now, "day")) return "today";
   const days = now.diff(then, "days");
   if (days === 1) return "yesterday";
@@ -256,6 +258,7 @@ const columnIcons: Record<string, React.ReactNode> = {
   assignee: <UserRoundCheck className="size-3.5 flex-shrink-0" />,
   createdBy: <UserPlus className="size-3.5 flex-shrink-0" />,
   attachments: <Paperclip className="size-3.5 flex-shrink-0" />,
+  addedOn: <CalendarClock className="size-3.5 flex-shrink-0" />,
 };
 
 const defaultColumns = [
@@ -266,6 +269,7 @@ const defaultColumns = [
   { key: "assignee", label: "Assigned To", width: 200 },
   { key: "createdBy", label: "Created By", width: 200 },
   { key: "attachments", label: "Attachments", width: 100 },
+  { key: "addedOn", label: "Added On", width: 100 },
   { key: "workspace", label: "Workspace", width: 160 },
 ];
 
@@ -880,7 +884,7 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
             className="invisible group-hover:visible inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors cursor-pointer shrink-0"
             title="View task details"
           >
-            <Eye size={12} />
+            <CgRatio size={12} />
             View
           </button>
         </span>
@@ -907,6 +911,8 @@ function renderCellContent(task: Task, columnKey: string, onSelect: (t: Task) =>
     }
     case "attachments":
       return <AttachmentCell task={task} teamId={teamId} workspaceId={workspaceId} onImagePreview={onImagePreview} />;
+    case "addedOn":
+      return <span className="truncate text-xs text-muted-foreground">{formatRelativeTime(task.createdAt)}</span>;
     case "workspace":
       return <span className="truncate text-xs text-muted-foreground">{task.workspaceName || "—"}</span>;
     case "assignedTo":
@@ -965,25 +971,20 @@ function DraggableRow({ task, isDragging, columnOrder, columnWidths, statusOptio
         isDragging && "opacity-40"
       )}
     >
-      <td style={{ width: 56, minWidth: 56 }} className="h-9 px-1 pl-6">
+      <td style={{ width: 56, minWidth: 56 }} className="h-9 px-2 pl-6">
         <div className="flex items-center justify-center flex-nowrap w-full gap-1">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={selectedIds?.includes(task.id) ?? false}
-            onChange={() => onToggleSelect?.(task.id)}
+            onCheckedChange={() => onToggleSelect?.(task.id)}
             onClick={(e) => e.stopPropagation()}
-            className={cn(
-              "h-4.5 w-4.5 shrink-0 cursor-pointer appearance-none rounded border border-border bg-[#1e1e1e] checked:bg-[#2b2b2b] checked:border-[#3b3b3b] relative after:absolute after:content-[''] after:left-[4.5px] after:top-[2px] after:h-[7px] after:w-[3px] after:rotate-45 after:border-b-2 after:border-r-2 after:border-foreground after:opacity-0 checked:after:opacity-100",
-              "invisible group-hover:visible checked:visible"
-            )}
-            title="Select task"
+            className="invisible group-hover:visible data-[state=checked]:visible"
           />
           <span
             {...attributes}
             {...listeners}
             className="invisible group-hover:visible inline-flex cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors px-1"
           >
-            <GripVertical size={14} />
+            <GripVertical size={18} />
           </span>
           <button
             onClick={async () => {
@@ -1006,14 +1007,14 @@ function DraggableRow({ task, isDragging, columnOrder, columnWidths, statusOptio
             className="invisible group-hover:visible inline-flex cursor-pointer text-muted-foreground/30 hover:text-red-400 transition-colors px-1"
             title="Delete task"
           >
-            <Trash2 size={14} />
+            <Trash2 size={18} />
           </button>
         </div>
       </td>
       {columnOrder.map((key, i) => {
         const colW = columnWidths[key];
         return (
-          <td key={key} className={cn("h-9 px-3 border-b border-border/50 overflow-hidden", i < columnOrder.length - 1 && "border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")} style={{ width: colW, minWidth: colW, maxWidth: key === "description" ? colW : undefined }}>
+          <td key={key} className={cn("h-9 px-3 pl-5 border-b border-border/50 overflow-hidden", i < columnOrder.length - 1 && "border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")} style={{ width: colW, minWidth: colW, maxWidth: key === "description" ? colW : undefined }}>
             {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId)}
           </td>
         );

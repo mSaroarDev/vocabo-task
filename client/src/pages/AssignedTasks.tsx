@@ -105,6 +105,8 @@ export default function AssignedTasks() {
     return result;
   }, [tasks, filterMember, selectedTeam?.members, searchQuery, showArchived]);
 
+  const archivedCount = useMemo(() => tasks.filter((t) => t.isArchived).length, [tasks]);
+
   return (
     <div className="px-12 py-8">
       <div className="ml-5 flex items-center gap-3 mb-4">
@@ -257,6 +259,11 @@ export default function AssignedTasks() {
           >
             <Archive size={14} />
             Archived
+            {archivedCount > 0 && (
+              <span className="rounded-full bg-red-500/20 px-1.5 text-xs font-medium">
+                {archivedCount}
+              </span>
+            )}
             {showArchived && (
               <>
                 <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
