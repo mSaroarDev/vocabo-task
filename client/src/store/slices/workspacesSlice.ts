@@ -5,6 +5,7 @@ export interface Workspace {
   id: string;
   name: string;
   icon: string;
+  color: string;
   order: number;
   teamId: string;
 }
@@ -29,6 +30,7 @@ interface ApiWorkspace {
   _id: string;
   name: string;
   icon?: string;
+  color?: string;
   order?: number;
   team: string;
 }
@@ -37,6 +39,7 @@ const mapWorkspace = (workspace: ApiWorkspace): Workspace => ({
   id: workspace._id,
   name: workspace.name,
   icon: workspace.icon || "briefcase",
+  color: workspace.color || "#6b7280",
   order: workspace.order || 0,
   teamId: workspace.team,
 });
@@ -64,11 +67,11 @@ export const fetchWorkspaces = createAsyncThunk<
 
 export const createWorkspace = createAsyncThunk<
   Workspace,
-  { teamId: string; name: string; icon?: string },
+  { teamId: string; name: string; icon?: string; color?: string },
   { rejectValue: string }
->("workspaces/createWorkspace", async ({ teamId, name, icon }, { rejectWithValue }) => {
+>("workspaces/createWorkspace", async ({ teamId, name, icon, color }, { rejectWithValue }) => {
   try {
-    const response = await apiClient.post(`/teams/${teamId}/workspaces`, { name, icon });
+    const response = await apiClient.post(`/teams/${teamId}/workspaces`, { name, icon, color });
     return mapWorkspace(response.data.data as ApiWorkspace);
   } catch (error) {
     return rejectWithValue(getErrorMessage(error, "Failed to create workspace"));
@@ -77,11 +80,11 @@ export const createWorkspace = createAsyncThunk<
 
 export const updateWorkspace = createAsyncThunk<
   Workspace,
-  { teamId: string; id: string; name: string; icon?: string },
+  { teamId: string; id: string; name: string; icon?: string; color?: string },
   { rejectValue: string }
->("workspaces/updateWorkspace", async ({ teamId, id, name, icon }, { rejectWithValue }) => {
+>("workspaces/updateWorkspace", async ({ teamId, id, name, icon, color }, { rejectWithValue }) => {
   try {
-    const response = await apiClient.patch(`/teams/${teamId}/workspaces/${id}`, { name, icon });
+    const response = await apiClient.patch(`/teams/${teamId}/workspaces/${id}`, { name, icon, color });
     return mapWorkspace(response.data.data as ApiWorkspace);
   } catch (error) {
     return rejectWithValue(getErrorMessage(error, "Failed to update workspace"));
@@ -182,37 +185,51 @@ const workspacesSlice = createSlice({
         state.lastFetched = Date.now();
         state.error = action.payload || "Failed to load workspaces";
       })
-      .addCase(createWorkspace.pending, (state) => {
-        state.isLoading = true;
+      .addCase(createWorkspace.pending, (state, action) => {
         state.error = null;
+        const tempId = `temp_${action.meta.requestId}`;
+        state.items.push({
+          id: tempId,
+          name: action.meta.arg.name,
+          icon: action.meta.arg.icon || "briefcase",
+          color: action.meta.arg.color || "#6b7280",
+          order: state.items.length,
+          teamId: action.meta.arg.teamId,
+        });
       })
       .addCase(createWorkspace.fulfilled, (state, action) => {
+        const tempId = `temp_${action.meta.requestId}`;
+        state.items = state.items.filter((item) => item.id !== tempId);
         if (state.currentTeamId === action.payload.teamId) {
           state.items.push(action.payload);
-          state.items.sort((first, second) => first.order - second.order);
+          state.items.sort((a, b) => a.order - b.order);
         }
-        state.isLoading = false;
         state.error = null;
       })
       .addCase(createWorkspace.rejected, (state, action) => {
-        state.isLoading = false;
+        const tempId = `temp_${action.meta.requestId}`;
+        state.items = state.items.filter((item) => item.id !== tempId);
         state.error = action.payload || "Failed to create workspace";
       })
-      .addCase(updateWorkspace.pending, (state) => {
-        state.isLoading = true;
+      .addCase(updateWorkspace.pending, (state, action) => {
         state.error = null;
+        const workspace = state.items.find((item) => item.id === action.meta.arg.id);
+        if (workspace && state.currentTeamId === action.meta.arg.teamId) {
+          if (action.meta.arg.name) workspace.name = action.meta.arg.name;
+          if (action.meta.arg.icon) workspace.icon = action.meta.arg.icon;
+          if (action.meta.arg.color) workspace.color = action.meta.arg.color;
+        }
       })
       .addCase(updateWorkspace.fulfilled, (state, action) => {
         const workspace = state.items.find((item) => item.id === action.payload.id);
         if (workspace && state.currentTeamId === action.payload.teamId) {
           workspace.name = action.payload.name;
           workspace.icon = action.payload.icon;
+          workspace.color = action.payload.color;
         }
-        state.isLoading = false;
         state.error = null;
       })
       .addCase(updateWorkspace.rejected, (state, action) => {
-        state.isLoading = false;
         state.error = action.payload || "Failed to update workspace";
       })
       .addCase(deleteWorkspace.pending, (state) => {

@@ -47,17 +47,22 @@ export function useWorkspaces(teamId?: string | null) {
       const result = await dispatch(fetchWorkspacesAction({ teamId })).unwrap();
       return result.workspaces;
     },
-    addWorkspace: async (name: string, icon = "briefcase") => {
+    addWorkspace: async (name: string, icon = "briefcase", color = "#6b7280") => {
       if (!teamId) return null;
       const cleanName = name.trim();
       if (!cleanName) return null;
-      return dispatch(createWorkspaceAction({ teamId, name: cleanName, icon })).unwrap();
+      return dispatch(createWorkspaceAction({ teamId, name: cleanName, icon, color })).unwrap();
     },
-    updateWorkspace: async (id: string, name: string, icon?: string) => {
+    updateWorkspace: async (id: string, name: string, icon?: string, color?: string) => {
       if (!teamId) return null;
       const cleanName = name.trim();
       if (!cleanName) return null;
-      return dispatch(updateWorkspaceAction({ teamId, id, name: cleanName, icon })).unwrap();
+      try {
+        return await dispatch(updateWorkspaceAction({ teamId, id, name: cleanName, icon, color })).unwrap();
+      } catch (error) {
+        dispatch(fetchWorkspacesAction({ teamId }));
+        throw error;
+      }
     },
     removeWorkspace: async (id: string) => {
       if (!teamId) return null;

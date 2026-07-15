@@ -149,8 +149,13 @@ export default function Home() {
       <div className="px-12 py-8">
 
         <div className="ml-5 flex items-center gap-3 mb-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-400/10">
-            <WorkspaceIcon name={currentWorkspace.icon} size={22} className="text-amber-400" />
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-lg"
+            style={{ backgroundColor: currentWorkspace.color + "1A" }}
+          >
+            <span style={{ color: currentWorkspace.color }}>
+              <WorkspaceIcon name={currentWorkspace.icon} size={22} />
+            </span>
           </div>
           {editingTitle ? (
             <input

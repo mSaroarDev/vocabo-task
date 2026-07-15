@@ -14,6 +14,11 @@ const workspaceSchema = new Schema<IWorkspace>(
       default: "briefcase",
       trim: true,
     },
+    color: {
+      type: String,
+      default: "#6b7280",
+      trim: true,
+    },
     order: {
       type: Number,
       required: true,

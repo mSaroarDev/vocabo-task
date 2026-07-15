@@ -17,7 +17,7 @@ export default function NotificationBell() {
         aria-label="Open notifications"
         className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
-        <Bell size={18} />
+        <Bell size={18} className={cn(unreadCount > 0 && "animate-shake")} />
         {unreadCount > 0 && (
           <span
             className={cn(

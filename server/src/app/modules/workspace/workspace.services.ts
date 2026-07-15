@@ -31,7 +31,7 @@ const getTeamWorkspaces = async (teamId: string, userId: string) => {
 const createWorkspace = async (
   teamId: string,
   userId: string,
-  payload: { name: string; icon?: string }
+  payload: { name: string; icon?: string; color?: string }
 ) => {
   await ensureTeamMember(teamId, userId);
   const lastWorkspace = await WorkspaceModel.findOne({ team: teamId }).sort({ order: -1 });
@@ -39,6 +39,7 @@ const createWorkspace = async (
   const result = await WorkspaceModel.create({
     name: payload.name.trim(),
     icon: payload.icon?.trim() || "briefcase",
+    color: payload.color?.trim() || "#6b7280",
     order: lastWorkspace ? lastWorkspace.order + 1 : 0,
     team: new Types.ObjectId(teamId),
     createdBy: new Types.ObjectId(userId),
@@ -53,7 +54,7 @@ const updateWorkspace = async (
   teamId: string,
   workspaceId: string,
   userId: string,
-  payload: { name?: string; icon?: string }
+  payload: { name?: string; icon?: string; color?: string }
 ) => {
   await ensureTeamMember(teamId, userId);
 
@@ -64,6 +65,7 @@ const updateWorkspace = async (
   const updatePayload = {
     ...(payload.name ? { name: payload.name.trim() } : {}),
     ...(payload.icon ? { icon: payload.icon.trim() } : {}),
+    ...(payload.color ? { color: payload.color.trim() } : {}),
   };
 
   const result = await WorkspaceModel.findOneAndUpdate(

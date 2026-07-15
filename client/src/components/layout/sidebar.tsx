@@ -50,6 +50,7 @@ interface SidebarItem {
   label: string;
   icon?: React.ReactNode;
   iconName?: string;
+  color?: string;
   active?: boolean;
 }
 
@@ -135,7 +136,11 @@ function SidebarSectionItem({
             <GripVertical size={12} />
           </span>
         )}
-        {item.icon}
+        {item.icon && item.color ? (
+          <span style={{ color: item.color }}>{item.icon}</span>
+        ) : (
+          item.icon
+        )}
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
       </button>
       {(onEdit || onDelete) && (
@@ -230,50 +235,54 @@ function SidebarSection({
             <div className="flex items-center justify-center py-2">
               <Loader2 size={14} className="animate-spin text-muted-foreground" />
             </div>
-          ) : statusMessage ? (
-            <p className="px-3 py-1 text-xs text-muted-foreground">
-              {statusMessage}
-            </p>
-          ) : null}
-          {!statusMessage && !isLoading && items.length === 0 && emptyMessage && (
-            <p className="px-3 py-1 text-xs text-muted-foreground">
-              {emptyMessage}
-            </p>
-          )}
-          {sortable ? (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-                {items.map((item) => (
+          ) : (
+            <>
+              {statusMessage && (
+                <p className="px-3 py-1 text-xs text-muted-foreground">
+                  {statusMessage}
+                </p>
+              )}
+              {!statusMessage && items.length === 0 && emptyMessage && (
+                <p className="px-3 py-1 text-xs text-muted-foreground">
+                  {emptyMessage}
+                </p>
+              )}
+              {sortable ? (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                    {items.map((item) => (
+                      <SidebarSectionItem
+                        key={item.id}
+                        item={item}
+                        sortable
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onItemClick={onItemClick}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              ) : (
+                items.map((item) => (
                   <SidebarSectionItem
                     key={item.id}
                     item={item}
-                    sortable
                     onEdit={onEdit}
                     onDelete={onDelete}
                     onItemClick={onItemClick}
                   />
-                ))}
-              </SortableContext>
-            </DndContext>
-          ) : (
-            items.map((item) => (
-              <SidebarSectionItem
-                key={item.id}
-                item={item}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onItemClick={onItemClick}
-              />
-            ))
+                ))
               )}
-          {onAdd && (
-            <button
-              onClick={onAdd}
-              className="flex w-full cursor-pointer items-center gap-3 px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-sidebar-foreground"
-            >
-              <Plus size={14} />
-              {addLabel || "Add"}
-            </button>
+              {onAdd && (
+                <button
+                  onClick={onAdd}
+                  className="flex w-full cursor-pointer items-center gap-3 px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-sidebar-foreground"
+                >
+                  <Plus size={14} />
+                  {addLabel || "Add"}
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
@@ -323,6 +332,7 @@ export default function Sidebar() {
       label: w.name,
       icon: <WorkspaceIcon name={w.icon} size={16} />,
       iconName: w.icon,
+      color: w.color,
     }));
   const canReorderWorkspaces = Boolean(selectedTeam && !searchQuery.trim());
 
@@ -338,6 +348,7 @@ export default function Sidebar() {
     id: string;
     name: string;
     icon: string;
+    color: string;
   } | null>(null);
 
   // Confirm state
@@ -380,6 +391,7 @@ export default function Sidebar() {
       id: workspace.id,
       name: workspace.name,
       icon: workspace.icon,
+      color: workspace.color,
     });
     setWorkspaceModalOpen(true);
   };
@@ -448,9 +460,10 @@ export default function Sidebar() {
         title={editingWorkspace ? "Edit workspace" : "Add workspace"}
         initialName={editingWorkspace?.name || ""}
         initialIcon={editingWorkspace?.icon || "briefcase"}
-        onSave={({ name, icon }) => {
+        initialColor={editingWorkspace?.color || "#6b7280"}
+        onSave={({ name, icon, color }) => {
           if (editingWorkspace) {
-            void updateWs(editingWorkspace.id, name, icon).then((workspace) => {
+            void updateWs(editingWorkspace.id, name, icon, color).then((workspace) => {
               if (workspace && activeWorkspace === editingWorkspace.id) {
                 navigate(`/dashboard?workspace=${workspace.id}`, { replace: true });
               }
@@ -460,7 +473,7 @@ export default function Sidebar() {
             return;
           }
 
-          void addWs(name, icon).catch(() => {
+          void addWs(name, icon, color).catch(() => {
             // Redux stores and renders the API error.
           });
         }}
@@ -622,8 +635,12 @@ export default function Sidebar() {
             onClick={() => navigate("/profile")}
             className="flex items-center gap-3 px-3 py-2 rounded-md mx-2 mt-2 group cursor-pointer hover:bg-sidebar-accent/50 transition-colors"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sidebar-accent text-xs font-medium">
-              {userInitials}
+            <div className={cn("flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium overflow-hidden", user?.avatar ? "" : "bg-sidebar-accent")}>
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+              ) : (
+                userInitials
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user?.name || "Guest"}</p>

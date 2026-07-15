@@ -7,6 +7,7 @@
   --animate-slide-out-to-right: slide-out-to-right 0.3s cubic-bezier(0.32, 0.72, 0, 1);
   --animate-fade-in: fade-in 0.3s ease;
   --animate-fade-out: fade-out 0.3s ease;
+  --animate-shake: shake 2s ease-in-out infinite;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -183,6 +184,12 @@
   to {
     background-position: 200% 0;
   }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
 }
 
 * {

@@ -9,11 +9,13 @@ const workspaceName = z
 const createWorkspaceValidator = z.object({
   name: workspaceName,
   icon: z.string().trim().max(40, "Workspace icon is too long").optional(),
+  color: z.string().trim().max(7, "Workspace color is too long").optional(),
 });
 
 const updateWorkspaceValidator = z.object({
   name: workspaceName.optional(),
   icon: z.string().trim().max(40, "Workspace icon is too long").optional(),
+  color: z.string().trim().max(7, "Workspace color is too long").optional(),
 });
 
 const reorderWorkspacesValidator = z.object({
