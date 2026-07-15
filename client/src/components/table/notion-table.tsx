@@ -924,6 +924,7 @@ interface DraggableRowProps {
   task: Task;
   isDragging: boolean;
   columnOrder: string[];
+  columnWidths: Record<string, number>;
   statusOptions: StatusOption[];
   onSelect: (task: Task) => void;
   onStatusUpdate: (id: string, status: string) => void;
@@ -947,7 +948,7 @@ interface DraggableRowProps {
   workspaceId?: string;
 }
 
-function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onAssigneeUpdate, onTaskDelete, selectedIds, onToggleSelect, wrapTaskName, onImagePreview, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId }: DraggableRowProps) {
+function DraggableRow({ task, isDragging, columnOrder, columnWidths, statusOptions, onSelect, onStatusUpdate, onPriorityUpdate, onAssigneeUpdate, onTaskDelete, selectedIds, onToggleSelect, wrapTaskName, onImagePreview, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
 
   const style = {
@@ -964,7 +965,7 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
         isDragging && "opacity-40"
       )}
     >
-      <td style={{ width: 56, minWidth: 56 }} className="h-9 px-1 pl-3">
+      <td style={{ width: 56, minWidth: 56 }} className="h-9 px-1 pl-6">
         <div className="flex items-center justify-center flex-nowrap w-full gap-1">
           <input
             type="checkbox"
@@ -1009,11 +1010,14 @@ function DraggableRow({ task, isDragging, columnOrder, statusOptions, onSelect, 
           </button>
         </div>
       </td>
-      {columnOrder.map((key, i) => (
-        <td key={key} className={cn("h-9 px-3 border-b border-border/50", i < columnOrder.length - 1 && "border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5", key !== "description" && "overflow-hidden")} style={key === "description" ? { maxWidth: 300 } : undefined}>
-          {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId)}
-        </td>
-      ))}
+      {columnOrder.map((key, i) => {
+        const colW = columnWidths[key];
+        return (
+          <td key={key} className={cn("h-9 px-3 border-b border-border/50 overflow-hidden", i < columnOrder.length - 1 && "border-r border-border/50", key === "title" && wrapTaskName && "h-auto min-h-9 py-1.5")} style={{ width: colW, minWidth: colW, maxWidth: key === "description" ? colW : undefined }}>
+            {renderCellContent(task, key, onSelect, onStatusUpdate, statusOptions, wrapTaskName, onImagePreview, onPriorityUpdate, onAssigneeUpdate, members, editingTaskId, editingField, editingValue, editingInputRef, onStartEdit, onEditingChange, onSaveEdit, onCancelEdit, teamId, workspaceId)}
+          </td>
+        );
+      })}
     </tr>
   );
 }
@@ -1200,6 +1204,8 @@ export default function NotionTable({
 
   const isDragging = (id: string) => activeId === id;
 
+  const totalTableWidth = 56 + columnOrder.reduce((sum, key) => sum + (columnWidths[key] || 0), 0);
+
   const sortedColumns = columnOrder.map((key) => {
     const col = defaultColumns.find((c) => c.key === key)!;
     return { ...col, label: columnLabels[key] ?? col.label, width: columnWidths[key] ?? col.width };
@@ -1220,8 +1226,8 @@ export default function NotionTable({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden">
-        <table className="border-collapse text-sm table-fixed text-left w-max">
+      <div className="overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden pl-1">
+        <table className="border-collapse text-sm table-fixed text-left" style={{ width: totalTableWidth, minWidth: '100%' }}>
           <thead>
             <DndContext
               sensors={colSensors}
@@ -1256,6 +1262,7 @@ export default function NotionTable({
             <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               {sorted.map((task) => (
                 <DraggableRow
+                  columnWidths={columnWidths}
                   key={task.id}
                   task={task}
                   isDragging={isDragging(task.id)}
@@ -1304,7 +1311,7 @@ export default function NotionTable({
               <tr className="group">
                 <td style={{ width: 56, minWidth: 56 }} className="h-9 px-1" />
                 {columnOrder.map((key, i) => (
-                  <td key={key} className={cn("h-9 px-3 border-b border-border/50", i < columnOrder.length - 1 && "border-r border-border/50")}>
+                  <td key={key} className={cn("h-9 px-3 border-b border-border/50", i < columnOrder.length - 1 && "border-r border-border/50")} style={{ width: columnWidths[key], minWidth: columnWidths[key] }}>
                     {key === "title" ? (
                       <input
                         ref={newTaskInputRef}
