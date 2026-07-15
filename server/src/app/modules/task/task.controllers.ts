@@ -145,6 +145,20 @@ const reorderTasks: RequestHandler = catchAsync(async (req: Request, res: Respon
   });
 });
 
+const reorderMemberTasks: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const result = await TaskServices.reorderMemberTasks(
+    req.params.teamId as string,
+    getUserId(req as AuthRequest),
+    req.body
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Member tasks reordered successfully",
+    data: result,
+  });
+});
+
 const addAttachment: RequestHandler = catchAsync(async (req: Request, res: Response) => {
   const file = req.file as Express.Multer.File;
   if (!file) {
@@ -169,6 +183,7 @@ const addAttachment: RequestHandler = catchAsync(async (req: Request, res: Respo
     data: result,
   });
 });
+
 
 const addAttachments: RequestHandler = catchAsync(async (req: Request, res: Response) => {
   const files = req.files as Express.Multer.File[];
@@ -264,6 +279,7 @@ export const TaskControllers = {
   deleteTask,
   archiveTasks,
   reorderTasks,
+  reorderMemberTasks,
   addAttachment,
   addAttachments,
   removeAttachment,

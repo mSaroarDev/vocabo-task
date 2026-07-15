@@ -37,6 +37,7 @@ export default function AssignedTasks() {
     editTask,
     removeTask,
     archiveTask,
+    reorder,
   } = useAssignedTasks(selectedTeam?.id, selectedUserId);
 
   const selectedMember = membersForSelect.find((m) => m.userId === selectedUserId) ?? null;
@@ -319,6 +320,7 @@ export default function AssignedTasks() {
           tasks={filteredTasks}
           onTaskUpdate={editTask}
           onTaskDelete={removeTask}
+          onTaskReorder={reorder}
           hideAssignee
           hideCreatedBy
           showWorkspace

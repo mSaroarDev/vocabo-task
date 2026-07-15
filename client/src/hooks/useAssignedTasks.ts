@@ -132,6 +132,31 @@ export function useAssignedTasks(teamId?: string | null, userId?: string | null)
     [teamId, tasks]
   );
 
+  const reorder = useCallback(
+    async (taskIds: string[], optimisticTasks?: Task[]): Promise<{ workspaceId: string; tasks: Task[] } | null> => {
+      if (!teamId) return null;
+
+      const previous = tasks;
+      if (optimisticTasks) {
+        setTasks(optimisticTasks);
+      }
+
+      try {
+        const response = await apiClient.patch(
+          `/teams/${teamId}/tasks/reorder-assigned`,
+          { taskIds }
+        );
+        const mapped = (response.data.data as ApiTask[]).map(mapTask);
+        setTasks(mapped);
+        return { workspaceId: "", tasks: mapped };
+      } catch (err) {
+        setTasks(previous);
+        throw new Error(getErrorMessage(err, "Failed to reorder tasks"));
+      }
+    },
+    [teamId, tasks]
+  );
+
   return {
     tasks,
     isLoading,
@@ -139,5 +164,6 @@ export function useAssignedTasks(teamId?: string | null, userId?: string | null)
     editTask,
     removeTask,
     archiveTask,
+    reorder,
   };
 }

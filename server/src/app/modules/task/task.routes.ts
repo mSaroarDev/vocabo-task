@@ -42,5 +42,10 @@ const teamTaskRouter = express.Router({ mergeParams: true });
 teamTaskRouter.use(authMiddleware);
 
 teamTaskRouter.get("/assigned-to-me", TaskControllers.getAssignedToMe);
+teamTaskRouter.patch(
+  "/reorder-assigned",
+  validatorMiddleware(reorderTasksValidator),
+  TaskControllers.reorderMemberTasks
+);
 
 export const TeamTaskRoutes = teamTaskRouter;

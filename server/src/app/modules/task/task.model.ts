@@ -32,6 +32,7 @@ const taskSchema = new Schema<ITask>(
     assignedTo: { type: Schema.Types.ObjectId, ref: "User" },
     customFields: { type: Map, of: Schema.Types.Mixed, default: {} },
     order: { type: Number, required: true, default: 0 },
+    memberTaskOrder: { type: Number, default: 0 },
     isArchived: { type: Boolean, default: false },
   },
   { timestamps: true, versionKey: false }

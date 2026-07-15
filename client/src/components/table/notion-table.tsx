@@ -1119,6 +1119,14 @@ export default function NotionTable({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  const sorted = useMemo(() => [...tasks].sort((a, b) => {
+    if (!sortKey) return 0;
+    const key = sortKey as keyof Task;
+    const va = String(a[key] ?? "").toLowerCase();
+    const vb = String(b[key] ?? "").toLowerCase();
+    return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+  }), [tasks, sortKey, sortDir]);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(String(event.active.id));
   }, []);
@@ -1138,14 +1146,14 @@ export default function NotionTable({
         return arrayMove(prev, oldIndex, newIndex);
       });
     } else if (onTaskReorder) {
-      const orderedTasks = [...tasks];
+      const orderedTasks = [...sorted];
       const oldIndex = orderedTasks.findIndex((t) => t.id === activeIdStr);
       const newIndex = orderedTasks.findIndex((t) => t.id === overIdStr);
       if (oldIndex === -1 || newIndex === -1) return;
       const reordered = arrayMove(orderedTasks, oldIndex, newIndex);
       onTaskReorder(reordered.map((t) => t.id), reordered);
     }
-  }, [tasks, onTaskReorder]);
+  }, [sorted, onTaskReorder]);
 
   useEffect(() => {
     if (externalCreateOpen) {
@@ -1154,13 +1162,7 @@ export default function NotionTable({
     }
   }, [externalCreateOpen, onCreateModalChange]);
 
-  const sorted = [...tasks].sort((a, b) => {
-    if (!sortKey) return 0;
-    const key = sortKey as keyof Task;
-    const va = String(a[key] ?? "").toLowerCase();
-    const vb = String(b[key] ?? "").toLowerCase();
-    return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
-  });
+
 
   const toggleSort = (key: string) => {
     if (sortKey === key) {
@@ -1259,7 +1261,7 @@ export default function NotionTable({
             </DndContext>
           </thead>
           <tbody>
-            <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={sorted.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               {sorted.map((task) => (
                 <DraggableRow
                   columnWidths={columnWidths}

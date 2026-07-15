@@ -234,7 +234,7 @@ const getAssignedToMe = async (teamId: string, requesterId: string, targetUserId
     workspace: { $in: workspaceIds },
     assignedTo: effectiveUserId,
   })
-    .sort({ order: 1, createdAt: -1 })
+    .sort({ memberTaskOrder: 1, createdAt: -1 })
     .populate("createdBy", "name email avatar")
     .populate("assignedTo", "name email avatar");
   return tasks.map((task) => ({
@@ -540,13 +540,13 @@ const reorderTasks = async (
     throw new AppError(httpStatus.BAD_REQUEST, "Task order contains duplicates");
   }
 
-  const [workspaceTaskCount, matchingCount] = await Promise.all([
-    TaskModel.countDocuments({ workspace: workspaceId }),
-    TaskModel.countDocuments({ _id: { $in: uniqueIds }, workspace: workspaceId }),
-  ]);
+  const matchingCount = await TaskModel.countDocuments({
+    _id: { $in: uniqueIds },
+    workspace: workspaceId,
+  });
 
-  if (matchingCount !== uniqueIds.length || workspaceTaskCount !== uniqueIds.length) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Task order is invalid");
+  if (matchingCount !== uniqueIds.length) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Some tasks were not found in this workspace");
   }
 
   await TaskModel.bulkWrite(
@@ -563,6 +563,56 @@ const reorderTasks = async (
     .populate(["createdBy", "assignedTo"]);
 };
 
+
+const reorderMemberTasks = async (
+  teamId: string,
+  userId: string,
+  payload: { taskIds: string[] }
+) => {
+  await ensureTeamMember(teamId, userId);
+
+  const ids = payload.taskIds;
+
+  if (ids.some((id) => !Types.ObjectId.isValid(id))) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
+  }
+
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length !== ids.length) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Task order contains duplicates");
+  }
+
+  const matchingCount = await TaskModel.countDocuments({ _id: { $in: uniqueIds } });
+
+  if (matchingCount !== uniqueIds.length) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Some tasks were not found");
+  }
+
+  await TaskModel.bulkWrite(
+    uniqueIds.map((taskId, index) => ({
+      updateOne: {
+        filter: { _id: taskId },
+        update: { $set: { memberTaskOrder: index } },
+      },
+    }))
+  );
+
+  const tasks = await TaskModel.find({ _id: { $in: uniqueIds } })
+    .sort({ memberTaskOrder: 1 })
+    .populate(["createdBy", "assignedTo"]);
+
+  const workspaceIds = [...new Set(tasks.map((t) => t.workspace.toString()))];
+  const workspaces = await WorkspaceModel.find({ _id: { $in: workspaceIds } });
+  const workspaceNameMap = new Map(
+    workspaces.map((w) => [w._id.toString(), w.name])
+  );
+
+  return tasks.map((task) => ({
+    ...task.toObject(),
+    workspaceName: workspaceNameMap.get(task.workspace.toString()) ?? "Unknown",
+  }));
+};
+ 
 const addAttachment = async (
   teamId: string,
   workspaceId: string,
@@ -764,6 +814,7 @@ export const TaskServices = {
   updateTask,
   deleteTask,
   reorderTasks,
+  reorderMemberTasks,
   addAttachment,
   removeAttachment,
   setTasksArchive,

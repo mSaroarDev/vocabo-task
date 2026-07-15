@@ -25,6 +25,7 @@ export interface ITask {
   assignedTo?: Types.ObjectId;
   customFields: Map<string, unknown>;
   order: number;
+  memberTaskOrder?: number;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
