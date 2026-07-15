@@ -1043,6 +1043,7 @@ interface NotionTableProps {
   hideAssignee?: boolean;
   hideCreatedBy?: boolean;
   showWorkspace?: boolean;
+  hideAddTask?: boolean;
 }
 
 export default function NotionTable({
@@ -1064,6 +1065,7 @@ export default function NotionTable({
   hideAssignee,
   hideCreatedBy,
   showWorkspace,
+  hideAddTask,
 }: NotionTableProps) {
   const baseColumns = defaultColumns.filter((c) => {
     if (c.key === "workspace") return false;
@@ -1352,17 +1354,19 @@ export default function NotionTable({
                 ))}
               </tr>
             )}
-            <tr>
-              <td colSpan={columnOrder.length + 1} className="pl-16 pr-3 py-1">
-                <button
-                  onClick={() => setAddingNew(true)}
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer"
-                >
-                  <Plus size={14} />
-                  Add task
-                </button>
-              </td>
-            </tr>
+            {!hideAddTask && (
+              <tr>
+                <td colSpan={columnOrder.length + 1} className="pl-16 pr-3 py-1">
+                  <button
+                    onClick={() => setAddingNew(true)}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    Add task
+                  </button>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

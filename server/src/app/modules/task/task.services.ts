@@ -134,6 +134,137 @@ const createTaskUpdateNotification = async (
   }
 };
 
+const sendTaskCreatedNotification = async (
+  taskId: string,
+  title: string,
+  priority: string,
+  creatorName: string,
+  teamId: string,
+  workspaceId: string,
+  recipientId: string
+) => {
+  try {
+    const recipient = await User.findById(recipientId).select("telegramConnected telegramChatId");
+    if (!recipient?.telegramConnected || !recipient.telegramChatId) return;
+
+    const emoji = priorityEmoji[priority] || "⚪";
+
+    const taskUrl = `${config.frontendUrl}/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}`;
+    const replyMarkup = taskUrl.startsWith("https://")
+      ? {
+          reply_markup: {
+            inline_keyboard: [[{ text: "Open Task", url: taskUrl }]],
+          },
+        }
+      : {};
+
+    await bot.telegram.sendMessage(
+      recipient.telegramChatId,
+      `🆕 New Task Created\n\nTitle: ${title}\nPriority: ${emoji} ${priority}\nBy: ${creatorName}`,
+      replyMarkup
+    );
+  } catch (error: any) {
+    if (error?.response?.error_code === 403) {
+      await User.findByIdAndUpdate(recipientId, {
+        telegramConnected: false,
+        telegramChatId: null,
+      });
+    }
+    console.error("Telegram notification error:", error);
+  }
+};
+
+const createTaskCreatedNotification = async (
+  taskId: string,
+  title: string,
+  creatorName: string,
+  teamId: string,
+  workspaceId: string,
+  recipientId: string,
+  createdBy: string
+) => {
+  try {
+    const notification = await NotificationServices.createNotification(createdBy, {
+      title: "New task created",
+      body: `${creatorName} created "${title}"`,
+      type: "task",
+      recipientIds: [recipientId],
+      teamId,
+      workspaceId,
+      taskId,
+    });
+    emitToUser(recipientId, "notification:new", notification);
+  } catch (error) {
+    console.error("Failed to create task created notification:", error);
+  }
+};
+
+const sendTaskStatusChangeNotification = async (
+  taskId: string,
+  title: string,
+  oldStatus: string,
+  newStatus: string,
+  performerName: string,
+  teamId: string,
+  workspaceId: string,
+  recipientId: string
+) => {
+  try {
+    const recipient = await User.findById(recipientId).select("telegramConnected telegramChatId");
+    if (!recipient?.telegramConnected || !recipient.telegramChatId) return;
+
+    const taskUrl = `${config.frontendUrl}/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}`;
+    const replyMarkup = taskUrl.startsWith("https://")
+      ? {
+          reply_markup: {
+            inline_keyboard: [[{ text: "Open Task", url: taskUrl }]],
+          },
+        }
+      : {};
+
+    await bot.telegram.sendMessage(
+      recipient.telegramChatId,
+      `🔄 Task Status Changed\n\nTitle: ${title}\nStatus: ${oldStatus} → ${newStatus}\nBy: ${performerName}`,
+      replyMarkup
+    );
+  } catch (error: any) {
+    if (error?.response?.error_code === 403) {
+      await User.findByIdAndUpdate(recipientId, {
+        telegramConnected: false,
+        telegramChatId: null,
+      });
+    }
+    console.error("Telegram notification error:", error);
+  }
+};
+
+const createTaskStatusChangeNotification = async (
+  taskId: string,
+  title: string,
+  oldStatus: string,
+  newStatus: string,
+  performerName: string,
+  teamId: string,
+  workspaceId: string,
+  recipientId: string,
+  createdBy: string
+) => {
+  try {
+    const notification = await NotificationServices.createNotification(createdBy, {
+      title: "Task status changed",
+      body: `${performerName} changed "${title}" status: ${oldStatus} → ${newStatus}`,
+      type: "task",
+      recipientIds: [recipientId],
+      teamId,
+      workspaceId,
+      taskId,
+    });
+    emitToUser(recipientId, "notification:new", notification);
+  } catch (error) {
+    console.error("Failed to create task status change notification:", error);
+  }
+};
+
 const fieldLabels: Record<string, string> = {
   title: "Title",
   isCompleted: "Completed",
@@ -312,6 +443,40 @@ const createTask = async (
     );
   }
 
+  const creator = await User.findById(userId).select("name");
+  const creatorName = creator?.name || "Unknown";
+
+  const team = await TeamModel.findById(teamId).select("owner members");
+  if (team) {
+    const recipientIds = [
+      team.owner,
+      ...team.members.filter((m) => m.role === "project manager").map((m) => m.user),
+    ]
+      .map((id) => id.toString())
+      .filter((id, index, arr) => arr.indexOf(id) === index && id !== userId);
+
+    for (const recipientId of recipientIds) {
+      sendTaskCreatedNotification(
+        String(task._id),
+        task.title,
+        task.priority,
+        creatorName,
+        teamId,
+        workspaceId,
+        recipientId
+      );
+      createTaskCreatedNotification(
+        String(task._id),
+        task.title,
+        creatorName,
+        teamId,
+        workspaceId,
+        recipientId,
+        userId
+      );
+    }
+  }
+
   return populated;
 };
 
@@ -471,6 +636,46 @@ const updateTask = async (
         workspaceId,
         userId
       );
+    }
+  }
+
+  if (payload.status !== undefined && oldTask.status !== payload.status.trim()) {
+    const performer = await User.findById(userId).select("name");
+    const performerName = performer?.name || "Unknown";
+    const newStatus = payload.status.trim();
+
+    const team = await TeamModel.findById(teamId).select("owner members");
+    if (team) {
+      const recipientIds = [
+        team.owner,
+        ...team.members.filter((m) => m.role === "project manager").map((m) => m.user),
+      ]
+        .map((id) => id.toString())
+        .filter((id, index, arr) => arr.indexOf(id) === index && id !== userId);
+
+      for (const recipientId of recipientIds) {
+        sendTaskStatusChangeNotification(
+          taskId,
+          task.title,
+          oldTask.status,
+          newStatus,
+          performerName,
+          teamId,
+          workspaceId,
+          recipientId
+        );
+        createTaskStatusChangeNotification(
+          taskId,
+          task.title,
+          oldTask.status,
+          newStatus,
+          performerName,
+          teamId,
+          workspaceId,
+          recipientId,
+          userId
+        );
+      }
     }
   }
 

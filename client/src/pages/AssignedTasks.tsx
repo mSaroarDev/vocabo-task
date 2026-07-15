@@ -366,6 +366,7 @@ export default function AssignedTasks() {
           hideAssignee
           hideCreatedBy
           showWorkspace
+          hideAddTask
           selectedIds={selectedIds}
           onToggleSelect={(id) =>
             setSelectedIds((prev) =>
