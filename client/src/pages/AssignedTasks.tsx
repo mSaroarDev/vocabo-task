@@ -43,7 +43,9 @@ export default function AssignedTasks() {
   const selectedMember = membersForSelect.find((m) => m.userId === selectedUserId) ?? null;
   const headingName = selectedMember
     ? selectedMember.name
-    : (user?.name?.split(" ") ?? [])[0] || "Me";
+    : "me";
+  const getInitials = (name: string) =>
+    name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([
     { label: "New", color: "bg-purple-500/20 text-purple-300" },
@@ -106,8 +108,31 @@ export default function AssignedTasks() {
   return (
     <div className="px-12 py-8">
       <div className="ml-5 flex items-center gap-3 mb-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-400/10">
-          <LuUserRoundCheck size={22} className="text-blue-400" />
+        <div
+          className={cn(
+            "flex h-10 w-10 items-center justify-center",
+            (selectedUserId === "me" && user) || selectedMember ? "rounded-full" : "rounded-lg bg-blue-400/10"
+          )}
+        >
+          {selectedUserId === "me" && user ? (
+            user.avatar ? (
+              <img src={user.avatar} alt={user.name} className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 text-blue-300 text-sm font-medium">
+                {getInitials(user.name)}
+              </div>
+            )
+          ) : selectedMember ? (
+            selectedMember.avatar ? (
+              <img src={selectedMember.avatar} alt={selectedMember.name} className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 text-blue-300 text-sm font-medium">
+                {getInitials(selectedMember.name)}
+              </div>
+            )
+          ) : (
+            <LuUserRoundCheck size={22} className="text-blue-400" />
+          )}
         </div>
         <h1 className="text-3xl font-bold text-foreground">
           Assigned to {headingName}
