@@ -5,6 +5,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { LuUserRoundCheck } from "react-icons/lu";
 import { Filter, Search, X, Archive, Check } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
@@ -144,23 +151,26 @@ export default function AssignedTasks() {
       <div className="ml-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isMembersView && (
-            <select
+            <Select
               value={selectedUserId}
-              onChange={(e) => {
-                const value = e.target.value;
+              onValueChange={(value) => {
                 setSearchParams(
                   { view: "members", userId: value },
                   { replace: true }
                 );
               }}
-              className="h-7 rounded-md border border-border/50 bg-[#252525] px-2 text-sm text-foreground outline-none cursor-pointer"
             >
-              {membersForSelect.map((member) => (
-                <option key={member.userId} className="bg-[#252525] text-foreground" value={member.userId}>
-                  {member.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="h-7 w-auto gap-1 rounded-md border border-border/50 bg-[#252525] px-2 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#252525]">
+                {membersForSelect.map((member) => (
+                  <SelectItem key={member.userId} value={member.userId}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           {selectedIds.length > 0 && (
             <button
