@@ -1,9 +1,11 @@
+import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
 import apiClient from "@/api/client";
 import { mapTask, type ApiTask } from "@/store/slices/tasksSlice";
 import type { Task } from "@/components/table/notion-table";
 
 const getErrorMessage = (error: unknown, fallback: string) => {
+  if (axios.isCancel(error)) return "";
   const apiError = error as { response?: { data?: { message?: string } } };
   return apiError.response?.data?.message || fallback;
 };
@@ -19,7 +21,7 @@ export function useAssignedTasks(teamId?: string | null, userId?: string | null)
       return;
     }
 
-    let cancelled = false;
+    const abortController = new AbortController();
     setIsLoading(true);
     setError(null);
 
@@ -29,21 +31,20 @@ export function useAssignedTasks(teamId?: string | null, userId?: string | null)
         : `/teams/${teamId}/tasks/assigned-to-me`;
 
     apiClient
-      .get(url)
+      .get(url, { signal: abortController.signal })
       .then((response) => {
-        if (cancelled) return;
         setTasks((response.data.data as ApiTask[]).map(mapTask));
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (axios.isCancel(err)) return;
         setError(getErrorMessage(err, "Failed to fetch assigned tasks"));
       })
       .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        setIsLoading(false);
       });
 
     return () => {
-      cancelled = true;
+      abortController.abort();
     };
   }, [teamId, userId]);
 
