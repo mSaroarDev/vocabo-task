@@ -1,7 +1,14 @@
 import { useState, useRef } from "react";
-import { ArrowLeft, Copy, Check, Camera, Loader2, LogOut, Trash2, X } from "lucide-react";
+import { ArrowLeft, Copy, Check, Camera, Loader2, LogOut, Trash2, X, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Team } from "@/store/slices/teamsSlice";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TeamDetailsProps {
   team: Team;
@@ -11,8 +18,9 @@ interface TeamDetailsProps {
   onRemoveMember: (teamId: string, memberUserId: string, memberName: string) => void;
   onDeleteTeam?: (teamId: string, teamName: string) => void;
   onUploadAvatar?: (file: File) => void;
-  onAddMember?: () => void;
+  onAddMember?: (role: string) => void;
   onMemberEmailChange?: (value: string) => void;
+  onUpdateMemberRole?: (memberUserId: string, role: string) => void;
   memberEmail?: string;
   memberMessage?: string;
   addingMember?: boolean;
@@ -46,6 +54,7 @@ export default function TeamDetails({
   onUploadAvatar,
   onAddMember,
   onMemberEmailChange,
+  onUpdateMemberRole,
   memberEmail,
   memberMessage,
   addingMember,
@@ -53,10 +62,15 @@ export default function TeamDetails({
   const [activeTab, setActiveTab] = useState<TabId>("basic-info");
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [memberRole, setMemberRole] = useState("member");
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editRole, setEditRole] = useState<string>("member");
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const isOwner = currentUserId === team.owner;
   const isImageAvatar = team.avatar.startsWith("http") || team.avatar.startsWith("/uploads");
+  const currentMemberRole = team.members?.find((m) => m.userId === currentUserId)?.role;
+  const canManageMembers = isOwner || currentMemberRole === "project manager";
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -195,21 +209,36 @@ export default function TeamDetails({
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-foreground truncate">
-                        {member.name || "Unknown"}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-foreground truncate">
+                          {member.name || "Unknown"}
+                        </p>
+                        <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          {member.role}
+                        </span>
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                     </div>
-                    {member.role === "owner" ? (
-                      <span className="text-xs text-muted-foreground">Owner</span>
-                    ) : isOwner ? (
-                      <button
-                        onClick={() => onRemoveMember(team.id, member.userId, member.name || member.email)}
-                        title="Remove member"
-                        className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100 cursor-pointer"
-                      >
-                        <X size={12} />
-                      </button>
+                    {canManageMembers && member.role !== "owner" ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingMemberId(member.userId);
+                            setEditRole(member.role);
+                          }}
+                          title="Edit role"
+                          className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-white/[0.06] hover:text-foreground group-hover:opacity-100 cursor-pointer"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          onClick={() => onRemoveMember(team.id, member.userId, member.name || member.email)}
+                          title="Remove member"
+                          className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100 cursor-pointer"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                 ))
@@ -218,7 +247,39 @@ export default function TeamDetails({
               )}
             </div>
 
-            {isOwner && onAddMember && (
+            {editingMemberId ? (
+              <div className="pt-3 border-t border-white/[0.06]">
+                <p className="text-xs text-muted-foreground mb-2">Update Member Role</p>
+                <div className="flex items-center gap-2">
+                  <Select value={editRole} onValueChange={setEditRole}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      <SelectItem value="project manager">Project Manager</SelectItem>
+                      <SelectItem value="others">Others</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <button
+                    onClick={() => {
+                      onUpdateMemberRole?.(editingMemberId, editRole);
+                      setEditingMemberId(null);
+                    }}
+                    className="rounded-md bg-[#2b2b2b] px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-[#3b3b3b] cursor-pointer"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingMemberId(null)}
+                    className="rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              onAddMember && (
               <div className="pt-3 border-t border-white/[0.06]">
                 <p className="text-xs text-muted-foreground mb-2">Add Member by Email</p>
                 <div className="flex items-center gap-2">
@@ -228,8 +289,18 @@ export default function TeamDetails({
                     placeholder="member@example.com"
                     className="flex-1 rounded-md border border-white/[0.08] bg-transparent px-3 py-1.5 text-sm text-foreground outline-none focus:border-white/[0.15]"
                   />
+                  <Select value={memberRole} onValueChange={setMemberRole}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      <SelectItem value="project manager">Project Manager</SelectItem>
+                      <SelectItem value="others">Others</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <button
-                    onClick={onAddMember}
+                    onClick={() => onAddMember(memberRole)}
                     disabled={addingMember || !memberEmail?.trim()}
                     className="rounded-md bg-[#2b2b2b] px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-[#3b3b3b] disabled:opacity-50 cursor-pointer"
                   >
@@ -249,6 +320,7 @@ export default function TeamDetails({
                   </p>
                 )}
               </div>
+              )
             )}
           </div>
         )}

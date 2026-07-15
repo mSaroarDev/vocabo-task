@@ -6,6 +6,7 @@ import {
   joinTeam as joinTeamAction,
   addTeamMember as addTeamMemberAction,
   removeTeamMember as removeTeamMemberAction,
+  updateMemberRole as updateMemberRoleAction,
   deleteTeam as deleteTeamAction,
   leaveTeam as leaveTeamAction,
   uploadTeamAvatar as uploadTeamAvatarAction,
@@ -55,14 +56,16 @@ export function useTeams() {
       if (!cleanCode) return null;
       return dispatch(joinTeamAction({ inviteCode: cleanCode })).unwrap();
     },
-    addTeamMember: async (teamId: string, email: string) => {
-      const result = await dispatch(addTeamMemberAction({ teamId, email })).unwrap();
-      dispatch(fetchTeamsAction());
+    addTeamMember: async (teamId: string, email: string, role: string) => {
+      const result = await dispatch(addTeamMemberAction({ teamId, email, role })).unwrap();
       return result;
     },
     removeTeamMember: async (teamId: string, memberUserId: string) => {
       const result = await dispatch(removeTeamMemberAction({ teamId, memberUserId })).unwrap();
-      dispatch(fetchTeamsAction());
+      return result;
+    },
+    updateMemberRole: async (teamId: string, memberUserId: string, role: string) => {
+      const result = await dispatch(updateMemberRoleAction({ teamId, memberUserId, role })).unwrap();
       return result;
     },
     deleteTeam: async (teamId: string) => {

@@ -12,8 +12,9 @@ interface TeamsTabProps {
   memberMessages: Record<string, string>;
   addingMember: Record<string, boolean>;
   onMemberEmailChange: (teamId: string, value: string) => void;
-  onAddMember: (teamId: string) => void;
+  onAddMember: (teamId: string, role: string) => void;
   onRemoveMember: (teamId: string, memberUserId: string, memberName: string) => void;
+  onUpdateMemberRole: (teamId: string, memberUserId: string, role: string) => void;
   onDeleteTeam: (teamId: string, teamName: string) => void;
   onLeaveTeam: (teamId: string, teamName: string) => void;
   onUploadAvatar: (teamId: string, file: File) => void;
@@ -29,30 +30,36 @@ export default function TeamsTab({
   onMemberEmailChange,
   onAddMember,
   onRemoveMember,
+  onUpdateMemberRole,
   onDeleteTeam,
   onLeaveTeam,
   onUploadAvatar,
 }: TeamsTabProps) {
-  const [detailTeam, setDetailTeam] = useState<Team | null>(null);
+  const [detailTeamId, setDetailTeamId] = useState<string | null>(null);
+
+  const detailTeam = teams.find((t) => t.id === detailTeamId) || null;
 
   if (detailTeam) {
     const isOwner = currentUserId === detailTeam.owner;
+    const currentMemberRole = detailTeam.members?.find((m) => m.userId === currentUserId)?.role;
+    const canAddMembers = isOwner || currentMemberRole === "project manager";
     return (
       <div className="space-y-8">
         <section>
           <TeamDetails
             team={detailTeam}
             currentUserId={currentUserId}
-            onBack={() => setDetailTeam(null)}
+            onBack={() => setDetailTeamId(null)}
             onLeaveTeam={onLeaveTeam}
             onRemoveMember={onRemoveMember}
             onDeleteTeam={isOwner ? onDeleteTeam : undefined}
             onUploadAvatar={isOwner ? (file) => onUploadAvatar(detailTeam.id, file) : undefined}
-            onAddMember={isOwner ? () => onAddMember(detailTeam.id) : undefined}
-            onMemberEmailChange={isOwner ? (value) => onMemberEmailChange(detailTeam.id, value) : undefined}
-            memberEmail={isOwner ? memberEmails[detailTeam.id] || "" : undefined}
-            memberMessage={isOwner ? memberMessages[detailTeam.id] : undefined}
-            addingMember={isOwner ? addingMember[detailTeam.id] : undefined}
+            onAddMember={canAddMembers ? (role: string) => onAddMember(detailTeam.id, role) : undefined}
+            onMemberEmailChange={canAddMembers ? (value) => onMemberEmailChange(detailTeam.id, value) : undefined}
+            onUpdateMemberRole={canAddMembers ? (memberUserId: string, role: string) => onUpdateMemberRole(detailTeam.id, memberUserId, role) : undefined}
+            memberEmail={canAddMembers ? memberEmails[detailTeam.id] || "" : undefined}
+            memberMessage={canAddMembers ? memberMessages[detailTeam.id] : undefined}
+            addingMember={canAddMembers ? addingMember[detailTeam.id] : undefined}
           />
         </section>
       </div>
@@ -71,7 +78,7 @@ export default function TeamsTab({
             {teams.map((team) => (
               <div
                 key={team.id}
-                onClick={() => setDetailTeam(team)}
+                onClick={() => setDetailTeamId(team.id)}
                 className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3 cursor-pointer transition-colors hover:bg-white/[0.04]"
               >
                 <div
@@ -118,7 +125,7 @@ export default function TeamsTab({
             {createdTeams.map((team) => (
               <div
                 key={team.id}
-                onClick={() => setDetailTeam(team)}
+                onClick={() => setDetailTeamId(team.id)}
                 className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-3 cursor-pointer transition-colors hover:bg-white/[0.04]"
               >
                 <div

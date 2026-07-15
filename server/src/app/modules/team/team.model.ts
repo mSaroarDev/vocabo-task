@@ -10,7 +10,7 @@ const teamMemberSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["owner", "member"],
+      enum: ["owner", "project manager", "member", "others"],
       default: "member",
     },
     joinedAt: {

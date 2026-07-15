@@ -75,15 +75,19 @@ const joinTeam = async (userId: string, payload: { inviteCode: string }) => {
   return team;
 };
 
-const addMember = async (teamId: string, userId: string, email: string) => {
+const addMember = async (teamId: string, userId: string, email: string, role: string = "member") => {
   const team = await TeamModel.findById(teamId);
   if (!team) {
     throw new AppError(httpStatus.NOT_FOUND, "Team not found");
   }
 
-  const ownerId = new Types.ObjectId(userId);
-  if (!team.owner.equals(ownerId)) {
-    throw new AppError(httpStatus.FORBIDDEN, "Only the team owner can add members");
+  const requesterId = new Types.ObjectId(userId);
+  const isOwner = team.owner.equals(requesterId);
+  const isPM = team.members.some(
+    (m) => m.user.equals(requesterId) && m.role === "project manager"
+  );
+  if (!isOwner && !isPM) {
+    throw new AppError(httpStatus.FORBIDDEN, "Only the team owner or project managers can add members");
   }
 
   const targetUser = await User.findOne({ email });
@@ -99,7 +103,7 @@ const addMember = async (teamId: string, userId: string, email: string) => {
 
   team.members.push({
     user: targetUserId,
-    role: "member",
+    role: role as "project manager" | "member" | "others",
     joinedAt: new Date(),
   });
   await team.save();
@@ -132,9 +136,13 @@ const removeMember = async (teamId: string, userId: string, memberUserId: string
     throw new AppError(httpStatus.NOT_FOUND, "Team not found");
   }
 
-  const ownerId = new Types.ObjectId(userId);
-  if (!team.owner.equals(ownerId)) {
-    throw new AppError(httpStatus.FORBIDDEN, "Only the team owner can remove members");
+  const requesterId = new Types.ObjectId(userId);
+  const isOwner = team.owner.equals(requesterId);
+  const isPM = team.members.some(
+    (m) => m.user.equals(requesterId) && m.role === "project manager"
+  );
+  if (!isOwner && !isPM) {
+    throw new AppError(httpStatus.FORBIDDEN, "Only the team owner or project managers can remove members");
   }
 
   const targetId = new Types.ObjectId(memberUserId);
@@ -148,6 +156,43 @@ const removeMember = async (teamId: string, userId: string, memberUserId: string
   }
 
   team.members.splice(memberIndex, 1);
+  await team.save();
+
+  const populated = await TeamModel.findById(team._id).populate("members.user", "name email avatar");
+  return populated;
+};
+
+const updateMemberRole = async (
+  teamId: string,
+  userId: string,
+  memberUserId: string,
+  role: string
+) => {
+  const team = await TeamModel.findById(teamId);
+  if (!team) {
+    throw new AppError(httpStatus.NOT_FOUND, "Team not found");
+  }
+
+  const requesterId = new Types.ObjectId(userId);
+  const isOwner = team.owner.equals(requesterId);
+  const isPM = team.members.some(
+    (m) => m.user.equals(requesterId) && m.role === "project manager"
+  );
+  if (!isOwner && !isPM) {
+    throw new AppError(httpStatus.FORBIDDEN, "Only the team owner or project managers can update member roles");
+  }
+
+  const targetId = new Types.ObjectId(memberUserId);
+  if (team.owner.equals(targetId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Cannot change the team owner's role");
+  }
+
+  const member = team.members.find((m) => m.user.equals(targetId));
+  if (!member) {
+    throw new AppError(httpStatus.NOT_FOUND, "Member not found in this team");
+  }
+
+  member.role = role as "owner" | "project manager" | "member" | "others";
   await team.save();
 
   const populated = await TeamModel.findById(team._id).populate("members.user", "name email avatar");
@@ -240,6 +285,7 @@ export const TeamServices = {
   joinTeam,
   addMember,
   removeMember,
+  updateMemberRole,
   deleteTeam,
   leaveTeam,
   uploadAvatar,

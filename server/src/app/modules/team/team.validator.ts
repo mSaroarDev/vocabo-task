@@ -10,6 +10,11 @@ const joinTeamValidator = z.object({
 
 const addMemberValidator = z.object({
   email: z.string().email("Invalid email address"),
+  role: z.enum(["project manager", "member", "others"]).optional(),
 });
 
-export { createTeamValidator, joinTeamValidator, addMemberValidator };
+const updateMemberRoleValidator = z.object({
+  role: z.enum(["owner", "project manager", "member", "others"]),
+});
+
+export { createTeamValidator, joinTeamValidator, addMemberValidator, updateMemberRoleValidator };

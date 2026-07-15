@@ -129,11 +129,11 @@ export const createTeam = createAsyncThunk<Team, { name: string }, { rejectValue
   }
 );
 
-export const addTeamMember = createAsyncThunk<Team, { teamId: string; email: string }, { rejectValue: string }>(
+export const addTeamMember = createAsyncThunk<Team, { teamId: string; email: string; role: string }, { rejectValue: string }>(
   "teams/addTeamMember",
-  async ({ teamId, email }, { rejectWithValue }) => {
+  async ({ teamId, email, role }, { rejectWithValue }) => {
     try {
-      const response = await apiClient.post(`/teams/${teamId}/members`, { email });
+      const response = await apiClient.post(`/teams/${teamId}/members`, { email, role });
       return mapTeam(response.data.data as ApiTeam);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, "Failed to add member"));
@@ -149,6 +149,18 @@ export const removeTeamMember = createAsyncThunk<Team, { teamId: string; memberU
       return mapTeam(response.data.data as ApiTeam);
     } catch (error) {
       return rejectWithValue(getErrorMessage(error, "Failed to remove member"));
+    }
+  }
+);
+
+export const updateMemberRole = createAsyncThunk<Team, { teamId: string; memberUserId: string; role: string }, { rejectValue: string }>(
+  "teams/updateMemberRole",
+  async ({ teamId, memberUserId, role }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.patch(`/teams/${teamId}/members/${memberUserId}/role`, { role });
+      return mapTeam(response.data.data as ApiTeam);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, "Failed to update member role"));
     }
   }
 );
@@ -319,6 +331,16 @@ const teamsSlice = createSlice({
       })
       .addCase(removeTeamMember.rejected, (state, action) => {
         state.error = action.payload || "Failed to remove member";
+      })
+      .addCase(updateMemberRole.fulfilled, (state, action) => {
+        const index = state.items.findIndex((t) => t.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+        state.error = null;
+      })
+      .addCase(updateMemberRole.rejected, (state, action) => {
+        state.error = action.payload || "Failed to update member role";
       })
       .addCase(deleteTeam.fulfilled, (state, action) => {
         state.items = state.items.filter((t) => t.id !== action.payload);

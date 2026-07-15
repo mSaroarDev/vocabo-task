@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-export type TeamRole = "owner" | "member";
+export type TeamRole = "owner" | "project manager" | "member" | "others";
 
 export interface ITeamMember {
   user: Types.ObjectId;

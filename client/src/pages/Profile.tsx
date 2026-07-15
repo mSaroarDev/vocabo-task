@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 export default function Profile() {
   const navigate = useNavigate();
   const { user, isAuthenticated, updateProfile, deleteAccount, disconnectTelegram, uploadAvatar } = useAuth();
-  const { teams, addTeamMember, removeTeamMember, deleteTeam, leaveTeam, uploadTeamAvatar } = useTeams();
+  const { teams, addTeamMember, removeTeamMember, updateMemberRole, deleteTeam, leaveTeam, uploadTeamAvatar } = useTeams();
   const [activeTab, setActiveTab] = useState<TabId>("basic-info");
   const [name, setName] = useState(user?.name || "");
   const [phone, setPhone] = useState(user?.phone || "");
@@ -63,14 +63,14 @@ export default function Profile() {
     }
   };
 
-  const handleAddMember = async (teamId: string) => {
+  const handleAddMember = async (teamId: string, role: string) => {
     const memberEmail = memberEmails[teamId]?.trim();
     if (!memberEmail) return;
 
     setAddingMember((prev) => ({ ...prev, [teamId]: true }));
     setMemberMessages((prev) => ({ ...prev, [teamId]: "" }));
     try {
-      await addTeamMember(teamId, memberEmail);
+      await addTeamMember(teamId, memberEmail, role);
       setMemberMessages((prev) => ({ ...prev, [teamId]: "Member added successfully" }));
       setMemberEmails((prev) => ({ ...prev, [teamId]: "" }));
     } catch {
@@ -87,6 +87,14 @@ export default function Profile() {
       // error handled by Redux
     }
     setConfirmRemove(null);
+  };
+
+  const handleUpdateMemberRole = async (teamId: string, memberUserId: string, role: string) => {
+    try {
+      await updateMemberRole(teamId, memberUserId, role);
+    } catch {
+      // error handled by Redux
+    }
   };
 
   const handleDeleteTeam = async () => {
@@ -203,6 +211,7 @@ export default function Profile() {
             onRemoveMember={(teamId, memberUserId, memberName) =>
               setConfirmRemove({ teamId, memberUserId, memberName })
             }
+            onUpdateMemberRole={handleUpdateMemberRole}
             onDeleteTeam={(teamId, teamName) => setConfirmDeleteTeam({ teamId, teamName })}
             onLeaveTeam={(teamId, teamName) => setConfirmLeaveTeam({ teamId, teamName })}
             onUploadAvatar={(teamId, file) => uploadTeamAvatar(teamId, file)}

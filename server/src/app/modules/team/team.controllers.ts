@@ -54,8 +54,8 @@ const joinTeam: RequestHandler = catchAsync(async (req: Request, res: Response) 
 const addMember: RequestHandler = catchAsync(async (req: Request, res: Response) => {
   const userId = getUserId(req as AuthRequest);
   const teamId = req.params.teamId as string;
-  const { email } = req.body;
-  const result = await TeamServices.addMember(teamId, userId, email);
+  const { email, role } = req.body;
+  const result = await TeamServices.addMember(teamId, userId, email, role);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -75,6 +75,21 @@ const removeMember: RequestHandler = catchAsync(async (req: Request, res: Respon
     statusCode: httpStatus.OK,
     success: true,
     message: "Member removed successfully",
+    data: result,
+  });
+});
+
+const updateMemberRole: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const userId = getUserId(req as AuthRequest);
+  const teamId = req.params.teamId as string;
+  const memberUserId = req.params.memberUserId as string;
+  const { role } = req.body;
+  const result = await TeamServices.updateMemberRole(teamId, userId, memberUserId, role);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Member role updated successfully",
     data: result,
   });
 });
@@ -127,6 +142,7 @@ export const TeamControllers = {
   joinTeam,
   addMember,
   removeMember,
+  updateMemberRole,
   deleteTeam,
   leaveTeam,
   uploadAvatar,
