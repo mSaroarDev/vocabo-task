@@ -20,6 +20,7 @@ import workspacesReducer from "./slices/workspacesSlice";
 import columnsReducer from "./slices/columnsSlice";
 import tasksReducer from "./slices/tasksSlice";
 import checklistReducer from "./slices/checklistSlice";
+import commentsReducer from "./slices/commentsSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 
 const rootReducer = combineReducers({
@@ -29,6 +30,7 @@ const rootReducer = combineReducers({
   columns: columnsReducer,
   tasks: tasksReducer,
   checklist: checklistReducer,
+  comments: commentsReducer,
   notifications: notificationsReducer,
 });
 
@@ -92,11 +94,19 @@ const migrations = {
       error: null,
     },
   }),
+  7: (state: any) => ({
+    ...state,
+    comments: {
+      byTask: {},
+      isLoading: false,
+      error: null,
+    },
+  }),
 };
 
 const persistConfig: PersistConfig<RootState> = {
   key: "vocabo-root",
-  version: 6,
+  version: 7,
   storage,
   migrate: createMigrate(migrations, { debug: false }),
   whitelist: ["auth", "teams", "workspaces", "checklist", "notifications"],

@@ -9,6 +9,7 @@ import {
 } from "./task.validation";
 import { attachmentUpload, bannerUpload } from "./task.upload";
 import { ActivityLogRoutes } from "../activityLog/activityLog.routes";
+import { CommentRoutes } from "../comment/comment.routes";
 
 const router = express.Router({ mergeParams: true });
 
@@ -34,6 +35,7 @@ router.post("/:taskId/banner", bannerUpload, TaskControllers.setBanner);
 router.delete("/:taskId/banner", TaskControllers.removeBanner);
 
 router.use("/:taskId/activity", ActivityLogRoutes);
+router.use("/:taskId/comments", CommentRoutes);
 
 export const TaskRoutes = router;
 

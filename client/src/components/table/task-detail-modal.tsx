@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +16,9 @@ import {
 import type { Task, Attachment } from "./notion-table";
 import type { StatusOption } from "./notion-table";
 import apiClient from "@/api/client";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { addTaskAttachment } from "@/store/slices/tasksSlice";
+import { fetchComments, addComment, deleteComment } from "@/store/slices/commentsSlice";
 import ImagePreview from "@/components/ui/image-preview";
 import ImagePickerModal from "./image-picker-modal";
 
@@ -110,6 +111,30 @@ function formatTimeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
+const URL_REGEX = /(https?:\/\/[^\s]+)/gi;
+
+function renderCommentContent(content: string) {
+  const parts = content.split(URL_REGEX);
+  return parts.map((part, index) => {
+    if (URL_REGEX.test(part)) {
+      URL_REGEX.lastIndex = 0;
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sky-400 hover:underline break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    URL_REGEX.lastIndex = 0;
+    return <span key={index}>{part}</span>;
+  });
+}
+
 function AttachmentCard({ attachment, onImagePreview }: { attachment: Attachment; onImagePreview?: (urls: string[], index: number) => void }) {
   const isImage = attachment.mimeType.startsWith("image/");
   return (
@@ -172,8 +197,12 @@ export default function TaskDetailModal({
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [activityLoading, setActivityLoading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<{ file: File; preview: string }[]>([]);
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const comments = useAppSelector((state) =>
+    task ? (state.comments.byTask[task.id] ?? []) : []
+  );
+  const fetchedForRef = useRef<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -182,16 +211,20 @@ export default function TaskDetailModal({
 
   useEffect(() => {
     if (!open || !task || !teamId || !workspaceId) {
+      fetchedForRef.current = null;
       setActivity([]);
       return;
     }
-    setActivityLoading(true);
+    const key = `${task.id}`;
+    if (fetchedForRef.current === key) return;
+    fetchedForRef.current = key;
+
+    dispatch(fetchComments({ teamId, workspaceId, taskId: task.id }));
     apiClient
       .get(`/teams/${teamId}/workspaces/${workspaceId}/tasks/${task.id}/activity`)
       .then((res) => setActivity(res.data.data as ActivityItem[]))
-      .catch(() => setActivity([]))
-      .finally(() => setActivityLoading(false));
-  }, [open, task?.id, teamId, workspaceId]);
+      .catch(() => setActivity([]));
+  }, [open, task?.id, teamId, workspaceId, dispatch]);
 
   useEffect(() => {
     if (task) {
@@ -237,6 +270,31 @@ export default function TaskDetailModal({
       }
     },
     [dispatch, teamId, workspaceId, task?.id]
+  );
+
+  const handleAddComment = useCallback(() => {
+    const content = commentText.trim();
+    if (!content || !task || !teamId || !workspaceId || !currentUser) return;
+    const author = {
+      name: currentUser.name,
+      initials: getInitials(currentUser.name),
+      color: "#525252",
+      avatar: currentUser.avatar,
+    };
+    setCommentText("");
+    dispatch(
+      addComment({ teamId, workspaceId, taskId: task.id, content, author })
+    );
+  }, [commentText, task, teamId, workspaceId, currentUser, dispatch]);
+
+  const handleDeleteComment = useCallback(
+    (commentId: string) => {
+      if (!task || !teamId || !workspaceId) return;
+      dispatch(
+        deleteComment({ teamId, workspaceId, taskId: task.id, commentId })
+      );
+    },
+    [task, teamId, workspaceId, dispatch]
   );
 
   useEffect(() => {
@@ -634,45 +692,89 @@ export default function TaskDetailModal({
                   {/* Comment Input */}
                   <div className="px-5 py-3 border-b border-border/30 shrink-0">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-medium text-foreground">
-                        Yo
-                      </div>
+                      {currentUser?.avatar ? (
+                        <img src={currentUser.avatar} alt={currentUser.name} className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[10px] font-medium text-foreground">
+                          {currentUser ? getInitials(currentUser.name) : "Yo"}
+                        </div>
+                      )}
                       <input
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddComment();
+                          }
+                        }}
                         placeholder="Write a comment..."
                         className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
                       />
                     </div>
                   </div>
 
-                  {/* Activity Feed */}
+                  {/* Comments + Activity Feed */}
                   <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-                    {activityLoading ? (
-                      <div className="flex items-center justify-center py-4"><Loader2 size={16} className="animate-spin text-muted-foreground" /></div>
-                    ) : activity.length === 0 ? (
+                    {comments.length === 0 && activity.length === 0 ? (
                       <div className="text-xs text-muted-foreground text-center py-4">No activity yet</div>
                     ) : (
-                      activity.map((item) => (
-                        <div key={item._id} className="flex items-start gap-2">
-                          {item.performedBy.avatar ? (
-                            <img src={item.performedBy.avatar} alt={item.performedBy.name} className="h-6 w-6 shrink-0 rounded-full object-cover mt-0.5" />
-                          ) : (
-                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground mt-0.5">
-                              {getInitials(item.performedBy.name)}
+                      <>
+                        {[...comments].reverse().map((item) => (
+                          <div key={item.id} className="group flex items-start gap-2 text-left w-full">
+                            {item.author.avatar ? (
+                              <img src={item.author.avatar} alt={item.author.name} className="h-6 w-6 shrink-0 rounded-full object-cover mt-0.5" />
+                            ) : (
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground mt-0.5">
+                                {item.author.initials}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-left">
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-medium text-foreground">{item.author.name}</span>{" "}
+                                commented
+                              </p>
+                              <p className="text-sm text-foreground break-words text-left">
+                                {renderCommentContent(item.content)}
+                                {item.isPending && <span className="ml-1 text-[11px] text-muted-foreground/50 italic">sending…</span>}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-[11px] text-muted-foreground/50">
+                                  {formatTimeAgo(item.createdAt)}
+                                </p>
+                                {!item.isPending && (
+                                  <button
+                                    onClick={() => handleDeleteComment(item.id)}
+                                    className="text-[11px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity cursor-pointer"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-muted-foreground">
-                              <span className="font-medium text-foreground">{item.performedBy.name}</span>{" "}
-                              {formatActivity(item)}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground/50">
-                              {formatTimeAgo(item.createdAt)}
-                            </p>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                        {activity.map((item) => (
+                          <div key={item._id} className="group flex items-start gap-2 text-left w-full">
+                            {item.performedBy.avatar ? (
+                              <img src={item.performedBy.avatar} alt={item.performedBy.name} className="h-6 w-6 shrink-0 rounded-full object-cover mt-0.5" />
+                            ) : (
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground mt-0.5">
+                                {getInitials(item.performedBy.name)}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 text-left">
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-medium text-foreground">{item.performedBy.name}</span>{" "}
+                                {formatActivity(item)}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground/50">
+                                {formatTimeAgo(item.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </>
                     )}
                   </div>
                 </>
