@@ -12,9 +12,12 @@ import {
   Pen,
   LogOut,
   Loader2,
+  Home,
+  Inbox,
+  Ticket,
+  X,
 } from "lucide-react";
-import { LuUserRoundCheck, LuUserRoundCog } from "react-icons/lu";
-import { useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   DndContext,
@@ -37,6 +40,7 @@ import ItemModal from "@/components/ui/item-modal";
 import WorkspaceModal from "@/components/ui/workspace-modal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
@@ -60,9 +64,41 @@ const favorites: SidebarItem[] = [
   // { id: "3", label: "Project Ideas", icon: <Star size={16} /> },
 ];
 
-const menus: SidebarItem[] = [
-  { id: "assigned", label: "Assigned Me", icon: <LuUserRoundCheck size={16} /> },
-  { id: "members-assigned", label: "Members Assings", icon: <LuUserRoundCog size={16} /> },
+interface NavTab {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  match: (pathname: string, searchParams: URLSearchParams) => boolean;
+  onClick: (navigate: ReturnType<typeof useNavigate>) => void;
+}
+
+const navTabs: NavTab[] = [
+  {
+    id: "home",
+    label: "Home",
+    icon: <Home size={16} />,
+    match: (pathname, searchParams) =>
+      pathname === "/dashboard" &&
+      !searchParams.get("workspace") &&
+      !searchParams.get("checklist"),
+    onClick: (navigate) => navigate("/dashboard"),
+  },
+  {
+    id: "inbox",
+    label: "Inbox",
+    icon: <Inbox size={16} />,
+    match: (pathname, searchParams) =>
+      pathname === "/assigned-tasks" && searchParams.get("view") !== "members",
+    onClick: (navigate) => navigate("/assigned-tasks?userId=me"),
+  },
+  {
+    id: "tickets",
+    label: "Tickets",
+    icon: <Ticket size={16} />,
+    match: (pathname, searchParams) =>
+      pathname === "/assigned-tasks" && searchParams.get("view") === "members",
+    onClick: (navigate) => navigate("/assigned-tasks?view=members"),
+  },
 ];
 
 interface SidebarSectionProps {
@@ -290,6 +326,145 @@ function SidebarSection({
   );
 }
 
+function SidebarNav({
+  searchQuery,
+  onSearchChange,
+}: {
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+}) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const activeId = navTabs.find((tab) => tab.match(pathname, searchParams))?.id;
+
+  return (
+    <div className="relative px-3 pb-2 pt-2">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 transition-opacity duration-200",
+          searchOpen && "pointer-events-none opacity-0"
+        )}
+      >
+        <Tabs value={activeId} onValueChange={(id) => {
+          const tab = navTabs.find((t) => t.id === id);
+          tab?.onClick(navigate);
+        }}>
+          <TabsList className="bg-transparent p-1">
+            {navTabs.map((tab) => (
+              <TabsTrigger
+                key={tab.id}
+                value={tab.id}
+                className="cursor-pointer gap-1.5 rounded-full px-2.5 data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-accent-foreground data-[state=active]:shadow-sm"
+              >
+                {tab.icon}
+                <span
+                  className={cn(
+                    "overflow-hidden whitespace-nowrap transition-all duration-200",
+                    tab.id === activeId ? "max-w-[120px] opacity-100" : "max-w-0 opacity-0"
+                  )}
+                >
+                  {tab.label}
+                </span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <SidebarSearchTrigger onOpenChange={setSearchOpen} />
+      </div>
+
+      <SidebarSearchPanel
+        open={searchOpen}
+        value={searchQuery}
+        onChange={onSearchChange}
+        onClose={() => {
+          onSearchChange("");
+          setSearchOpen(false);
+        }}
+      />
+    </div>
+  );
+}
+
+function SidebarSearchTrigger({
+  onOpenChange,
+}: {
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenChange(true)}
+      aria-label="Search"
+      className="relative z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+    >
+      <Search size={16} />
+    </button>
+  );
+}
+
+function SidebarSearchPanel({
+  open,
+  value,
+  onChange,
+  onClose,
+}: {
+  open: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  onClose: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open, onClose]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn(
+        "absolute inset-x-3 top-1/2 z-30 flex -translate-y-1/2 items-center gap-2 overflow-hidden rounded-md bg-sidebar px-2 shadow-sm transition-all duration-200 ease-out",
+        open ? "w-auto opacity-100" : "pointer-events-none w-0 px-0 opacity-0"
+      )}
+    >
+      <Search size={14} className="shrink-0 text-muted-foreground" />
+      <Input
+        ref={inputRef}
+        placeholder="Search..."
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") onClose();
+        }}
+        className="h-8 w-full border-0 bg-transparent px-0 text-sm focus-visible:ring-0"
+      />
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close search"
+        className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+      >
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -314,12 +489,6 @@ export default function Sidebar() {
   const { pathname } = useLocation();
   const activeWorkspace = searchParams.get("workspace");
   const activeChecklist = searchParams.get("checklist");
-  const activeMenu =
-    pathname === "/assigned-tasks"
-      ? searchParams.get("view") === "members"
-        ? "members-assigned"
-        : "assigned"
-      : null;
   const favoritesActive =
     pathname === "/dashboard" && !activeWorkspace && !activeChecklist;
   const [searchQuery, setSearchQuery] = useState("");
@@ -553,17 +722,7 @@ export default function Sidebar() {
           )}
         </div>
 
-        <div className="p-3">
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-sm bg-sidebar-accent/50 border-sidebar-border"
-            />
-          </div>
-        </div>
+        <SidebarNav searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
         <ScrollArea className="flex-1 px-2">
           <SidebarSection
@@ -597,16 +756,6 @@ export default function Sidebar() {
               if (ws) navigate(`/dashboard?workspace=${ws.id}`);
             }}
             addLabel="Add workspace"
-          />
-
-          <SidebarSection
-            title="Menus"
-            items={menus.map((m) => ({ ...m, active: m.id === activeMenu }))}
-            collapsible={false}
-            onItemClick={(id) => {
-              if (id === "assigned") navigate("/assigned-tasks?userId=me");
-              if (id === "members-assigned") navigate("/assigned-tasks?view=members");
-            }}
           />
 
           <SidebarSection
