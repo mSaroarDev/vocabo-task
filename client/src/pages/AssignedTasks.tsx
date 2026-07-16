@@ -354,7 +354,7 @@ export default function AssignedTasks() {
         </div>
       </div>
 
-      <div className="-ml-10">
+      <div className="ml-5">
         <NotionTable
           isLoading={isLoading}
           wrapTaskName={wrapTaskName}
