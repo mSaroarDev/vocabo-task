@@ -89,6 +89,9 @@ const defaultStatusOptions: StatusOption[] = [
   { label: "Rejected", color: "bg-zinc-600/30 text-zinc-300" },
   { label: "PR Created", color: "bg-pink-500/20 text-pink-300" },
   { label: "Need Approval", color: "bg-cyan-500/20 text-cyan-300" },
+  { label: "PR Raised", color: "bg-rose-500/20 text-rose-300" },
+  { label: "Ready for Test", color: "bg-emerald-500/20 text-emerald-300" },
+  { label: "Need Approval", color: "bg-violet-500/20 text-violet-300" },
 ];
 
 function getAutoMenuPosition(
