@@ -93,7 +93,7 @@ export const defaultColumns: ColumnDef[] = [
   { key: "assignee", label: "Assigned To", width: 200 },
   { key: "createdBy", label: "Created By", width: 200 },
   { key: "attachments", label: "Attachments", width: 100 },
-  { key: "addedOn", label: "Added On", width: 100 },
+  { key: "addedOn", label: "Added On", width: 110 },
   { key: "workspace", label: "Workspace", width: 160 },
 ];
 

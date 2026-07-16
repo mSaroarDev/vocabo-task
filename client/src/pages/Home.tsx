@@ -153,7 +153,7 @@ export default function Home() {
     return (
       <div className="px-12 py-8">
 
-        <div className="ml-5 flex items-center gap-3 mb-8">
+        <div className="ml-5 flex items-center gap-3 mb-8 pl-8">
           <div
             className="flex h-10 w-10 items-center justify-center rounded-lg"
             style={{ backgroundColor: currentWorkspace.color + "1A" }}
@@ -182,7 +182,7 @@ export default function Home() {
         </div>
 
         <div className="ml-5 flex items-center justify-between mb-8">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 pl-8">
             <button
               onClick={() => setActiveTab("all")}
               className={cn(

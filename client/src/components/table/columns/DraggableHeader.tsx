@@ -97,7 +97,7 @@ export function DraggableHeader({
         {...listeners}
       >
         {columnIcons[column.key]}
-        <span>{column.label}</span>
+        <span className="whitespace-nowrap">{column.label}</span>
         {sortKey === column.key && (
           <span className="text-muted-foreground text-[10px]">
             {sortDir === "asc" ? "↑" : "↓"}
