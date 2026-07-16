@@ -263,7 +263,7 @@ const columnIcons: Record<string, React.ReactNode> = {
 
 const defaultColumns = [
   { key: "title", label: "Title", width: 350 },
-  { key: "status", label: "Status", width: 120 },
+  { key: "status", label: "Status", width: 140 },
   { key: "priority", label: "Priority", width: 100 },
   { key: "description", label: "Description", width: 300 },
   { key: "assignee", label: "Assigned To", width: 200 },
