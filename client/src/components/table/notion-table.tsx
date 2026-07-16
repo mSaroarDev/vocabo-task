@@ -87,6 +87,8 @@ const defaultStatusOptions: StatusOption[] = [
   { label: "Duplicate", color: "bg-slate-600/20 text-slate-300" },
   { label: "Invalid", color: "bg-red-600/20 text-red-300" },
   { label: "Rejected", color: "bg-zinc-600/30 text-zinc-300" },
+  { label: "PR Created", color: "bg-pink-500/20 text-pink-300" },
+  { label: "Need Approval", color: "bg-cyan-500/20 text-cyan-300" },
 ];
 
 function getAutoMenuPosition(
