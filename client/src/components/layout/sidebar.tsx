@@ -16,6 +16,7 @@ import {
   Inbox,
   Ticket,
   X,
+  MessageSquare,
 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
@@ -92,12 +93,18 @@ const navTabs: NavTab[] = [
     onClick: (navigate) => navigate("/assigned-tasks?userId=me"),
   },
   {
+    id: "chats",
+    label: "Chats",
+    icon: <MessageSquare size={16} />,
+    match: (pathname) => pathname === "/chats",
+    onClick: (navigate) => navigate("/chats"),
+  },
+  {
     id: "tickets",
     label: "Tickets",
     icon: <Ticket size={16} />,
-    match: (pathname, searchParams) =>
-      pathname === "/assigned-tasks" && searchParams.get("view") === "members",
-    onClick: (navigate) => navigate("/assigned-tasks?view=members"),
+    match: (pathname) => pathname === "/tickets",
+    onClick: (navigate) => navigate("/tickets"),
   },
 ];
 

@@ -9,6 +9,8 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import AssignedTasks from "./pages/AssignedTasks";
+import Chats from "./pages/Chats";
+import Tickets from "./pages/Tickets";
 import GoogleCallback from "./pages/GoogleCallback";
 
 function App() {
@@ -46,6 +48,26 @@ function App() {
                 <ProtectedRoute>
                   <NotionLayout>
                     <AssignedTasks />
+                  </NotionLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chats"
+              element={
+                <ProtectedRoute>
+                  <NotionLayout>
+                    <Chats />
+                  </NotionLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/tickets"
+              element={
+                <ProtectedRoute>
+                  <NotionLayout>
+                    <Tickets />
                   </NotionLayout>
                 </ProtectedRoute>
               }
