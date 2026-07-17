@@ -355,6 +355,29 @@ export const addTaskAttachment = createAsyncThunk<
   }
 });
 
+export const deleteTaskAttachment = createAsyncThunk<
+  Task,
+  { teamId: string; workspaceId: string; taskId: string; attachmentId: string },
+  { rejectValue: string }
+>(
+  "tasks/deleteTaskAttachment",
+  async ({ teamId, workspaceId, taskId, attachmentId }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios({
+        method: "delete",
+        url: `${apiClient.defaults.baseURL}/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}/attachments/${attachmentId}`,
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+      return mapTask(response.data.data as ApiTask);
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error, "Failed to delete attachment"));
+    }
+  }
+);
+
 const tasksSlice = createSlice({
   name: "tasks",
   initialState,
@@ -472,6 +495,16 @@ const tasksSlice = createSlice({
       })
       .addCase(addTaskAttachment.rejected, (state, action) => {
         state.error = action.payload || "Failed to upload attachment";
+      })
+      .addCase(deleteTaskAttachment.fulfilled, (state, action) => {
+        const idx = state.items.findIndex((t) => t.id === action.payload.id);
+        if (idx !== -1) {
+          state.items[idx] = action.payload;
+        }
+        state.error = null;
+      })
+      .addCase(deleteTaskAttachment.rejected, (state, action) => {
+        state.error = action.payload || "Failed to delete attachment";
       })
       .addCase(reorderTasks.fulfilled, (state, action) => {
         if (state.currentWorkspaceId === action.payload.workspaceId) {

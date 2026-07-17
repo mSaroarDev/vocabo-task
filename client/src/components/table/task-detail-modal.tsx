@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import type { Task, Attachment } from "./notion-table";
 import type { StatusOption } from "./notion-table";
 import apiClient from "@/api/client";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { addTaskAttachment } from "@/store/slices/tasksSlice";
+import { addTaskAttachment, deleteTaskAttachment } from "@/store/slices/tasksSlice";
 import { fetchComments, addComment, deleteComment } from "@/store/slices/commentsSlice";
 import ImagePreview from "@/components/ui/image-preview";
 import ImagePickerModal from "./image-picker-modal";
@@ -135,7 +135,7 @@ function renderCommentContent(content: string) {
   });
 }
 
-function AttachmentCard({ attachment, onImagePreview }: { attachment: Attachment; onImagePreview?: (urls: string[], index: number) => void }) {
+function AttachmentCard({ attachment, onImagePreview, onRemove }: { attachment: Attachment; onImagePreview?: (urls: string[], index: number) => void; onRemove?: () => void }) {
   const isImage = attachment.mimeType.startsWith("image/");
   return (
     <div
@@ -160,6 +160,15 @@ function AttachmentCard({ attachment, onImagePreview }: { attachment: Attachment
         <p className="text-sm font-medium text-foreground truncate">{attachment.originalName}</p>
         <p className="text-xs text-muted-foreground">Added {attachment.uploadedAt}</p>
       </div>
+      {onRemove && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+          aria-label="Remove attachment"
+        >
+          <X size={14} />
+        </button>
+      )}
       {isImage && (
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
@@ -236,16 +245,6 @@ export default function TaskDetailModal({
     }
   }, [task?.id, task?.title, task?.description, task?.status, task?.priority, task?.assignedTo?.name]);
 
-  const allImageUrls = useMemo(() => {
-    const existing = (task?.attachments || [])
-      .filter((a) => a.mimeType.startsWith("image/"))
-      .map((a) => a.url);
-    const pending = pendingAttachments
-      .filter((p) => p.file.type.startsWith("image/"))
-      .map((p) => p.preview);
-    return [...existing, ...pending];
-  }, [task, pendingAttachments]);
-
   useEffect(() => {
     if (open && isCreate) {
       setTitleValue("");
@@ -271,6 +270,24 @@ export default function TaskDetailModal({
     },
     [dispatch, teamId, workspaceId, task?.id]
   );
+
+  const removeAttachment = useCallback(
+    (attachmentId: string) => {
+      if (!teamId || !workspaceId || !task?.id) return;
+      dispatch(
+        deleteTaskAttachment({ teamId, workspaceId, taskId: task.id, attachmentId })
+      );
+    },
+    [dispatch, teamId, workspaceId, task?.id]
+  );
+
+  const removePendingAttachment = useCallback((preview: string) => {
+    setPendingAttachments((prev) => {
+      const target = prev.find((p) => p.preview === preview);
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter((p) => p.preview !== preview);
+    });
+  }, []);
 
   const handleAddComment = useCallback(() => {
     const content = commentText.trim();
@@ -565,47 +582,50 @@ export default function TaskDetailModal({
                   {/* Image thumbnails grid */}
                   <div className="flex flex-wrap gap-2 mb-3">
                     {/* Existing image attachments */}
-                    {!isCreate && task && task.attachments
-                      .filter(a => a.mimeType.startsWith("image/"))
-                      .map((attachment) => (
-                        <button
-                          key={attachment.id}
-                          onClick={() => {
-                            const idx = allImageUrls.indexOf(attachment.url);
-                            setPreviewUrls(allImageUrls);
-                            setPreviewIndex(idx >= 0 ? idx : 0);
-                          }}
-                          className="relative group rounded-lg overflow-hidden border border-border/50 hover:border-foreground/50 transition-colors cursor-pointer"
-                        >
-                          <img
-                            src={attachment.url}
-                            alt={attachment.originalName}
-                            className="w-[50px] h-[80px] object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <ExternalLink size={12} className="text-white" />
-                          </div>
-                        </button>
-                      ))}
-                    
-                    {/* Pending image attachments */}
-                    {pendingAttachments
-                      .filter(p => p.file.type.startsWith("image/"))
-                      .map((p, i) => (
-                        <div
-                          key={`pending-${i}`}
-                          className="relative rounded-lg overflow-hidden border border-border/50"
-                        >
-                          <img
-                            src={p.preview}
-                            alt="pending"
-                            className="w-[50px] h-[80px] object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <span className="text-[10px] text-white">Pending</span>
-                          </div>
-                        </div>
-                      ))}
+                     {!isCreate && task && task.attachments
+                       .filter(a => a.mimeType.startsWith("image/"))
+                       .map((attachment) => (
+                         <div
+                           key={attachment.id}
+                           className="relative group rounded-lg overflow-hidden border border-border/50 hover:border-foreground/50 transition-colors"
+                         >
+                           <img
+                             src={attachment.url}
+                             alt={attachment.originalName}
+                             className="w-[50px] h-[80px] object-cover"
+                           />
+                           <button
+                             onClick={() => removeAttachment(attachment.id)}
+                             className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all cursor-pointer"
+                             aria-label="Remove image"
+                           >
+                             <X size={10} />
+                           </button>
+                         </div>
+                       ))}
+                     
+                     {/* Pending image attachments */}
+                     {pendingAttachments
+                       .filter(p => p.file.type.startsWith("image/"))
+                       .map((p, i) => (
+                         <div
+                           key={`pending-${i}`}
+                           className="relative rounded-lg overflow-hidden border border-border/50"
+                         >
+                           <img
+                             src={p.preview}
+                             alt="pending"
+                             className="w-[50px] h-[80px] object-cover"
+                           />
+                           <button
+                             onClick={() => removePendingAttachment(p.preview)}
+                             className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all cursor-pointer"
+                             aria-label="Remove image"
+                           >
+                             <X size={10} />
+                           </button>
+                         </div>
+                       ))}
                     
                     {/* Add image placeholder - always shown */}
                     <button
@@ -621,14 +641,14 @@ export default function TaskDetailModal({
                     {!isCreate && task && task.attachments
                       .filter(a => !a.mimeType.startsWith("image/"))
                       .map((attachment) => (
-                        <AttachmentCard key={attachment.id} attachment={attachment} onImagePreview={(urls, index) => { setPreviewUrls(urls); setPreviewIndex(index); }} />
+                        <AttachmentCard key={attachment.id} attachment={attachment} onImagePreview={(urls, index) => { setPreviewUrls(urls); setPreviewIndex(index); }} onRemove={() => removeAttachment(attachment.id)} />
                       ))}
                     {pendingAttachments
                       .filter(p => !p.file.type.startsWith("image/"))
                       .map((p, i) => (
                         <div
                           key={`pending-${i}`}
-                          className="flex items-center gap-3 rounded-lg border border-border/50 p-3 bg-accent/20"
+                          className="flex items-center gap-3 rounded-lg border border-border/50 p-3 bg-accent/20 group"
                         >
                           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-zinc-800 border border-border/30">
                             <Paperclip size={16} className="text-muted-foreground" />
@@ -637,6 +657,13 @@ export default function TaskDetailModal({
                             <p className="text-sm font-medium text-foreground truncate">{p.file.name}</p>
                             <p className="text-xs text-muted-foreground">Pending upload</p>
                           </div>
+                          <button
+                            onClick={() => removePendingAttachment(p.preview)}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                            aria-label="Remove attachment"
+                          >
+                            <X size={14} />
+                          </button>
                         </div>
                       ))}
                     {uploading && (
@@ -714,67 +741,75 @@ export default function TaskDetailModal({
                     </div>
                   </div>
 
-                  {/* Comments + Activity Feed */}
-                  <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                  {/* Comments + Activity Feed — Timeline */}
+                  <div className="flex-1 overflow-y-auto px-5 py-4">
                     {comments.length === 0 && activity.length === 0 ? (
                       <div className="text-xs text-muted-foreground text-center py-4">No activity yet</div>
                     ) : (
-                      <>
-                        {[...comments].reverse().map((item) => (
-                          <div key={item.id} className="group flex items-start gap-2 text-left w-full">
-                            {item.author.avatar ? (
-                              <img src={item.author.avatar} alt={item.author.name} className="h-6 w-6 shrink-0 rounded-full object-cover mt-0.5" />
-                            ) : (
-                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground mt-0.5">
-                                {item.author.initials}
+                      <div className="relative">
+                        {/* Vertical timeline line */}
+                        <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-border" />
+                        <div className="space-y-5">
+                          {[...comments].reverse().map((item) => (
+                            <div key={item.id} className="group relative flex items-start gap-3 w-full">
+                              <div className="relative z-10 shrink-0">
+                                {item.author.avatar ? (
+                                  <img src={item.author.avatar} alt={item.author.name} className="h-6 w-6 rounded-full object-cover ring-4 ring-[#1a1a1a]" />
+                                ) : (
+                                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground ring-4 ring-[#1a1a1a]">
+                                    {item.author.initials}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                            <div className="flex-1 min-w-0 text-left">
-                              <p className="text-xs text-muted-foreground">
-                                <span className="font-medium text-foreground">{item.author.name}</span>{" "}
-                                commented
-                              </p>
-                              <p className="text-sm text-foreground break-words text-left">
-                                {renderCommentContent(item.content)}
-                                {item.isPending && <span className="ml-1 text-[11px] text-muted-foreground/50 italic">sending…</span>}
-                              </p>
-                              <div className="flex items-center gap-2">
+                              <div className="flex-1 min-w-0 text-left -mt-0.5">
+                                <p className="text-xs text-muted-foreground">
+                                  <span className="font-medium text-foreground">{item.author.name}</span>{" "}
+                                  commented
+                                </p>
+                                <p className="text-sm text-foreground break-words text-left">
+                                  {renderCommentContent(item.content)}
+                                  {item.isPending && <span className="ml-1 text-[11px] text-muted-foreground/50 italic">sending…</span>}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-[11px] text-muted-foreground/50">
+                                    {formatTimeAgo(item.createdAt)}
+                                  </p>
+                                  {!item.isPending && (
+                                    <button
+                                      onClick={() => handleDeleteComment(item.id)}
+                                      className="text-[11px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity cursor-pointer"
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {activity.map((item) => (
+                            <div key={item._id} className="group relative flex items-start gap-3 w-full">
+                              <div className="relative z-10 shrink-0">
+                                {item.performedBy.avatar ? (
+                                  <img src={item.performedBy.avatar} alt={item.performedBy.name} className="h-6 w-6 rounded-full object-cover ring-4 ring-[#1a1a1a]" />
+                                ) : (
+                                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground ring-4 ring-[#1a1a1a]">
+                                    {getInitials(item.performedBy.name)}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0 text-left -mt-0.5">
+                                <p className="text-xs text-muted-foreground">
+                                  <span className="font-medium text-foreground">{item.performedBy.name}</span>{" "}
+                                  {formatActivity(item)}
+                                </p>
                                 <p className="text-[11px] text-muted-foreground/50">
                                   {formatTimeAgo(item.createdAt)}
                                 </p>
-                                {!item.isPending && (
-                                  <button
-                                    onClick={() => handleDeleteComment(item.id)}
-                                    className="text-[11px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity cursor-pointer"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
                               </div>
                             </div>
-                          </div>
-                        ))}
-                        {activity.map((item) => (
-                          <div key={item._id} className="group flex items-start gap-2 text-left w-full">
-                            {item.performedBy.avatar ? (
-                              <img src={item.performedBy.avatar} alt={item.performedBy.name} className="h-6 w-6 shrink-0 rounded-full object-cover mt-0.5" />
-                            ) : (
-                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-700 text-[9px] font-medium text-foreground mt-0.5">
-                                {getInitials(item.performedBy.name)}
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0 text-left">
-                              <p className="text-xs text-muted-foreground">
-                                <span className="font-medium text-foreground">{item.performedBy.name}</span>{" "}
-                                {formatActivity(item)}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground/50">
-                                {formatTimeAgo(item.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </>
