@@ -84,33 +84,29 @@ const navTabs: NavTab[] = [
     id: "home",
     label: "Home",
     icon: <Home size={16} />,
-    match: (pathname, searchParams) =>
-      pathname === "/dashboard" &&
-      !searchParams.get("workspace") &&
-      !searchParams.get("checklist"),
+    match: () => true,
     onClick: (navigate) => navigate("/dashboard"),
   },
   {
     id: "inbox",
     label: "Inbox",
     icon: <Inbox size={16} />,
-    match: (pathname, searchParams) =>
-      pathname === "/assigned-tasks" && searchParams.get("view") !== "members",
-    onClick: (navigate) => navigate("/assigned-tasks?userId=me"),
+    match: () => false,
+    onClick: () => {},
   },
   {
     id: "chats",
     label: "Chats",
     icon: <MessageSquare size={16} />,
-    match: (pathname) => pathname === "/chats",
-    onClick: (navigate) => navigate("/chats"),
+    match: () => false,
+    onClick: () => {},
   },
   {
     id: "tickets",
     label: "Tickets",
     icon: <Ticket size={16} />,
-    match: (pathname) => pathname === "/tickets",
-    onClick: (navigate) => navigate("/tickets"),
+    match: () => false,
+    onClick: () => {},
   },
 ];
 

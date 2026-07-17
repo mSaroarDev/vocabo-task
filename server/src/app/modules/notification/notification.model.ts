@@ -23,6 +23,7 @@ const notificationSchema = new Schema<INotification>(
     teamId: { type: String },
     workspaceId: { type: String },
     taskId: { type: String },
+    imageUrl: { type: String, trim: true },
   },
   { timestamps: true }
 );

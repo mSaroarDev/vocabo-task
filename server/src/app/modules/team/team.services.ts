@@ -120,6 +120,8 @@ const addMember = async (teamId: string, userId: string, email: string, role: st
         await User.findByIdAndUpdate(targetUserId, {
           telegramConnected: false,
           telegramChatId: null,
+          telegramConnectToken: null,
+          telegramUsername: null,
         });
       }
       console.error("Telegram notification error:", error);

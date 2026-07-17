@@ -10,4 +10,5 @@ export interface INotification {
   teamId?: string;
   workspaceId?: string;
   taskId?: string;
+  imageUrl?: string;
 }

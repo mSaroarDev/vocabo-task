@@ -63,10 +63,17 @@ export default function NotificationDrawer({ open, onOpenChange }: NotificationD
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <p className="truncate text-sm font-medium text-foreground">{n.title}</p>
+            <p className="truncate text-sm font-bold text-foreground">{n.title}</p>
             {unread && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
           </div>
           <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{n.body}</p>
+          {n.imageUrl && (
+            <img
+              src={n.imageUrl}
+              alt=""
+              className="mt-2 rounded-md border border-border/30 max-h-32 w-auto object-cover"
+            />
+          )}
           <p className="mt-1 text-[11px] text-muted-foreground/70">{timeAgo(n.createdAt)}</p>
         </div>
       </li>

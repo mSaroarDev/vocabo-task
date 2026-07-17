@@ -12,6 +12,7 @@ const createNotification = async (
     teamId?: string;
     workspaceId?: string;
     taskId?: string;
+    imageUrl?: string;
   }
 ) => {
   const uniqueRecipientIds = [...new Set(payload.recipientIds)];
@@ -26,6 +27,7 @@ const createNotification = async (
     teamId: payload.teamId,
     workspaceId: payload.workspaceId,
     taskId: payload.taskId,
+    imageUrl: payload.imageUrl,
   });
 
   return result;

@@ -10,6 +10,7 @@ import { ActivityLogServices } from "../activityLog/activityLog.services";
 import { NotificationServices } from "../notification/notification.services";
 import { emitToUser } from "../../socket";
 import { User } from "../auth/auth.model";
+import { Input } from "telegraf";
 import bot from "../auth/telegram.bot";
 import config from "../../config";
 
@@ -78,6 +79,8 @@ const sendTaskAssignedNotification = async (
       await User.findByIdAndUpdate(assignedUserId, {
         telegramConnected: false,
         telegramChatId: null,
+        telegramConnectToken: null,
+        telegramUsername: null,
       });
     }
     console.error("Telegram notification error:", error);
@@ -168,6 +171,8 @@ const sendTaskCreatedNotification = async (
       await User.findByIdAndUpdate(recipientId, {
         telegramConnected: false,
         telegramChatId: null,
+        telegramConnectToken: null,
+        telegramUsername: null,
       });
     }
     console.error("Telegram notification error:", error);
@@ -232,6 +237,8 @@ const sendTaskStatusChangeNotification = async (
       await User.findByIdAndUpdate(recipientId, {
         telegramConnected: false,
         telegramChatId: null,
+        telegramConnectToken: null,
+        telegramUsername: null,
       });
     }
     console.error("Telegram notification error:", error);
@@ -262,6 +269,79 @@ const createTaskStatusChangeNotification = async (
     emitToUser(recipientId, "notification:new", notification);
   } catch (error) {
     console.error("Failed to create task status change notification:", error);
+  }
+};
+
+const sendAttachmentTelegramNotification = async (
+  taskId: string,
+  title: string,
+  performerName: string,
+  teamId: string,
+  workspaceId: string,
+  recipientId: string,
+  imageUrl: string,
+  fileName: string,
+  localFilePath: string
+) => {
+  try {
+    const recipient = await User.findById(recipientId).select("telegramConnected telegramChatId");
+    if (!recipient?.telegramConnected || !recipient.telegramChatId) return;
+
+    const taskUrl = `${config.frontendUrl}/teams/${teamId}/workspaces/${workspaceId}/tasks/${taskId}`;
+    const replyMarkup = taskUrl.startsWith("https://")
+      ? { reply_markup: { inline_keyboard: [[{ text: "Open Task", url: taskUrl }]] } }
+      : {};
+
+    const caption = `📎 New Image Added\n\nTitle: ${title}\nFile: ${fileName}\nAdded by: ${performerName}`;
+
+    const photoSource = imageUrl.startsWith("http")
+      ? imageUrl
+      : Input.fromLocalFile(localFilePath);
+
+    await bot.telegram.sendPhoto(recipient.telegramChatId, photoSource, {
+      caption,
+      ...replyMarkup,
+    });
+  } catch (error: any) {
+    if (error?.response?.error_code === 403) {
+      await User.findByIdAndUpdate(recipientId, {
+        telegramConnected: false,
+        telegramChatId: null,
+        telegramConnectToken: null,
+        telegramUsername: null,
+      });
+    }
+    console.error("Telegram attachment notification error:", error);
+  }
+};
+
+const createAttachmentNotification = async (
+  taskId: string,
+  title: string,
+  performerName: string,
+  teamId: string,
+  workspaceId: string,
+  createdBy: string,
+  recipientIds: string[],
+  imageUrl: string,
+  fileName: string
+) => {
+  for (const recipientId of recipientIds) {
+    try {
+      const notification = await NotificationServices.createNotification(createdBy, {
+        title: "New attachment added",
+        body: `${performerName} added "${fileName}" to "${title}"`,
+        type: "task",
+        recipientIds: [recipientId],
+        teamId,
+        workspaceId,
+        taskId,
+        imageUrl,
+      });
+      emitToUser(recipientId, "notification:new", notification);
+    } catch (error) {
+      console.error("Failed to create attachment notification:", error);
+    }
   }
 };
 
@@ -311,6 +391,8 @@ const sendTaskUpdateNotification = async (
       await User.findByIdAndUpdate(assignedUserId, {
         telegramConnected: false,
         telegramChatId: null,
+        telegramConnectToken: null,
+        telegramUsername: null,
       });
     }
     console.error("Telegram notification error:", error);
@@ -860,6 +942,59 @@ const addAttachment = async (
   if (!task) {
     await storage.delete(url);
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
+  }
+
+  const performer = await User.findById(userId).select("name");
+  const performerName = performer?.name || "Unknown";
+
+  const team = await TeamModel.findById(teamId).select("owner members");
+  if (team) {
+    const assignedUserId = task.assignedTo
+      ? (typeof task.assignedTo === "object" && "_id" in task.assignedTo
+          ? String(task.assignedTo._id)
+          : String(task.assignedTo))
+      : null;
+    const createdById = task.createdBy
+      ? (typeof task.createdBy === "object" && "_id" in task.createdBy
+          ? String(task.createdBy._id)
+          : String(task.createdBy))
+      : null;
+
+    const recipientIds = [
+      ...(assignedUserId ? [assignedUserId] : []),
+      ...(createdById ? [createdById] : []),
+      String(team.owner),
+      ...team.members.filter((m) => m.role === "project manager").map((m) => String(m.user)),
+    ]
+      .filter((id, index, arr) => arr.indexOf(id) === index && id !== userId);
+
+    if (recipientIds.length > 0 && file.mimetype.startsWith("image/")) {
+      createAttachmentNotification(
+        String(task._id),
+        task.title,
+        performerName,
+        teamId,
+        workspaceId,
+        userId,
+        recipientIds,
+        url,
+        file.originalname
+      );
+
+      for (const recipientId of recipientIds) {
+        sendAttachmentTelegramNotification(
+          String(task._id),
+          task.title,
+          performerName,
+          teamId,
+          workspaceId,
+          recipientId,
+          url,
+          file.originalname,
+          file.path
+        );
+      }
+    }
   }
 
   return task;

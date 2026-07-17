@@ -14,6 +14,7 @@ export interface NotificationDoc {
   teamId?: string;
   workspaceId?: string;
   taskId?: string;
+  imageUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }
