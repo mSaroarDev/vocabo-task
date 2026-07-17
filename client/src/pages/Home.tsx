@@ -1,6 +1,7 @@
 import BoardView from "@/components/board/board-view";
 import ChecklistView from "@/components/checklist/checklist-view";
 import NotionTable, { type StatusOption } from "@/components/table/notion-table";
+import MobileTaskList from "@/components/table/MobileTaskList";
 import SettingsModal from "@/components/table/settings-modal";
 import { useChecklist } from "@/hooks/useChecklist";
 import { useTasks } from "@/hooks/useTasks";
@@ -15,6 +16,7 @@ import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ChecklistGroup } from "@/hooks/useChecklist";
 import type { Workspace } from "@/store/slices/workspacesSlice";
+import { isMobile } from "@/lib/device";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -22,10 +24,12 @@ export default function Home() {
   const { teams, selectedTeam, addTeam, joinTeam, isLoading: teamsLoading, error: teamsError } = useTeams();
   const workspaceId = searchParams.get("workspace");
   const checklistId = searchParams.get("checklist");
+  const onMobile = isMobile();
   const { workspaces, updateWorkspace } = useWorkspaces(selectedTeam?.id);
-  const { tasks, isLoading: tasksLoading, addTask, editTask, removeTask, reorder, archiveTask } = useTasks(selectedTeam?.id, workspaceId);
+  const effectiveWorkspaceId = workspaceId ?? (onMobile ? workspaces[0]?.id : workspaceId);
+  const { tasks, isLoading: tasksLoading, addTask, editTask, removeTask, reorder, archiveTask } = useTasks(selectedTeam?.id, effectiveWorkspaceId);
   const { groups: checklistGroups } = useChecklist();
-  const currentWorkspace = workspaceId ? workspaces.find((w: Workspace) => w.id === workspaceId) : null;
+  const currentWorkspace = effectiveWorkspaceId ? workspaces.find((w: Workspace) => w.id === effectiveWorkspaceId) : null;
   const currentChecklist = checklistId ? checklistGroups.find((g: ChecklistGroup) => g.id === checklistId) : null;
   const workspaceName = currentWorkspace?.name || "";
   const [activeTab, setActiveTab] = useState<"all" | "board">("all");
@@ -51,14 +55,20 @@ export default function Home() {
   }, [workspaceName]);
 
   useEffect(() => {
-    if (workspaceId && currentWorkspace) {
+    if (onMobile && !workspaceId && workspaces[0]?.id) {
+      navigate(`/dashboard?workspace=${workspaces[0].id}`, { replace: true });
+    }
+  }, [onMobile, workspaceId, workspaces, navigate]);
+
+  useEffect(() => {
+    if (effectiveWorkspaceId && currentWorkspace) {
       document.title = workspaceName
         ? `${workspaceName} - Plano`
         : "Plano - The Ultimate task management software";
     } else {
       document.title = "Plano - The Ultimate task management software";
     }
-  }, [workspaceId, currentWorkspace, workspaceName]);
+  }, [effectiveWorkspaceId, currentWorkspace, workspaceName]);
 
   useEffect(() => {
     setFilterMember(null);
@@ -149,7 +159,33 @@ export default function Home() {
     return <ChecklistView group={currentChecklist} />;
   }
 
-  if (workspaceId && currentWorkspace) {
+  if (onMobile && effectiveWorkspaceId && currentWorkspace) {
+    const tasksToShow = tasks.filter((t) => !t.isArchived);
+    return (
+      <div className="px-4 py-4">
+        <div className="flex items-center gap-3 mb-6">
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-lg"
+            style={{ backgroundColor: currentWorkspace.color + "1A" }}
+          >
+            <span style={{ color: currentWorkspace.color }}>
+              <WorkspaceIcon name={currentWorkspace.icon} size={20} />
+            </span>
+          </div>
+          <h1 className="text-lg font-semibold text-foreground">{currentWorkspace.name}</h1>
+        </div>
+        <MobileTaskList
+          tasks={tasksToShow}
+          statusOptions={statusOptions}
+          teamId={selectedTeam?.id}
+          workspaceId={effectiveWorkspaceId}
+          onTaskUpdate={editTask}
+        />
+      </div>
+    );
+  }
+
+  if (!onMobile && workspaceId && currentWorkspace) {
     return (
       <div className="px-12 py-8">
 
@@ -402,30 +438,41 @@ export default function Home() {
         </div>
 
         {activeTab === "all" ? (
-          <div className="-ml-10">
-            <NotionTable
-              isLoading={tasksLoading}
-              wrapTaskName={wrapTaskName}
-              statusOptions={statusOptions}
-              onStatusOptionsChange={setStatusOptions}
-              teamId={selectedTeam?.id}
-              workspaceId={workspaceId}
-              members={selectedTeam?.members}
-              tasks={filteredTasks}
-              onTaskCreate={addTask}
-              onTaskUpdate={editTask}
-              onTaskDelete={removeTask}
-              onTaskReorder={reorder}
-              createModalOpen={showCreateModal}
-              onCreateModalChange={setShowCreateModal}
-              selectedIds={selectedIds}
-              onToggleSelect={(id) =>
-                setSelectedIds((prev) =>
-                  prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-                )
-              }
-            />
-          </div>
+          <>
+            <div className="hidden md:block -ml-10">
+              <NotionTable
+                isLoading={tasksLoading}
+                wrapTaskName={wrapTaskName}
+                statusOptions={statusOptions}
+                onStatusOptionsChange={setStatusOptions}
+                teamId={selectedTeam?.id}
+                workspaceId={workspaceId}
+                members={selectedTeam?.members}
+                tasks={filteredTasks}
+                onTaskCreate={addTask}
+                onTaskUpdate={editTask}
+                onTaskDelete={removeTask}
+                onTaskReorder={reorder}
+                createModalOpen={showCreateModal}
+                onCreateModalChange={setShowCreateModal}
+                selectedIds={selectedIds}
+                onToggleSelect={(id) =>
+                  setSelectedIds((prev) =>
+                    prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+                  )
+                }
+              />
+            </div>
+            <div className="block md:hidden">
+              <MobileTaskList
+                tasks={filteredTasks}
+                statusOptions={statusOptions}
+                teamId={selectedTeam?.id}
+                workspaceId={workspaceId}
+                onTaskUpdate={editTask}
+              />
+            </div>
+          </>
         ) : (
           <BoardView
             tasks={tasks}

@@ -1,7 +1,6 @@
 import { LuUserRoundCheck, LuUserRoundCog } from "react-icons/lu";
 import {
   Home,
-  Star,
 } from "lucide-react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -21,9 +20,7 @@ const mobileNavItems: MobileNavItem[] = [
     label: "Home",
     icon: <Home size={20} />,
     match: (pathname, searchParams) =>
-      pathname === "/dashboard" &&
-      !searchParams.get("workspace") &&
-      !searchParams.get("checklist"),
+      pathname === "/dashboard" && !searchParams.get("checklist"),
     onClick: (navigate) => navigate("/dashboard"),
   },
   {
@@ -41,15 +38,6 @@ const mobileNavItems: MobileNavItem[] = [
     match: (pathname, searchParams) =>
       pathname === "/assigned-tasks" && searchParams.get("view") === "members",
     onClick: (navigate) => navigate("/assigned-tasks?view=members"),
-  },
-  {
-    id: "workspaces",
-    label: "Workspaces",
-    icon: <Star size={20} />,
-    match: (pathname, searchParams) =>
-      pathname === "/dashboard" &&
-      (!!searchParams.get("workspace") || !!searchParams.get("checklist")),
-    onClick: (navigate) => navigate("/dashboard"),
   },
 ];
 
