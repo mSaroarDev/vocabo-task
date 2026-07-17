@@ -21,6 +21,7 @@ import { addTaskAttachment, deleteTaskAttachment } from "@/store/slices/tasksSli
 import { fetchComments, addComment, deleteComment } from "@/store/slices/commentsSlice";
 import ImagePreview from "@/components/ui/image-preview";
 import ImagePickerModal from "./image-picker-modal";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
 
 const statusColors: Record<string, string> = {
   New: "bg-purple-500/20 text-purple-300",
@@ -216,6 +217,7 @@ export default function TaskDetailModal({
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -431,7 +433,14 @@ export default function TaskDetailModal({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          // Ignore close requests that originate while the confirm dialog is open
+          if (!next && commentToDelete !== null) return;
+          onOpenChange(next);
+        }}
+      >
         <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden rounded-xl" style={{ maxHeight: "75vh" }}>
           {/* Top Bar */}
           <div className="flex items-center justify-between px-5 py-3 border-b border-border/50 bg-[#1a1a1a] shrink-0">
@@ -776,7 +785,7 @@ export default function TaskDetailModal({
                                   </p>
                                   {!item.isPending && (
                                     <button
-                                      onClick={() => handleDeleteComment(item.id)}
+                                      onClick={() => setCommentToDelete(item.id)}
                                       className="text-[11px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity cursor-pointer"
                                     >
                                       Delete
@@ -844,6 +853,18 @@ export default function TaskDetailModal({
           } else {
             uploadViewAttachment(file);
           }
+        }}
+      />
+      <ConfirmDialog
+        open={commentToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setTimeout(() => setCommentToDelete(null), 0);
+        }}
+        title="Delete comment"
+        description="Are you sure you want to delete this comment? This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (commentToDelete) handleDeleteComment(commentToDelete);
         }}
       />
     </>
