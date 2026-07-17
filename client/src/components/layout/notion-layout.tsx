@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import Sidebar from "./sidebar";
+import MobileLayout from "./mobile-layout";
 import NotificationBell from "@/components/notifications/notification-bell";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
@@ -10,6 +11,7 @@ import { useAppDispatch } from "@/store/hooks";
 import type { Workspace } from "@/store/slices/workspacesSlice";
 import { fetchChecklist } from "@/store/slices/checklistSlice";
 import { fetchNotifications } from "@/store/slices/notificationsSlice";
+import { isMobile } from "@/lib/device";
 
 interface NotionLayoutProps {
   children: ReactNode;
@@ -20,6 +22,10 @@ const MAX_SIDEBAR_WIDTH = 420;
 const DEFAULT_SIDEBAR_WIDTH = 320;
 
 export default function NotionLayout({ children }: NotionLayoutProps) {
+  if (isMobile()) {
+    return <MobileLayout>{children}</MobileLayout>;
+  }
+
   useSocket();
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);

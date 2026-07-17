@@ -18,6 +18,7 @@ import {
   X,
   MessageSquare,
 } from "lucide-react";
+import { LuUserRoundCheck, LuUserRoundCog } from "react-icons/lu";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
@@ -63,6 +64,11 @@ const favorites: SidebarItem[] = [
   { id: "1", label: "Getting Started", icon: <Star size={16} /> },
   // { id: "2", label: "Meeting Notes", icon: <Star size={16} /> },
   // { id: "3", label: "Project Ideas", icon: <Star size={16} /> },
+];
+
+const menus: SidebarItem[] = [
+  { id: "assigned", label: "Assigned Me", icon: <LuUserRoundCheck size={16} /> },
+  { id: "members-assigned", label: "Members Assings", icon: <LuUserRoundCog size={16} /> },
 ];
 
 interface NavTab {
@@ -496,6 +502,12 @@ export default function Sidebar() {
   const { pathname } = useLocation();
   const activeWorkspace = searchParams.get("workspace");
   const activeChecklist = searchParams.get("checklist");
+  const activeMenu =
+    pathname === "/assigned-tasks"
+      ? searchParams.get("view") === "members"
+        ? "members-assigned"
+        : "assigned"
+      : null;
   const favoritesActive =
     pathname === "/dashboard" && !activeWorkspace && !activeChecklist;
   const [searchQuery, setSearchQuery] = useState("");
@@ -763,6 +775,16 @@ export default function Sidebar() {
               if (ws) navigate(`/dashboard?workspace=${ws.id}`);
             }}
             addLabel="Add workspace"
+          />
+
+          <SidebarSection
+            title="Menus"
+            items={menus.map((m) => ({ ...m, active: m.id === activeMenu }))}
+            collapsible={false}
+            onItemClick={(id) => {
+              if (id === "assigned") navigate("/assigned-tasks?userId=me");
+              if (id === "members-assigned") navigate("/assigned-tasks?view=members");
+            }}
           />
 
           <SidebarSection
