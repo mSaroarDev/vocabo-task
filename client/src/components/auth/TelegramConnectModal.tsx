@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { Check, ExternalLink, Send, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { Check, ExternalLink, Send, Loader2, Smartphone } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -20,6 +21,19 @@ export default function TelegramConnectModal({ open, onOpenChange }: Props) {
   const [checking, setChecking] = useState(false);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const deepLink = token && botUsername ? `tg://resolve?domain=${botUsername}&start=${token}` : "";
+  const webLink = token && botUsername ? `https://t.me/${botUsername}?start=${token}` : "";
+
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    setPolling(false);
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -27,6 +41,7 @@ export default function TelegramConnectModal({ open, onOpenChange }: Props) {
       setBotUsername("");
       setConnected(false);
       setError(null);
+      setPolling(false);
       setLoading(true);
       generateRef.current()
         .then((data: { token: string; botUsername: string }) => {
@@ -35,8 +50,30 @@ export default function TelegramConnectModal({ open, onOpenChange }: Props) {
         })
         .catch(() => setError("Failed to generate connect token"))
         .finally(() => setLoading(false));
+    } else {
+      stopPolling();
     }
-  }, [open]);
+  }, [open, stopPolling]);
+
+  useEffect(() => {
+    return () => stopPolling();
+  }, [stopPolling]);
+
+  const startPolling = () => {
+    setPolling(true);
+    setError(null);
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const user = await refreshRef.current();
+        if (user?.telegramConnected) {
+          setConnected(true);
+          stopPolling();
+        }
+      } catch {
+        // silent
+      }
+    }, 3000);
+  };
 
   const handleCheck = async () => {
     setChecking(true);
@@ -45,6 +82,7 @@ export default function TelegramConnectModal({ open, onOpenChange }: Props) {
       const refreshedUser = await refreshRef.current();
       if (refreshedUser?.telegramConnected) {
         setConnected(true);
+        stopPolling();
       } else {
         setError("Not connected yet. Open Telegram and tap Start.");
       }
@@ -95,19 +133,52 @@ export default function TelegramConnectModal({ open, onOpenChange }: Props) {
           </div>
         ) : (
           <div className="space-y-4 py-2">
-            <p className="text-xs text-muted-foreground">
-              Click the button below to open Telegram and tap <strong>Start</strong> to link your account.
-            </p>
+            <div className="flex flex-col items-center gap-3">
+              <div className="bg-white p-3 rounded-xl">
+                <QRCodeSVG value={deepLink} size={180} />
+              </div>
+              <p className="text-xs text-muted-foreground text-center max-w-xs">
+                Scan with your <strong>Telegram</strong> app to instantly connect
+              </p>
+            </div>
 
-            <a
-              href={`https://t.me/${botUsername}?start=${token}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full rounded-md bg-[#0088cc] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#0077b5]"
+            <div className="relative my-3">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-[#171717] px-2 text-muted-foreground">or</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                window.location.href = deepLink;
+                startPolling();
+              }}
+              className="flex items-center justify-center gap-2 w-full rounded-md bg-[#0088cc] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#0077b5] cursor-pointer"
+            >
+              <Smartphone size={14} />
+              Open Telegram App
+            </button>
+
+            <button
+              onClick={() => {
+                window.open(webLink, "_blank", "noopener,noreferrer");
+                startPolling();
+              }}
+              className="flex items-center justify-center gap-2 w-full rounded-md bg-[#2b2b2b] py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-[#3b3b3b] cursor-pointer"
             >
               <ExternalLink size={14} />
-              Open Telegram
-            </a>
+              Open in Browser
+            </button>
+
+            {polling && (
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Loader2 size={12} className="animate-spin" />
+                Waiting for connection...
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-1">
               <button
@@ -120,7 +191,7 @@ export default function TelegramConnectModal({ open, onOpenChange }: Props) {
                 ) : (
                   <Check size={14} />
                 )}
-                {checking ? "Checking..." : "I've Done"}
+                {checking ? "Checking..." : "Check Connection"}
               </button>
               <button
                 onClick={() => onOpenChange(false)}
