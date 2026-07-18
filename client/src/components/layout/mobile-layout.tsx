@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { fetchChecklist } from "@/store/slices/checklistSlice";
 import { fetchNotifications } from "@/store/slices/notificationsSlice";
+import { fetchStickyNotes } from "@/store/slices/stickyNotesSlice";
 import type { Workspace } from "@/store/slices/workspacesSlice";
 
 interface MobileLayoutProps {
@@ -40,6 +41,13 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
     if (notificationsFetched.current) return;
     notificationsFetched.current = true;
     dispatch(fetchNotifications());
+  }, [dispatch]);
+
+  const stickyNotesFetched = useRef(false);
+  useEffect(() => {
+    if (stickyNotesFetched.current) return;
+    stickyNotesFetched.current = true;
+    dispatch(fetchStickyNotes());
   }, [dispatch]);
 
   const { teams, selectedTeam, setSelectedTeam } = useTeams();

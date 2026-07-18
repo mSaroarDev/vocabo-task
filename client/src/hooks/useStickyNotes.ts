@@ -1,34 +1,38 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  addGroup,
-  renameGroup,
-  deleteGroup,
-  reorderGroups,
-  addNote,
-  updateNote,
-  deleteNote,
-  pinNote,
-  setNoteColor,
-  reorderNotes,
-  genId,
+  fetchStickyNotes,
+  createStickyGroup,
+  renameStickyGroup,
+  deleteStickyGroup,
+  reorderStickyGroups,
+  createStickyNote,
+  updateStickyNote,
+  deleteStickyNote,
+  reorderStickyNotes,
   type StickyNoteGroup,
   type StickyNote,
 } from "@/store/slices/stickyNotesSlice";
 
 export function useStickyNotes() {
   const dispatch = useAppDispatch();
-  const { groups, notes } = useAppSelector((state) => state.stickyNotes);
+  const { groups, notes, isLoading, error } = useAppSelector((state) => state.stickyNotes);
 
   return {
     groups,
     notes,
+    isLoading,
+    error,
+
+    loadAll: useCallback(() => {
+      dispatch(fetchStickyNotes());
+    }, [dispatch]),
 
     createGroup: useCallback(
       (name: string) => {
         const clean = name.trim();
         if (!clean) return;
-        dispatch(addGroup(clean));
+        dispatch(createStickyGroup(clean));
       },
       [dispatch],
     ),
@@ -37,35 +41,33 @@ export function useStickyNotes() {
       (id: string, name: string) => {
         const clean = name.trim();
         if (!clean) return;
-        dispatch(renameGroup({ id, name: clean }));
+        dispatch(renameStickyGroup({ id, name: clean }));
       },
       [dispatch],
     ),
 
     deleteGroup: useCallback(
-      (id: string) => dispatch(deleteGroup(id)),
+      (id: string) => dispatch(deleteStickyGroup(id)),
       [dispatch],
     ),
 
     reorderGroups: useCallback(
-      (orderedIds: string[]) => dispatch(reorderGroups(orderedIds)),
+      (orderedIds: string[]) => dispatch(reorderStickyGroups(orderedIds)),
       [dispatch],
     ),
 
     createNote: useCallback(
       (groupId: string, title: string, content?: string, color?: string) => {
-        const id = genId();
-        const now = Date.now();
-        dispatch(addNote({
-          id,
-          groupId,
-          title: title.trim(),
-          content: (content || "").trim(),
-          color: color || "#ffffff",
-          isPinned: false,
-          createdAt: now,
-          updatedAt: now,
-        }));
+        const id = crypto.randomUUID();
+        dispatch(
+          createStickyNote({
+            id,
+            groupId,
+            title: title.trim(),
+            content: (content || "").trim(),
+            color: color || "#ffffff",
+          })
+        );
         return id;
       },
       [dispatch],
@@ -73,29 +75,32 @@ export function useStickyNotes() {
 
     editNote: useCallback(
       (id: string, title: string, content: string) => {
-        dispatch(updateNote({ id, title, content }));
+        dispatch(updateStickyNote({ id, changes: { title: title.trim(), content: content.trim() } }));
       },
       [dispatch],
     ),
 
     removeNote: useCallback(
-      (id: string) => dispatch(deleteNote(id)),
+      (id: string) => dispatch(deleteStickyNote(id)),
       [dispatch],
     ),
 
     togglePin: useCallback(
-      (id: string) => dispatch(pinNote(id)),
-      [dispatch],
+      (id: string) => {
+        const note = notes.find((n) => n.id === id);
+        if (note) dispatch(updateStickyNote({ id, changes: { isPinned: !note.isPinned } }));
+      },
+      [dispatch, notes],
     ),
 
     changeNoteColor: useCallback(
-      (id: string, color: string) => dispatch(setNoteColor({ id, color })),
+      (id: string, color: string) => dispatch(updateStickyNote({ id, changes: { color } })),
       [dispatch],
     ),
 
     reorderNotes: useCallback(
       (groupId: string, noteIds: string[]) =>
-        dispatch(reorderNotes({ groupId, noteIds })),
+        dispatch(reorderStickyNotes({ groupId, noteIds })),
       [dispatch],
     ),
 

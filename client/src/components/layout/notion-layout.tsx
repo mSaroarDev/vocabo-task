@@ -11,6 +11,7 @@ import { useAppDispatch } from "@/store/hooks";
 import type { Workspace } from "@/store/slices/workspacesSlice";
 import { fetchChecklist } from "@/store/slices/checklistSlice";
 import { fetchNotifications } from "@/store/slices/notificationsSlice";
+import { fetchStickyNotes } from "@/store/slices/stickyNotesSlice";
 import { isMobile } from "@/lib/device";
 
 interface NotionLayoutProps {
@@ -45,6 +46,13 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
     if (notificationsFetched.current) return;
     notificationsFetched.current = true;
     dispatch(fetchNotifications());
+  }, [dispatch]);
+
+  const stickyNotesFetched = useRef(false);
+  useEffect(() => {
+    if (stickyNotesFetched.current) return;
+    stickyNotesFetched.current = true;
+    dispatch(fetchStickyNotes());
   }, [dispatch]);
 
   const { selectedTeam } = useTeams();

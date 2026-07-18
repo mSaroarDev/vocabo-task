@@ -38,7 +38,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import ItemModal from "@/components/ui/item-modal";
 import WorkspaceModal from "@/components/ui/workspace-modal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
@@ -767,7 +766,7 @@ export default function Sidebar() {
 
         <SidebarNav searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
-        <ScrollArea className="flex-1 px-2">
+        <div className="flex-1 overflow-y-auto px-2">
           <SidebarSection
             title="Favorites"
             items={favorites.map((f) => ({ ...f, active: favoritesActive }))}
@@ -850,7 +849,7 @@ export default function Sidebar() {
             }}
             addLabel="Add group"
           />
-        </ScrollArea>
+        </div>
 
         <div className="pb-3">
           <div
