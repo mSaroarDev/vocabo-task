@@ -135,7 +135,7 @@ export default function TelegramConnectModal({ open, onOpenChange }: Props) {
           <div className="space-y-4 py-2">
             <div className="flex flex-col items-center gap-3">
               <div className="bg-white p-3 rounded-xl">
-                <QRCodeSVG value={deepLink} size={180} />
+                <QRCodeSVG value={webLink} size={180} />
               </div>
               <p className="text-xs text-muted-foreground text-center max-w-xs">
                 Scan with your <strong>Telegram</strong> app to instantly connect
@@ -153,25 +153,35 @@ export default function TelegramConnectModal({ open, onOpenChange }: Props) {
 
             <button
               onClick={() => {
+                if (!deepLink) return;
                 window.location.href = deepLink;
                 startPolling();
               }}
-              className="flex items-center justify-center gap-2 w-full rounded-md bg-[#0088cc] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#0077b5] cursor-pointer"
+              disabled={!deepLink}
+              className="flex items-center justify-center gap-2 w-full rounded-md bg-[#0088cc] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#0077b5] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Smartphone size={14} />
               Open Telegram App
             </button>
 
-            <button
-              onClick={() => {
-                window.open(webLink, "_blank", "noopener,noreferrer");
+            <a
+              href={webLink || undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                if (!webLink) {
+                  e.preventDefault();
+                  return;
+                }
                 startPolling();
               }}
-              className="flex items-center justify-center gap-2 w-full rounded-md bg-[#2b2b2b] py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-[#3b3b3b] cursor-pointer"
+              className={`flex items-center justify-center gap-2 w-full rounded-md bg-[#2b2b2b] py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-[#3b3b3b] no-underline ${
+                !webLink ? "opacity-50 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+              }`}
             >
               <ExternalLink size={14} />
               Open in Browser
-            </button>
+            </a>
 
             {polling && (
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
