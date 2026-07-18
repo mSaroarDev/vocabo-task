@@ -11,6 +11,8 @@ import Profile from "./pages/Profile";
 import AssignedTasks from "./pages/AssignedTasks";
 import Chats from "./pages/Chats";
 import Tickets from "./pages/Tickets";
+import StickyNotes from "./pages/StickyNotes";
+import NoteEditor from "./components/sticky-notes/note-editor";
 import GoogleCallback from "./pages/GoogleCallback";
 
 function App() {
@@ -68,6 +70,26 @@ function App() {
                 <ProtectedRoute>
                   <NotionLayout>
                     <Tickets />
+                  </NotionLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sticky-notes"
+              element={
+                <ProtectedRoute>
+                  <NotionLayout>
+                    <StickyNotes />
+                  </NotionLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sticky-notes/note/:noteId"
+              element={
+                <ProtectedRoute>
+                  <NotionLayout>
+                    <NoteEditor />
                   </NotionLayout>
                 </ProtectedRoute>
               }

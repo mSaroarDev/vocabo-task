@@ -17,6 +17,7 @@ import {
   Ticket,
   X,
   MessageSquare,
+  StickyNote,
 } from "lucide-react";
 import { LuUserRoundCheck, LuUserRoundCog } from "react-icons/lu";
 import { useRef, useState, useEffect } from "react";
@@ -48,6 +49,7 @@ import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { useChecklist } from "@/hooks/useChecklist";
 import type { ChecklistGroup } from "@/hooks/useChecklist";
+import { useStickyNotes } from "@/hooks/useStickyNotes";
 import { WorkspaceIcon } from "@/lib/workspace-icons";
 import type { Workspace } from "@/store/slices/workspacesSlice";
 
@@ -494,10 +496,18 @@ export default function Sidebar() {
     deleteGroup: deleteChecklist,
     reorderGroups,
   } = useChecklist();
+  const {
+    groups: stickyNoteGroups,
+    createGroup: createStickyGroup,
+    renameGroup: renameStickyGroup,
+    deleteGroup: deleteStickyGroup,
+    reorderGroups: reorderStickyGroups,
+  } = useStickyNotes();
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
   const activeWorkspace = searchParams.get("workspace");
   const activeChecklist = searchParams.get("checklist");
+  const activeStickyGroup = searchParams.get("group");
   const activeMenu =
     pathname === "/assigned-tasks"
       ? searchParams.get("view") === "members"
@@ -609,6 +619,24 @@ export default function Sidebar() {
   const handleDeleteChecklist = (id: string) => {
     openConfirm("Delete list", "Are you sure you want to delete this list?", () => {
       deleteChecklist(id);
+    });
+  };
+
+  const addStickyNoteGroup = () => {
+    openInputModal("Add sticky notes group", "", (value) => {
+      createStickyGroup(value);
+    });
+  };
+
+  const editStickyNoteGroup = (id: string, currentLabel: string) => {
+    openInputModal("Rename group", currentLabel, (value) => {
+      renameStickyGroup(id, value);
+    });
+  };
+
+  const handleDeleteStickyGroup = (id: string) => {
+    openConfirm("Delete group", "Are you sure you want to delete this group and all its notes?", () => {
+      deleteStickyGroup(id);
     });
   };
 
@@ -801,6 +829,26 @@ export default function Sidebar() {
               navigate(`/dashboard?checklist=${id}`);
             }}
             addLabel="Add list"
+          />
+
+          <SidebarSection
+            title="Sticky Notes"
+            items={stickyNoteGroups.map((g) => ({
+              id: g.id,
+              label: g.name,
+              icon: <StickyNote size={16} />,
+              active: g.id === activeStickyGroup,
+            }))}
+            onAdd={addStickyNoteGroup}
+            onEdit={editStickyNoteGroup}
+            onDelete={handleDeleteStickyGroup}
+            onReorder={(orderedItems) => {
+              reorderStickyGroups(orderedItems.map((item) => item.id));
+            }}
+            onItemClick={(id) => {
+              navigate(`/sticky-notes?group=${id}`);
+            }}
+            addLabel="Add group"
           />
         </ScrollArea>
 

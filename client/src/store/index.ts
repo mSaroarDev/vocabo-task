@@ -22,6 +22,7 @@ import tasksReducer from "./slices/tasksSlice";
 import checklistReducer from "./slices/checklistSlice";
 import commentsReducer from "./slices/commentsSlice";
 import notificationsReducer from "./slices/notificationsSlice";
+import stickyNotesReducer from "./slices/stickyNotesSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -32,6 +33,7 @@ const rootReducer = combineReducers({
   checklist: checklistReducer,
   comments: commentsReducer,
   notifications: notificationsReducer,
+  stickyNotes: stickyNotesReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
@@ -109,7 +111,7 @@ const persistConfig: PersistConfig<RootState> = {
   version: 7,
   storage,
   migrate: createMigrate(migrations, { debug: false }),
-  whitelist: ["auth", "teams", "workspaces", "checklist", "notifications"],
+  whitelist: ["auth", "teams", "workspaces", "checklist", "notifications", "stickyNotes"],
   transforms: [
     createTransform(
       (state: any) => {
