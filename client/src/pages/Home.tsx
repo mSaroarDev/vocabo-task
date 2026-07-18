@@ -55,7 +55,7 @@ export default function Home() {
   }, [workspaceName]);
 
   useEffect(() => {
-    if (!workspaceId && workspaces[0]?.id) {
+    if (onMobile && !workspaceId && workspaces[0]?.id) {
       navigate(`/dashboard?workspace=${workspaces[0].id}`, { replace: true });
     }
   }, [onMobile, workspaceId, workspaces, navigate]);
