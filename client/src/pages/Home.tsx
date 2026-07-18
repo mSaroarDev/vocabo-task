@@ -3,13 +3,16 @@ import ChecklistView from "@/components/checklist/checklist-view";
 import NotionTable, { type StatusOption } from "@/components/table/notion-table";
 import MobileTaskList from "@/components/table/MobileTaskList";
 import SettingsModal from "@/components/table/settings-modal";
+import WorkspaceModal from "@/components/ui/workspace-modal";
+import { useAuth } from "@/hooks/useAuth";
+import { useAssignedTasks } from "@/hooks/useAssignedTasks";
 import { useChecklist } from "@/hooks/useChecklist";
 import { useTasks } from "@/hooks/useTasks";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { cn } from "@/lib/utils";
 import { WorkspaceIcon } from "@/lib/workspace-icons";
-import { Filter, LayoutDashboard, Plus, Search, Sun, UserPlus, Check, X, Archive } from "lucide-react";
+import { ClipboardList, Clock, Filter, LayoutDashboard, Plus, Search, Sun, UserPlus, Users, Check, X, Archive } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -21,14 +24,16 @@ import { isMobile } from "@/lib/device";
 export default function Home() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const { teams, selectedTeam, addTeam, joinTeam, isLoading: teamsLoading, error: teamsError } = useTeams();
   const workspaceId = searchParams.get("workspace");
   const checklistId = searchParams.get("checklist");
   const onMobile = isMobile();
-  const { workspaces, updateWorkspace } = useWorkspaces(selectedTeam?.id);
+  const { workspaces, updateWorkspace, addWorkspace } = useWorkspaces(selectedTeam?.id);
   const effectiveWorkspaceId = workspaceId ?? (onMobile ? workspaces[0]?.id : workspaceId);
   const { tasks, isLoading: tasksLoading, addTask, editTask, removeTask, reorder, archiveTask } = useTasks(selectedTeam?.id, effectiveWorkspaceId);
   const { groups: checklistGroups } = useChecklist();
+  const { tasks: assignedTasks, isLoading: assignedLoading } = useAssignedTasks(selectedTeam?.id, "me");
   const currentWorkspace = effectiveWorkspaceId ? workspaces.find((w: Workspace) => w.id === effectiveWorkspaceId) : null;
   const currentChecklist = checklistId ? checklistGroups.find((g: ChecklistGroup) => g.id === checklistId) : null;
   const workspaceName = currentWorkspace?.name || "";
@@ -45,6 +50,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
   const [teamMode, setTeamMode] = useState<"create" | "join">("create");
@@ -497,107 +503,234 @@ export default function Home() {
     );
   }
 
+  const assignedCount = assignedTasks.length;
+  const pendingCount = assignedTasks.filter((t) => t.status !== "Done").length;
+
   return (
-    <div className="max-w-3xl mx-auto px-16 py-20">
-      <div className="mb-1 text-xs text-muted-foreground">
-        Geting Started with
-      </div>
-
-      <h1 className="text-4xl font-semibold text-foreground mb-1 my-5">
-        Plano
-      </h1>
-
-      <p className="text-sm text-muted-foreground mb-8 mt-5">
-        Select a workspace from the sidebar to view tasks.
-      </p>
-
-      <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">Welcome to Plano.</p>
-        <p className="text-sm text-muted-foreground">
-          This is your workspace. Start typing or select a page from the sidebar.
+    <div className="max-w-5xl mx-auto px-16 py-16">
+      {/* Greeting */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold text-foreground">
+          Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"},{' '}
+          {user?.name?.split(" ")[0] || "there"}
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {teams.length > 0
+            ? "Select a workspace to get started."
+            : "Create or join a team to start collaborating."}
         </p>
       </div>
 
-      {teams.length === 0 && (
-        <section className="mt-10 max-w-xl border-t border-white/[0.08] pt-8">
-          <h2 className="text-xl font-semibold text-foreground">
+      {teams.length > 0 && selectedTeam ? (
+        <>
+          {/* Stats row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+            <div className="rounded-xl border border-border/50 bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <ClipboardList size={16} />
+                <span className="text-xs font-medium">My Tasks</span>
+              </div>
+              <p className="text-2xl font-semibold text-foreground tabular-nums">
+                {assignedLoading ? "..." : assignedCount}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <LayoutDashboard size={16} />
+                <span className="text-xs font-medium">Workspaces</span>
+              </div>
+              <p className="text-2xl font-semibold text-foreground tabular-nums">{workspaces.length}</p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <Users size={16} />
+                <span className="text-xs font-medium">Members</span>
+              </div>
+              <p className="text-2xl font-semibold text-foreground tabular-nums">
+                {selectedTeam.members?.length || 0}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-card p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <Clock size={16} />
+                <span className="text-xs font-medium">Pending</span>
+              </div>
+              <p className="text-2xl font-semibold text-foreground tabular-nums">
+                {assignedLoading ? "..." : pendingCount}
+              </p>
+            </div>
+          </div>
+
+          {/* Team card */}
+          <section className="mb-10">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+                Team
+              </h2>
+            </div>
+            <div className="rounded-xl border border-border/50 bg-card p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-medium text-foreground">{selectedTeam.name}</h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {selectedTeam.members?.length || 0} member{(selectedTeam.members?.length || 0) !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                {selectedTeam.inviteCode && (
+                  <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1.5">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      Invite
+                    </span>
+                    <code className="text-xs font-mono text-foreground tracking-wider">
+                      {selectedTeam.inviteCode}
+                    </code>
+                  </div>
+                )}
+              </div>
+              {selectedTeam.members && selectedTeam.members.length > 0 && (
+                <div className="mt-4 flex items-center gap-1.5">
+                  {selectedTeam.members.slice(0, 6).map((m) => (
+                    <div
+                      key={m.userId}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/15 text-[10px] font-medium text-blue-400 ring-2 ring-card"
+                      title={m.name}
+                    >
+                      {m.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
+                    </div>
+                  ))}
+                  {selectedTeam.members.length > 6 && (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground ring-2 ring-card">
+                      +{selectedTeam.members.length - 6}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Workspaces grid */}
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+                Workspaces
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {workspaces.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => navigate(`/dashboard?workspace=${w.id}`)}
+                  className="flex flex-col items-start gap-3 rounded-xl border border-border/50 bg-card p-5 text-left transition-all hover:border-border/80 hover:bg-accent/50 cursor-pointer group"
+                >
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-lg transition-transform group-hover:scale-105"
+                    style={{ backgroundColor: w.color + "1A" }}
+                  >
+                    <span style={{ color: w.color }}>
+                      <WorkspaceIcon name={w.icon} size={20} />
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-foreground">{w.name}</p>
+                </button>
+              ))}
+              {/* Add workspace card */}
+              <button
+                onClick={() => setWorkspaceModalOpen(true)}
+                className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/40 bg-card/30 p-5 text-center transition-all hover:border-border/60 hover:bg-accent/30 cursor-pointer min-h-[100px]"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50 text-muted-foreground">
+                  <Plus size={20} />
+                </div>
+                <span className="text-xs text-muted-foreground">New workspace</span>
+              </button>
+            </div>
+          </section>
+
+          <WorkspaceModal
+            open={workspaceModalOpen}
+            onOpenChange={setWorkspaceModalOpen}
+            onSave={async (value) => {
+              await addWorkspace(value.name, value.icon, value.color);
+            }}
+          />
+        </>
+      ) : (
+        /* No team — create / join */
+        <section className="max-w-lg">
+          <h2 className="text-xl font-semibold text-foreground mb-2">
             Set up your team
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create a new team or join one with an invite code to start collaborating.
+          <p className="text-sm text-muted-foreground mb-6">
+            Create a new team or join one with an invite code.
           </p>
 
-          <div className="mt-5 inline-flex rounded-md border border-white/[0.12] bg-white/[0.03] p-1">
+          <div className="inline-flex rounded-lg border border-border/50 bg-card p-1 mb-6">
             <button
               type="button"
               onClick={() => setTeamMode("create")}
               className={cn(
-                "inline-flex h-8 items-center gap-2 rounded px-3 text-sm transition-colors cursor-pointer",
+                "rounded-md px-4 py-1.5 text-sm font-medium transition-all cursor-pointer",
                 teamMode === "create"
-                  ? "bg-white text-black"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Plus size={15} />
+              <Plus size={15} className="inline mr-1.5" />
               Create
             </button>
             <button
               type="button"
               onClick={() => setTeamMode("join")}
               className={cn(
-                "inline-flex h-8 items-center gap-2 rounded px-3 text-sm transition-colors cursor-pointer",
+                "rounded-md px-4 py-1.5 text-sm font-medium transition-all cursor-pointer",
                 teamMode === "join"
-                  ? "bg-white text-black"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <UserPlus size={15} />
+              <UserPlus size={15} className="inline mr-1.5" />
               Join
             </button>
           </div>
 
           {teamMode === "create" ? (
-            <form onSubmit={handleCreateTeam} className="mt-5 flex max-w-md items-center gap-2">
+            <form onSubmit={handleCreateTeam} className="flex items-center gap-2">
               <input
                 value={teamName}
-                onChange={(event) => setTeamName(event.target.value)}
+                onChange={(e) => setTeamName(e.target.value)}
                 placeholder="Team name"
                 disabled={teamsLoading}
-                className="h-10 min-w-0 flex-1 rounded-md border border-white/[0.12] bg-transparent px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-white/30"
+                className="h-10 min-w-0 flex-1 rounded-lg border border-border/50 bg-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-border"
               />
               <button
                 type="submit"
                 disabled={!teamName.trim() || teamsLoading}
-                className="inline-flex h-10 items-center gap-2 rounded-md bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Plus size={16} />
                 {teamsLoading ? "Creating..." : "Create team"}
               </button>
             </form>
           ) : (
-            <form onSubmit={handleJoinTeam} className="mt-5 flex max-w-md items-center gap-2">
+            <form onSubmit={handleJoinTeam} className="flex items-center gap-2">
               <input
                 value={inviteCode}
-                onChange={(event) => setInviteCode(event.target.value)}
+                onChange={(e) => setInviteCode(e.target.value)}
                 placeholder="Invite code"
                 disabled={teamsLoading}
-                className="h-10 min-w-0 flex-1 rounded-md border border-white/[0.12] bg-transparent px-3 text-sm uppercase tracking-wide text-foreground outline-none transition-colors placeholder:normal-case placeholder:tracking-normal placeholder:text-muted-foreground focus:border-white/30"
+                className="h-10 min-w-0 flex-1 rounded-lg border border-border/50 bg-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-border uppercase tracking-wider"
               />
               <button
                 type="submit"
                 disabled={!inviteCode.trim() || teamsLoading}
-                className="inline-flex h-10 items-center gap-2 rounded-md border border-white/[0.15] px-4 text-sm font-medium text-foreground transition-colors hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <UserPlus size={16} />
-                {teamsLoading ? "Joining..." : "Join team"}
+                {teamsLoading ? "Joining..." : "Join"}
               </button>
             </form>
           )}
 
           {teamsError && (
-            <p className="mt-3 text-sm text-red-300">
-              {teamsError}
-            </p>
+            <p className="mt-3 text-sm text-red-400">{teamsError}</p>
           )}
         </section>
       )}
