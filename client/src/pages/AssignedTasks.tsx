@@ -1,6 +1,7 @@
 import NotionTable, { type StatusOption } from "@/components/table/notion-table";
 import { useAssignedTasks } from "@/hooks/useAssignedTasks";
 import { useTeams } from "@/hooks/useTeams";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { LuUserRoundCheck } from "react-icons/lu";
@@ -70,6 +71,8 @@ export default function AssignedTasks() {
   ]);
 
   const wrapTaskName = false;
+  const [workspaceFilterId, setWorkspaceFilterId] = useState<string>("all");
+  const { workspaces } = useWorkspaces(selectedTeam?.id);
   const [filterMember, setFilterMember] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterMenuPos, setFilterMenuPos] = useState({ top: 0, left: 0 });
@@ -86,7 +89,8 @@ export default function AssignedTasks() {
     setSearchOpen(false);
     setShowArchived(false);
     setSelectedIds([]);
-  }, []);
+    setWorkspaceFilterId("all");
+  }, [selectedTeam?.id]);
 
   useEffect(() => {
     if (filterOpen && filterRef.current) {
@@ -103,6 +107,9 @@ export default function AssignedTasks() {
 
   const filteredTasks = useMemo(() => {
     let result = tasks;
+    if (workspaceFilterId && workspaceFilterId !== "all") {
+      result = result.filter((t) => t.workspaceId === workspaceFilterId);
+    }
     if (filterMember) {
       const member = selectedTeam?.members?.find((m) => m.userId === filterMember);
       if (member) result = result.filter((t) => t.assignedTo.name === member.name);
@@ -113,7 +120,7 @@ export default function AssignedTasks() {
     }
     result = result.filter((t) => (showArchived ? t.isArchived : !t.isArchived));
     return result;
-  }, [tasks, filterMember, selectedTeam?.members, searchQuery, showArchived]);
+  }, [tasks, workspaceFilterId, filterMember, selectedTeam?.members, searchQuery, showArchived]);
 
   const archivedCount = useMemo(() => tasks.filter((t) => t.isArchived).length, [tasks]);
 
@@ -193,6 +200,20 @@ export default function AssignedTasks() {
           )}
         </div>
         <div className="flex items-center gap-1">
+          <Select value={workspaceFilterId} onValueChange={setWorkspaceFilterId}>
+            <SelectTrigger className="h-7 w-auto gap-1 rounded-md border border-border/50 bg-transparent px-2 text-xs text-muted-foreground">
+              <SelectValue placeholder="All workspaces" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#252525]">
+              <SelectItem value="all">All workspaces</SelectItem>
+              {workspaces.map((ws) => (
+                <SelectItem key={ws.id} value={ws.id}>
+                  {ws.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="w-2" />
           <div className="relative flex items-center">
             <button
               ref={filterRef}
@@ -218,6 +239,13 @@ export default function AssignedTasks() {
               if (!m) return null;
               return (
                 <div className="ml-1 flex items-center gap-1 rounded-md bg-blue-500/10 pl-2 pr-1 py-1 text-xs text-blue-400">
+                  {m.avatar ? (
+                    <img src={m.avatar} alt={m.name} className="h-4 w-4 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-500/30 text-[7px] font-medium">
+                      {m.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
+                    </div>
+                  )}
                   <span>{m.name}</span>
                   <button
                     onClick={() => { setFilterMember(null); setFilterOpen(false); }}
@@ -323,9 +351,13 @@ export default function AssignedTasks() {
                           setFilterOpen(false);
                         }}
                       >
+                        {member.avatar ? (
+                        <img src={member.avatar} alt={member.name} className="h-5 w-5 rounded-full object-cover" />
+                      ) : (
                         <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-blue-300 text-[9px] font-medium">
                           {member.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
                         </div>
+                      )}
                         <span className="flex-1 text-foreground">{member.name}</span>
                         {isSelected && <Check size={14} className="text-blue-400 shrink-0" />}
                       </button>
