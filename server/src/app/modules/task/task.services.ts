@@ -69,7 +69,7 @@ const sendTaskAssignedNotification = async (
         }
       : {};
 
-    await bot.telegram.sendMessage(
+    await bot?.telegram.sendMessage(
       assignedUser.telegramChatId,
       `📌 New Task\n\nTitle: ${title}\nPriority: ${emoji} ${priority}\nAssigned by: ${performedByName}`,
       replyMarkup
@@ -161,7 +161,7 @@ const sendTaskCreatedNotification = async (
         }
       : {};
 
-    await bot.telegram.sendMessage(
+    await bot?.telegram.sendMessage(
       recipient.telegramChatId,
       `🆕 New Task Created\n\nTitle: ${title}\nPriority: ${emoji} ${priority}\nBy: ${creatorName}`,
       replyMarkup
@@ -227,7 +227,7 @@ const sendTaskStatusChangeNotification = async (
         }
       : {};
 
-    await bot.telegram.sendMessage(
+    await bot?.telegram.sendMessage(
       recipient.telegramChatId,
       `🔄 Task Status Changed\n\nTitle: ${title}\nStatus: ${oldStatus} → ${newStatus}\nBy: ${performerName}`,
       replyMarkup
@@ -298,7 +298,7 @@ const sendAttachmentTelegramNotification = async (
       ? imageUrl
       : Input.fromLocalFile(localFilePath);
 
-    await bot.telegram.sendPhoto(recipient.telegramChatId, photoSource, {
+    await bot?.telegram.sendPhoto(recipient.telegramChatId, photoSource, {
       caption,
       ...replyMarkup,
     });
@@ -381,7 +381,7 @@ const sendTaskUpdateNotification = async (
       ? { reply_markup: { inline_keyboard: [[{ text: "Open Task", url: taskUrl }]] } }
       : {};
 
-    await bot.telegram.sendMessage(
+    await bot?.telegram.sendMessage(
       assignedUser.telegramChatId,
       `✏️ Task Updated: ${title}\n\n${lines.join("\n")}\n\nUpdated by: ${performedByName}`,
       replyMarkup

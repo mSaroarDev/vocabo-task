@@ -143,7 +143,7 @@ export const AuthServices = {
     user.telegramConnectToken = token;
     await user.save();
 
-    return { token, botUsername: getBotUsername() };
+    return { token, botUsername: await getBotUsername() };
   },
 
   disconnectTelegram: async (userId: string) => {

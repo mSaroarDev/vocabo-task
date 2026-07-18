@@ -111,7 +111,7 @@ const addMember = async (teamId: string, userId: string, email: string, role: st
   if (targetUser.telegramConnected && targetUser.telegramChatId) {
     const performer = await User.findById(userId).select("name");
     try {
-      await bot.telegram.sendMessage(
+      await bot?.telegram.sendMessage(
         targetUser.telegramChatId,
         `🏷️ Team Invitation\n\nYou've been added to: ${team.name}\nAdded by: ${performer?.name || "Unknown"}`
       );
