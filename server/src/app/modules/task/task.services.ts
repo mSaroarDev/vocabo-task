@@ -708,19 +708,20 @@ const updateTask = async (
     const assignedUserId = typeof task.assignedTo === "object"
       ? String((task.assignedTo as any)._id || task.assignedTo)
       : String(task.assignedTo);
-    const performer = await User.findById(userId).select("name");
-    const performerName = performer?.name || "Unknown";
-    sendTaskUpdateNotification(
-      taskId,
-      task.title,
-      assignedUserId,
-      otherChanges,
-      performerName,
-      teamId,
-      workspaceId
-    );
 
     if (assignedUserId !== userId) {
+      const performer = await User.findById(userId).select("name");
+      const performerName = performer?.name || "Unknown";
+      sendTaskUpdateNotification(
+        taskId,
+        task.title,
+        assignedUserId,
+        otherChanges,
+        performerName,
+        teamId,
+        workspaceId
+      );
+
       createTaskUpdateNotification(
         taskId,
         assignedUserId,
