@@ -46,13 +46,20 @@ export const AuthServices = {
   },
 
   googleLogin: async (code: string, redirectUri: string) => {
+    const configuredRedirectUri = process.env.GOOGLE_REDIRECT_URI;
+    const finalRedirectUri =
+      configuredRedirectUri &&
+      configuredRedirectUri !== "your_google_redirect_uri"
+        ? configuredRedirectUri
+        : redirectUri;
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      redirectUri
+      finalRedirectUri
     );
 
-    const { tokens } = await oauth2Client.getToken({ code, redirect_uri: redirectUri });
+    const { tokens } = await oauth2Client.getToken({ code, redirect_uri: finalRedirectUri });
     oauth2Client.setCredentials(tokens);
 
     const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });

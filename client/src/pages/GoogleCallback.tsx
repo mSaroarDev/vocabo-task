@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import apiClient from "@/api/client";
 import { setCredentials } from "@/store/slices/authSlice";
 
 export default function GoogleCallback() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Completing Google sign in...");
 
@@ -16,15 +17,6 @@ export default function GoogleCallback() {
     const finish = (result: "success" | "error", msg: string) => {
       setStatus(result);
       setMessage(msg);
-      if (result === "success") {
-        window.opener?.postMessage({ type: "GOOGLE_LOGIN_SUCCESS" }, window.location.origin);
-      } else {
-        window.opener?.postMessage(
-          { type: "GOOGLE_LOGIN_ERROR", message: msg },
-          window.location.origin
-        );
-      }
-      setTimeout(() => window.close(), 1000);
     };
 
     if (!code) {
@@ -42,12 +34,15 @@ export default function GoogleCallback() {
     apiClient
       .post("/auth/google-login", {
         code,
-        redirect_uri: `${window.location.origin}/auth/google/callback`,
+        redirect_uri:
+          import.meta.env.VITE_GOOGLE_REDIRECT_URI ||
+          `${window.location.origin}/auth/google/callback`,
       })
       .then((response) => {
         const { user, token } = response.data.data;
         setCredentials({ user, token });
         finish("success", "Signed in! Redirecting...");
+        setTimeout(() => navigate("/dashboard", { replace: true }), 800);
       })
       .catch((error) => {
         const msg =
@@ -55,7 +50,7 @@ export default function GoogleCallback() {
           "Google sign in failed. Please try again.";
         finish("error", msg);
       });
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e5e5e5] flex items-center justify-center px-4">
