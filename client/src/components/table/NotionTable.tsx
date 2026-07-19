@@ -267,10 +267,11 @@ export default function NotionTable({
                     const optimisticAssignedTo = member
                       ? {
                         name: member.name,
+                        avatar: member.avatar || "",
                         initials: member.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
                         color: "bg-blue-500/20 text-blue-300",
                       }
-                      : { name: "Unassigned", initials: "Un", color: "bg-blue-500/20 text-blue-300" };
+                      : { name: "Unassigned", avatar: "", initials: "Un", color: "bg-blue-500/20 text-blue-300" };
                     onTaskUpdate?.(id, { assignedTo: assignedTo as unknown as Task["assignedTo"] }, { assignedTo: optimisticAssignedTo });
                   }}
                   onTaskDelete={(id) => onTaskDelete?.(id)}
