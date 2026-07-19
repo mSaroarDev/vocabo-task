@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import apiClient from "@/api/client";
-import { setCredentials } from "@/store/slices/authSlice";
 
 export default function GoogleCallback() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Completing Google sign in...");
 
@@ -14,9 +12,21 @@ export default function GoogleCallback() {
     const state = searchParams.get("state");
     const savedState = localStorage.getItem("google_oauth_state");
 
-    const finish = (result: "success" | "error", msg: string) => {
+    const finish = (result: "success" | "error", msg: string, data?: { user: unknown; token: string }) => {
       setStatus(result);
       setMessage(msg);
+      if (result === "success" && data) {
+        window.opener?.postMessage(
+          { type: "GOOGLE_LOGIN_SUCCESS", token: data.token, user: data.user },
+          window.location.origin
+        );
+      } else {
+        window.opener?.postMessage(
+          { type: "GOOGLE_LOGIN_ERROR", message: msg },
+          window.location.origin
+        );
+      }
+      setTimeout(() => window.close(), 1000);
     };
 
     if (!code) {
@@ -40,9 +50,7 @@ export default function GoogleCallback() {
       })
       .then((response) => {
         const { user, token } = response.data.data;
-        setCredentials({ user, token });
-        finish("success", "Signed in! Redirecting...");
-        setTimeout(() => navigate("/dashboard", { replace: true }), 800);
+        finish("success", "Signed in! Redirecting...", { user, token });
       })
       .catch((error) => {
         const msg =
@@ -50,7 +58,7 @@ export default function GoogleCallback() {
           "Google sign in failed. Please try again.";
         finish("error", msg);
       });
-  }, [searchParams, navigate]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#e5e5e5] flex items-center justify-center px-4">

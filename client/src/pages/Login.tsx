@@ -5,12 +5,35 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, register, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, register, isAuthenticated, isLoading: authLoading, setCredentials } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; submit?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "GOOGLE_LOGIN_SUCCESS") {
+        const { token, user } = event.data;
+        if (token && user) {
+          setCredentials({ token, user });
+          navigate("/dashboard", { replace: true });
+        }
+      } else if (event.data?.type === "GOOGLE_LOGIN_ERROR") {
+        setErrors((prev) => ({
+          ...prev,
+          submit: event.data.message || "Google sign in failed. Please try again.",
+        }));
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [navigate, setCredentials, isAuthenticated]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -94,7 +117,7 @@ export default function Login() {
     });
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-    window.location.href = authUrl;
+    window.open(authUrl, "google-login", "width=500,height=600");
   };
 
   return (
