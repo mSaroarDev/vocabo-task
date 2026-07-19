@@ -25,6 +25,7 @@ export interface Task {
   title: string;
   status: string;
   priority: Priority;
+  tags?: string[];
   isCompleted: boolean;
   isArchived?: boolean;
   description?: string;
@@ -70,14 +71,33 @@ export const priorityOptions = [
   "Highest",
 ] as const;
 
-export const priorityColors: Record<string, string> = {
-  None: "bg-zinc-600/20 text-zinc-300",
+export const priorityColors: Record<string, string> = {  None: "bg-zinc-600/20 text-zinc-300",
   Lowest: "bg-blue-500/20 text-blue-300",
   Low: "bg-sky-500/20 text-sky-300",
   Medium: "bg-amber-500/20 text-amber-300",
   High: "bg-orange-500/20 text-orange-300",
   Highest: "bg-red-500/20 text-red-300",
 };
+
+export interface TagOption {
+  label: string;
+  color: string;
+}
+
+export const tagOptions: TagOption[] = [
+  { label: "Bug", color: "bg-red-500/20 text-red-300" },
+  { label: "Feature", color: "bg-green-500/20 text-green-300" },
+  { label: "Improvement", color: "bg-blue-500/20 text-blue-300" },
+  { label: "Design", color: "bg-purple-500/20 text-purple-300" },
+  { label: "Urgent", color: "bg-orange-500/20 text-orange-300" },
+  { label: "Docs", color: "bg-cyan-500/20 text-cyan-300" },
+  { label: "Backend", color: "bg-amber-500/20 text-amber-300" },
+  { label: "Frontend", color: "bg-pink-500/20 text-pink-300" },
+];
+
+export const tagColorMap: Record<string, string> = Object.fromEntries(
+  tagOptions.map((t) => [t.label, t.color])
+);
 
 export interface ColumnDef {
   key: string;

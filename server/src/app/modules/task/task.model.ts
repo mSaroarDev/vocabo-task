@@ -27,6 +27,7 @@ const taskSchema = new Schema<ITask>(
       enum: ["None", "Lowest", "Low", "Medium", "High", "Highest"],
       default: "None",
     },
+    tags: { type: [String], default: [] },
     attachments: { type: [attachmentSchema], default: [] },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     assignedTo: { type: Schema.Types.ObjectId, ref: "User" },

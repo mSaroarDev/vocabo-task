@@ -2,6 +2,8 @@ import { CgRatio } from "react-icons/cg";
 import { cn } from "@/lib/utils";
 import { formatRelativeTime } from "../utils";
 import type { CellRenderProps, Task } from "../types";
+import { tagColorMap } from "../types";
+import { Badge } from "@/components/ui/badge";
 import { PersonCell, AssigneeCell } from "./PersonCell";
 import { StatusCell } from "./StatusCell";
 import { PriorityCell } from "./PriorityCell";
@@ -62,12 +64,22 @@ export function renderCellContent(
         <span className="inline-flex items-center w-full justify-between">
           <span
             className={cn(
-              "cursor-pointer rounded px-0.5 -mx-0.5 py-0.5 hover:bg-accent/50 text-sm leading-tight min-w-0",
-              wrapTaskName ? "whitespace-normal" : "truncate"
+              "cursor-pointer rounded px-0.5 -mx-0.5 py-0.5 hover:bg-accent/50 text-sm leading-tight min-w-0 inline-flex items-center gap-1",
+              wrapTaskName ? "whitespace-normal flex-wrap" : "truncate"
             )}
             onClick={() => onStartEdit?.(task, "title")}
           >
-            {task.title}
+            {task.tags?.map((tag) => (
+              <Badge
+                key={tag}
+                className={cn("shrink-0 gap-1 px-2 py-1 text-xs", tagColorMap[tag] || "bg-zinc-600/20 text-zinc-300")}
+              >
+                {tag}
+              </Badge>
+            ))}
+            <span className={cn(wrapTaskName ? "whitespace-normal" : "truncate", "min-w-0")}>
+              {task.title}
+            </span>
           </span>
           <button
             onClick={() => onSelect(task)}

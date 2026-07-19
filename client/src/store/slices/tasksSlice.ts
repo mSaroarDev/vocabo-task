@@ -77,6 +77,7 @@ export interface ApiTask {
   createdBy: ApiUser;
   assignedTo?: ApiUser;
   customFields: Record<string, unknown>;
+  tags?: string[];
   workspace: string;
   workspaceName?: string;
   createdAt?: string;
@@ -96,6 +97,7 @@ export function mapTask(task: ApiTask): Task {
     title: task.title,
     status: task.status,
     priority: task.priority,
+    tags: task.tags ?? [],
     isCompleted: task.isCompleted,
     isArchived: task.isArchived,
     description: task.description,
@@ -164,6 +166,7 @@ export const createTask = createAsyncThunk<
       title: data.title || "Untitled",
       status: data.status || "New",
       priority: data.priority || "None",
+      tags: data.tags ?? [],
       isCompleted: false,
       description: data.description,
       attachments: [],
@@ -190,6 +193,7 @@ export const createTask = createAsyncThunk<
         description: data.description,
         status: data.status,
         priority: data.priority,
+        tags: data.tags,
       };
       const response = await apiClient.post(
         `/teams/${teamId}/workspaces/${workspaceId}/tasks`,

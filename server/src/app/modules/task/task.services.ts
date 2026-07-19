@@ -351,6 +351,7 @@ const fieldLabels: Record<string, string> = {
   description: "Description",
   status: "Status",
   priority: "Priority",
+  tags: "Tags",
 };
 
 const sendTaskUpdateNotification = async (
@@ -463,6 +464,7 @@ interface CreateTaskPayload {
   priority?: TaskPriority;
   assignedTo?: string;
   customFields?: Record<string, unknown>;
+  tags?: string[];
 }
 
 const createTask = async (
@@ -486,6 +488,7 @@ const createTask = async (
     description: payload.description?.trim(),
     status: payload.status?.trim() || defaultStatus,
     priority: payload.priority || defaultPriority,
+    tags: payload.tags ?? [],
     customFields: payload.customFields ? new Map(Object.entries(payload.customFields)) : new Map(),
     assignedTo: payload.assignedTo ? new Types.ObjectId(payload.assignedTo) : undefined,
     createdBy: new Types.ObjectId(userId),
@@ -571,6 +574,7 @@ interface UpdateTaskPayload {
   priority?: TaskPriority;
   assignedTo?: string | null;
   customFields?: Record<string, unknown>;
+  tags?: string[];
   isArchived?: boolean;
 }
 
@@ -631,6 +635,14 @@ const updateTask = async (
   }
   if (payload.customFields !== undefined) {
     updateData.customFields = new Map(Object.entries(payload.customFields));
+  }
+  if (payload.tags !== undefined) {
+    updateData.tags = payload.tags;
+    changes.push({
+      field: "tags",
+      oldValue: (oldTask.tags ?? []).join(", "),
+      newValue: payload.tags.join(", "),
+    });
   }
   if (payload.isArchived !== undefined) {
     updateData.isArchived = payload.isArchived;

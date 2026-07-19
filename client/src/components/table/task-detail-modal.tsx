@@ -15,6 +15,15 @@ import {
 } from "lucide-react";
 import type { Task, Attachment } from "./notion-table";
 import type { StatusOption } from "./notion-table";
+import { tagOptions, tagColorMap } from "./types";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import apiClient from "@/api/client";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { addTaskAttachment, deleteTaskAttachment } from "@/store/slices/tasksSlice";
@@ -203,6 +212,7 @@ export default function TaskDetailModal({
   const [statusValue, setStatusValue] = useState(task?.status || statusOptions[0]?.label || "In review");
   const [priorityValue, setPriorityValue] = useState(task?.priority || "Medium");
   const [assignedToName, setAssignedToName] = useState(task?.assignedTo?.name || "");
+  const [tagsValue, setTagsValue] = useState<string[]>(task?.tags || []);
   const [statusOpen, setStatusOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -244,8 +254,9 @@ export default function TaskDetailModal({
       setStatusValue(task.status);
       setPriorityValue(task.priority);
       setAssignedToName(task.assignedTo?.name || "");
+      setTagsValue(task.tags || []);
     }
-  }, [task?.id, task?.title, task?.description, task?.status, task?.priority, task?.assignedTo?.name]);
+  }, [task?.id, task?.title, task?.description, task?.status, task?.priority, task?.assignedTo?.name, task?.tags]);
 
   useEffect(() => {
     if (open && isCreate) {
@@ -254,6 +265,7 @@ export default function TaskDetailModal({
       setStatusValue(statusOptions[0]?.label || "In review");
       setPriorityValue("Medium");
       setAssignedToName("");
+      setTagsValue([]);
       setPendingAttachments([]);
     }
   }, [open, isCreate, statusOptions]);
@@ -356,11 +368,30 @@ export default function TaskDetailModal({
         description: descValue.trim() || undefined,
         status: statusValue,
         priority: priorityValue as Task["priority"],
+        tags: tagsValue,
       },
       files.length > 0 ? files : undefined
     );
     onOpenChange(false);
   };
+
+  const commitTags = (next: string[]) => {
+    setTagsValue(next);
+    if (!isCreate && task) {
+      onUpdate?.(task.id, { tags: next });
+    }
+  };
+
+  const handleAddTag = (tag: string) => {
+    if (tagsValue.includes(tag)) return;
+    commitTags([...tagsValue, tag]);
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    commitTags(tagsValue.filter((t) => t !== tag));
+  };
+
+  const availableTags = tagOptions.filter((t) => !tagsValue.includes(t.label));
 
   const priorityOptions = ["None", "Lowest", "Low", "Medium", "High", "Highest"];
 
@@ -481,6 +512,50 @@ export default function TaskDetailModal({
                       {task?.description || (
                         <span className="text-muted-foreground/40">No description</span>
                       )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Tags</label>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {tagsValue.length === 0 && (
+                      <span className="text-sm text-muted-foreground/40">No tags</span>
+                    )}
+                    {tagsValue.map((tag) => (
+                      <Badge
+                        key={tag}
+                        className={cn("gap-1 px-2 py-1 text-xs", tagColorMap[tag] || "bg-zinc-600/20 text-zinc-300")}
+                      >
+                        {tag}
+                        <button
+                          onClick={() => handleRemoveTag(tag)}
+                          className="inline-flex items-center justify-center rounded-sm hover:text-foreground/90 cursor-pointer"
+                          aria-label={`Remove ${tag}`}
+                        >
+                          <X size={11} />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  {availableTags.length > 0 && (
+                    <div className="mt-2 w-xs">
+                      <Select value="" onValueChange={handleAddTag}>
+                        <SelectTrigger className="w-full cursor-pointer">
+                          <SelectValue placeholder="Add a tag..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTags.map((opt) => (
+                            <SelectItem key={opt.label} value={opt.label} className="cursor-pointer">
+                              <span className="inline-flex items-center gap-2">
+                                <span className={cn("h-2 w-2 rounded-full", opt.color)} />
+                                {opt.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                 </div>

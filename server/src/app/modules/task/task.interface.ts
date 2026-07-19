@@ -20,6 +20,7 @@ export interface ITask {
   description?: string;
   status: string;
   priority: TaskPriority;
+  tags: string[];
   attachments: IAttachment[];
   createdBy: Types.ObjectId;
   assignedTo?: Types.ObjectId;
