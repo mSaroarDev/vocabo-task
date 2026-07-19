@@ -8,15 +8,30 @@ import { cn } from "@/lib/utils";
 import { getAutoMenuPosition } from "../utils";
 
 export function PersonCell({ person, meta }: { person: Person; meta?: string }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  const showImg = person.avatar && !imgError;
+
   return (
     <div className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap">
-      {person.avatar ? (
-        <img src={person.avatar} alt={person.name} className="h-5 w-5 shrink-0 rounded-full object-cover" />
-      ) : (
-        <div className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-medium", person.color)}>
-          {person.initials}
-        </div>
-      )}
+      <div className="relative h-5 w-5 shrink-0">
+        {showImg && (
+          <img
+            src={person.avatar}
+            alt={person.name}
+            className="absolute inset-0 h-full w-full rounded-full object-cover"
+            style={{ opacity: imgLoaded ? 1 : 0 }}
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
+          />
+        )}
+        {(!imgLoaded || !showImg) && (
+          <div className={cn("flex h-full w-full items-center justify-center rounded-full text-[9px] font-medium", person.color)}>
+            {person.initials}
+          </div>
+        )}
+      </div>
       <span className="truncate text-xs text-foreground">{person.name}</span>
       {meta && <span className="shrink-0 text-xs text-muted-foreground">({meta})</span>}
     </div>

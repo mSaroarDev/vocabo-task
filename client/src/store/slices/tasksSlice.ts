@@ -148,7 +148,7 @@ export const createTask = createAsyncThunk<
     data: Partial<Task>;
     pendingAttachments?: File[];
   },
-  { state: { auth: { user: { name: string } | null } }; rejectValue: string }
+  { state: { auth: { user: { name: string; avatar?: string } | null } }; rejectValue: string }
 >(
   "tasks/createTask",
   async (
@@ -157,6 +157,7 @@ export const createTask = createAsyncThunk<
   ) => {
     const currentUser = getState().auth.user;
     const userName = currentUser?.name || "Unknown";
+    const userAvatar = currentUser?.avatar || "";
     const tempId = `temp_${crypto.randomUUID()}`;
     const tempTask: Task = {
       id: tempId,
@@ -170,6 +171,7 @@ export const createTask = createAsyncThunk<
         name: userName,
         initials: getInitials(userName),
         color: getColor(userName),
+        avatar: userAvatar,
       },
       assignedTo: {
         name: "Unassigned",
