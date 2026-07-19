@@ -208,7 +208,11 @@ export default function TaskDetailModal({
   const isCreate = mode === "create";
 
   const [titleValue, setTitleValue] = useState(task?.title || "");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const titleInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [descValue, setDescValue] = useState(task?.description || "");
+  const [editingDesc, setEditingDesc] = useState(false);
+  const descInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [statusValue, setStatusValue] = useState(task?.status || statusOptions[0]?.label || "In review");
   const [priorityValue, setPriorityValue] = useState(task?.priority || "Medium");
   const [assignedToName, setAssignedToName] = useState(task?.assignedTo?.name || "");
@@ -250,6 +254,8 @@ export default function TaskDetailModal({
   useEffect(() => {
     if (task) {
       setTitleValue(task.title);
+      setEditingTitle(false);
+      setEditingDesc(false);
       setDescValue(task.description || "");
       setStatusValue(task.status);
       setPriorityValue(task.priority);
@@ -375,6 +381,61 @@ export default function TaskDetailModal({
     onOpenChange(false);
   };
 
+  const commitTitle = useCallback(() => {
+    setEditingTitle(false);
+    if (!task) return;
+    const next = titleValue.trim();
+    if (!next || next === task.title) {
+      setTitleValue(task.title);
+      return;
+    }
+    onUpdate?.(task.id, { title: next });
+  }, [task, titleValue, onUpdate]);
+
+  const startEditingTitle = useCallback(() => {
+    if (isCreate || !task) return;
+    setTitleValue(task.title);
+    setEditingTitle(true);
+    requestAnimationFrame(() => {
+      const el = titleInputRef.current;
+      if (el) {
+        el.style.height = "auto";
+        el.style.height = `${el.scrollHeight}px`;
+        el.focus();
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+      }
+    });
+  }, [isCreate, task]);
+
+  const startEditingDesc = useCallback(() => {
+    if (isCreate || !task) return;
+    setDescValue(task.description || "");
+    setEditingDesc(true);
+    requestAnimationFrame(() => {
+      const el = descInputRef.current;
+      if (el) {
+        el.style.height = "auto";
+        el.style.height = `${el.scrollHeight}px`;
+        el.focus();
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+      }
+    });
+  }, [isCreate, task]);
+
+  const commitDesc = useCallback(() => {
+    setEditingDesc(false);
+    if (!task) return;
+    const next = descValue.trim();
+    const current = (task.description || "").trim();
+    if (!next || next === current) {
+      setDescValue(task.description || "");
+      return;
+    }
+    onUpdate?.(task.id, { description: next });
+  }, [task, descValue, onUpdate]);
+
   const commitTags = (next: string[]) => {
     setTagsValue(next);
     if (!isCreate && task) {
@@ -412,9 +473,43 @@ export default function TaskDetailModal({
       );
     }
     return (
-      <h2 className="text-4xl font-bold text-foreground leading-snug px-1 py-0.5">
-        {task?.title}
-      </h2>
+      <div
+        onClick={startEditingTitle}
+        className={cn(
+          "text-4xl font-bold text-foreground leading-snug px-1 py-0.5 cursor-text rounded-md hover:bg-accent/30 transition-colors",
+          editingTitle && "cursor-default hover:bg-transparent"
+        )}
+      >
+        {editingTitle ? (
+          <textarea
+            ref={titleInputRef}
+            value={titleValue}
+            onChange={(e) => setTitleValue(e.target.value)}
+            onBlur={commitTitle}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                commitTitle();
+              }
+              if (e.key === "Escape") {
+                setTitleValue(task?.title || "");
+                setEditingTitle(false);
+              }
+            }}
+            rows={1}
+            onInput={(e) => {
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              el.style.height = `${el.scrollHeight}px`;
+            }}
+            className="w-full resize-none overflow-hidden bg-transparent border-b-2 border-foreground/30 focus:border-foreground/60 px-1 py-0.5 text-4xl font-bold text-foreground outline-none leading-snug"
+          />
+        ) : (
+          <h2 className="text-4xl font-bold text-foreground leading-snug px-1 py-0.5">
+            {task?.title}
+          </h2>
+        )}
+      </div>
     );
   };
 
@@ -508,9 +603,41 @@ export default function TaskDetailModal({
                       className="w-full min-h-[100px] rounded-lg border border-border/50 bg-[#1a1a1a] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-border resize-none"
                     />
                   ) : (
-                    <div className="rounded-lg border border-border/30 px-3 py-2.5 text-sm text-foreground min-h-[40px]">
-                      {task?.description || (
-                        <span className="text-muted-foreground/40">No description</span>
+                    <div
+                      onClick={startEditingDesc}
+                      className={cn(
+                        "rounded-lg border border-border/30 px-3 py-2.5 text-sm text-foreground min-h-[40px] cursor-text hover:bg-accent/30 transition-colors",
+                        editingDesc && "cursor-default hover:bg-transparent"
+                      )}
+                    >
+                      {editingDesc ? (
+                        <textarea
+                          ref={descInputRef}
+                          value={descValue}
+                          onChange={(e) => setDescValue(e.target.value)}
+                          onBlur={commitDesc}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                              e.preventDefault();
+                              commitDesc();
+                            }
+                            if (e.key === "Escape") {
+                              setDescValue(task?.description || "");
+                              setEditingDesc(false);
+                            }
+                          }}
+                          onInput={(e) => {
+                            const el = e.currentTarget;
+                            el.style.height = "auto";
+                            el.style.height = `${el.scrollHeight}px`;
+                          }}
+                          rows={1}
+                          className="w-full resize-none overflow-hidden bg-transparent border-b-2 border-foreground/30 focus:border-foreground/60 px-1 py-0.5 text-sm text-foreground outline-none leading-snug"
+                        />
+                      ) : (
+                        task?.description || (
+                          <span className="text-muted-foreground/40">No description</span>
+                        )
                       )}
                     </div>
                   )}
