@@ -14,16 +14,7 @@ import { User } from "../auth/auth.model";
 import { Input } from "telegraf";
 import bot from "../auth/telegram.bot";
 import config from "../../config";
-
-let _nanoid: ((size?: number) => string) | null = null;
-
-async function nanoid(): Promise<string> {
-  if (!_nanoid) {
-    const mod = await import("nanoid");
-    _nanoid = mod.nanoid;
-  }
-  return _nanoid();
-}
+import nanoid from "../../utils/nanoid";
 
 const ensureTeamMember = async (teamId: string, userId: string) => {
   if (!Types.ObjectId.isValid(teamId)) {
@@ -504,7 +495,7 @@ const createTask = async (
     assignedTo: payload.assignedTo ? new Types.ObjectId(payload.assignedTo) : undefined,
     createdBy: new Types.ObjectId(userId),
     order,
-    nanoid: await nanoid(),
+    nanoid: nanoid(),
   });
 
   const populated = await task.populate(["createdBy", "assignedTo"]);
@@ -1186,7 +1177,7 @@ const generateTaskShareNanoid = async (userId: string, teamId: string, workspace
 
   if (task.nanoid) return task.nanoid;
 
-  task.nanoid = await nanoid();
+  task.nanoid = nanoid();
   await task.save();
   return task.nanoid;
 };

@@ -2,16 +2,7 @@ import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
 import { StickyNoteGroupModel, StickyNoteModel } from "./stickyNote.model";
 import { getStorage } from "../task/task.storage";
-
-let _nanoid: ((size?: number) => string) | null = null;
-
-async function nanoid(): Promise<string> {
-  if (!_nanoid) {
-    const mod = await import("nanoid");
-    _nanoid = mod.nanoid;
-  }
-  return _nanoid();
-}
+import nanoid from "../../utils/nanoid";
 
 // ─── Groups ───────────────────────────────────────────────
 
@@ -105,7 +96,7 @@ const createNote = async (
     color: payload.color || "#ffffff",
     isPinned: false,
     order: lastNote ? lastNote.order + 1 : 0,
-    nanoid: await nanoid(),
+    nanoid: nanoid(),
   });
 
   return note;
@@ -117,7 +108,7 @@ const generateNoteShareNanoid = async (userId: string, noteId: string) => {
 
   if (note.nanoid) return note.nanoid;
 
-  note.nanoid = await nanoid();
+  note.nanoid = nanoid();
   await note.save();
   return note.nanoid;
 };
