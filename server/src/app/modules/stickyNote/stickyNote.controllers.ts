@@ -4,6 +4,7 @@ import { AuthRequest } from "../../middlewares/authMiddleware";
 import catchAsync from "../../utils/asyncCatch";
 import sendResponse from "../../utils/sendResponse";
 import { StickyNoteServices } from "./stickyNote.services";
+import { noteImageUpload } from "./stickyNote.upload";
 
 const getUserId = (req: AuthRequest) => req.user!.id;
 const getGroupId = (req: Request) => req.params.groupId as string;
@@ -158,6 +159,30 @@ const getSharedNote: RequestHandler = catchAsync(async (req: Request, res: Respo
   });
 });
 
+const uploadNoteImage: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const file = req.file;
+  if (!file) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: "No image file provided",
+    });
+  }
+
+  const url = await StickyNoteServices.uploadNoteImage(
+    getUserId(req as AuthRequest),
+    getNoteId(req),
+    file
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Image uploaded successfully",
+    data: { url },
+  });
+});
+
 export const StickyNoteControllers = {
   getGroups,
   createGroup,
@@ -171,4 +196,5 @@ export const StickyNoteControllers = {
   reorderNotes,
   generateNoteShareLink,
   getSharedNote,
+  uploadNoteImage,
 };

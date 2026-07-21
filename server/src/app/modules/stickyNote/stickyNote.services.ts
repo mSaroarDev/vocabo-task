@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
 import { StickyNoteGroupModel, StickyNoteModel } from "./stickyNote.model";
+import { getStorage } from "../task/task.storage";
 
 let _nanoid: ((size?: number) => string) | null = null;
 
@@ -127,6 +128,15 @@ const getNoteByNanoid = async (nanoid: string) => {
   return note;
 };
 
+const uploadNoteImage = async (userId: string, noteId: string, file: Express.Multer.File) => {
+  const note = await StickyNoteModel.findOne({ _id: noteId, user: userId });
+  if (!note) throw new AppError(httpStatus.NOT_FOUND, "Note not found");
+
+  const storage = getStorage();
+  const url = await storage.upload(file.path, file.filename, file.mimetype);
+  return url;
+};
+
 const updateNote = async (
   userId: string,
   noteId: string,
@@ -197,4 +207,5 @@ export const StickyNoteServices = {
   reorderNotes,
   generateNoteShareNanoid,
   getNoteByNanoid,
+  uploadNoteImage,
 };

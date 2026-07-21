@@ -2,6 +2,7 @@ import express from "express";
 import authMiddleware from "../../middlewares/authMiddleware";
 import validatorMiddleware from "../../middlewares/validatorMiddleware";
 import { StickyNoteControllers } from "./stickyNote.controllers";
+import { noteImageUpload } from "./stickyNote.upload";
 import {
   createGroupValidator,
   renameGroupValidator,
@@ -32,5 +33,6 @@ router.patch("/notes/:noteId", validatorMiddleware(updateNoteValidator), StickyN
 router.delete("/notes/:noteId", StickyNoteControllers.deleteNote);
 router.put("/notes/reorder", validatorMiddleware(reorderNotesValidator), StickyNoteControllers.reorderNotes);
 router.post("/notes/:noteId/share", StickyNoteControllers.generateNoteShareLink);
+router.post("/notes/:noteId/images", noteImageUpload, StickyNoteControllers.uploadNoteImage);
 
 export const StickyNoteRoutes = router;
