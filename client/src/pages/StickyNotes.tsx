@@ -97,7 +97,7 @@ export default function StickyNotes() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div className="flex flex-wrap justify-start gap-5">
           {notes.map((note) => (
             <StickyNoteCard
               key={note.id}
@@ -111,7 +111,7 @@ export default function StickyNotes() {
 
           <button
             onClick={openAddDialog}
-            className="flex min-h-[100px] cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/50 text-sm text-muted-foreground transition-colors hover:border-border hover:text-foreground hover:bg-accent/30"
+            className="flex w-[200px] h-[270px] cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/50 text-sm text-muted-foreground transition-colors hover:border-border hover:text-foreground hover:bg-accent/30"
           >
             <Plus size={18} />
             Add note

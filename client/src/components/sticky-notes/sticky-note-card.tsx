@@ -26,7 +26,7 @@ export default function StickyNoteCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col rounded-xl border border-border/40 shadow-sm transition-all hover:shadow-md cursor-pointer",
+        "group relative flex w-[200px] h-[270px] flex-col rounded-xl border border-border/40 shadow-sm transition-all hover:shadow-md cursor-pointer",
         isWhite ? "bg-card" : ""
       )}
       style={{ backgroundColor: isWhite ? undefined : note.color }}
@@ -47,19 +47,19 @@ export default function StickyNoteCard({
         {note.isPinned ? <PinOff size={11} className="text-gray-600 dark:text-gray-300" /> : <Pin size={11} className="text-gray-500 dark:text-gray-400" />}
       </button>
 
-      <div className="px-4 pb-3 pt-4">
+      <div className="px-3 pb-2 pt-3">
         {note.title && (
           <h3 className="mb-1.5 text-sm font-semibold leading-snug text-foreground break-words pr-6">
             {note.title}
           </h3>
         )}
         {note.content && (
-          <div className="text-xs leading-relaxed text-foreground/80 break-words line-clamp-6 [&>*]:m-0 [&_ul]:pl-4 [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: note.content }} />
+          <div className="text-xs leading-relaxed text-foreground/80 break-words line-clamp-4 [&>*]:m-0 [&_ul]:pl-4 [&_ol]:pl-4" dangerouslySetInnerHTML={{ __html: note.content }} />
         )}
       </div>
 
       <div
-        className="flex items-center gap-0.5 px-2 py-1.5 opacity-0 transition-opacity group-hover:opacity-100"
+        className="mt-auto flex items-center gap-0.5 px-2 py-1.5 opacity-0 transition-opacity group-hover:opacity-100"
       >
         <button
           type="button"
