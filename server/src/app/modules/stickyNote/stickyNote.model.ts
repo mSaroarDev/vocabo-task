@@ -23,6 +23,7 @@ const stickyNoteSchema = new Schema<IStickyNote>(
     color: { type: String, default: "#ffffff" },
     isPinned: { type: Boolean, default: false },
     order: { type: Number, default: 0 },
+    nanoid: { type: String, sparse: true, unique: true },
   },
   { timestamps: true, _id: false }
 );

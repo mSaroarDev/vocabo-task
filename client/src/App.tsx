@@ -13,6 +13,7 @@ import Chats from "./pages/Chats";
 import Tickets from "./pages/Tickets";
 import StickyNotes from "./pages/StickyNotes";
 import NoteEditor from "./components/sticky-notes/note-editor";
+import SharedStickyNotes from "./pages/SharedStickyNotes";
 import GoogleCallback from "./pages/GoogleCallback";
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/auth/google/callback" element={<GoogleCallback />} />
+            <Route path="/sticky-notes/shared/:nanoid" element={<SharedStickyNotes />} />
             <Route
               path="/dashboard"
               element={

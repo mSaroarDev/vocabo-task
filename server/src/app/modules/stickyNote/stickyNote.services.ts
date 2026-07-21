@@ -2,6 +2,16 @@ import httpStatus from "http-status";
 import AppError from "../../errors/AppError";
 import { StickyNoteGroupModel, StickyNoteModel } from "./stickyNote.model";
 
+let _nanoid: ((size?: number) => string) | null = null;
+
+async function nanoid(): Promise<string> {
+  if (!_nanoid) {
+    const mod = await import("nanoid");
+    _nanoid = mod.nanoid;
+  }
+  return _nanoid();
+}
+
 // ─── Groups ───────────────────────────────────────────────
 
 const getGroups = async (userId: string) => {
@@ -94,8 +104,26 @@ const createNote = async (
     color: payload.color || "#ffffff",
     isPinned: false,
     order: lastNote ? lastNote.order + 1 : 0,
+    nanoid: await nanoid(),
   });
 
+  return note;
+};
+
+const generateNoteShareNanoid = async (userId: string, noteId: string) => {
+  const note = await StickyNoteModel.findOne({ _id: noteId, user: userId });
+  if (!note) throw new AppError(httpStatus.NOT_FOUND, "Note not found");
+
+  if (note.nanoid) return note.nanoid;
+
+  note.nanoid = await nanoid();
+  await note.save();
+  return note.nanoid;
+};
+
+const getNoteByNanoid = async (nanoid: string) => {
+  const note = await StickyNoteModel.findOne({ nanoid });
+  if (!note) throw new AppError(httpStatus.NOT_FOUND, "Shared note not found");
   return note;
 };
 
@@ -167,4 +195,6 @@ export const StickyNoteServices = {
   updateNote,
   deleteNote,
   reorderNotes,
+  generateNoteShareNanoid,
+  getNoteByNanoid,
 };

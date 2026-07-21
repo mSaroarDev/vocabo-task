@@ -1,8 +1,9 @@
-import { Pin, PinOff, Trash2, Palette } from "lucide-react";
+import { Pin, PinOff, Trash2, Palette, Share2, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { StickyNote } from "@/store/slices/stickyNotesSlice";
 import { NOTE_COLORS } from "@/store/slices/stickyNotesSlice";
+import apiClient from "@/api/client";
 
 interface StickyNoteCardProps {
   note: StickyNote;
@@ -20,6 +21,41 @@ export default function StickyNoteCard({
   onChangeColor,
 }: StickyNoteCardProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (note.nanoid) {
+      setShareLink(`${window.location.origin}/sticky-notes/shared/${note.nanoid}`);
+      setShareOpen(true);
+      return;
+    }
+    setShareLoading(true);
+    try {
+      const res = await apiClient.post(`/sticky-notes/notes/${note.id}/share`);
+      const nanoid = res.data.data.nanoid;
+      setShareLink(`${window.location.origin}/sticky-notes/shared/${nanoid}`);
+      setShareOpen(true);
+    } catch {
+      setShareLink("");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const copyShareLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      //
+    }
+  };
 
   const isWhite = note.color === "#ffffff";
 
@@ -72,17 +108,57 @@ export default function StickyNoteCard({
           <Palette size={14} />
         </button>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(note.id);
-          }}
-          className="flex h-7 w-7 items-center justify-center rounded hover:bg-black/10 text-muted-foreground hover:text-red-400 ml-auto"
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="ml-auto flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShare(e);
+            }}
+            disabled={shareLoading}
+            className="flex h-7 w-7 items-center justify-center rounded hover:bg-black/10 text-muted-foreground"
+          >
+            <Share2 size={14} />
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(note.id);
+            }}
+            className="flex h-7 w-7 items-center justify-center rounded hover:bg-black/10 text-muted-foreground hover:text-red-400"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
+
+      {shareOpen && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={(e) => { e.stopPropagation(); setShareOpen(false); }} />
+          <div
+            className="absolute bottom-full right-2 z-40 mb-1.5 w-72 rounded-xl border border-border bg-popover p-3 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-semibold text-foreground">Share this note</p>
+            <div className="flex items-center gap-1.5">
+              <input
+                readOnly
+                value={shareLink}
+                className="flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
+              />
+              <button
+                type="button"
+                onClick={copyShareLink}
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-muted-foreground hover:bg-accent"
+              >
+                {shareCopied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {showColorPicker && (
         <>

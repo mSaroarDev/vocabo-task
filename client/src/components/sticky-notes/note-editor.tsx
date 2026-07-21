@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Trash2, Bold, Italic, Underline, Heading1, Heading2, List, ListOrdered, Code, SmilePlus } from "lucide-react";
+import { ArrowLeft, Trash2, Share2, Copy, Check, Bold, Italic, Underline, Heading1, Heading2, List, ListOrdered, Code, SmilePlus } from "lucide-react";
 import { useStickyNotes } from "@/hooks/useStickyNotes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import UnderlineExt from "@tiptap/extension-underline";
 import { cn } from "@/lib/utils";
+import apiClient from "@/api/client";
 
 const EMOJIS = [
   "😀","😊","😂","🤔","😎","🙌","👍","👎","💡","🎉","🔥","⭐",
@@ -155,6 +156,10 @@ export default function NoteEditor() {
 
   const [title, setTitle] = useState(note?.title ?? "");
   const [saveTimer, setSaveTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
 
   const editor = useEditor({
     extensions: [StarterKit, UnderlineExt],
@@ -220,6 +225,36 @@ export default function NoteEditor() {
     navigate(backPath, { replace: true });
   };
 
+  const handleShare = async () => {
+    if (!note) return;
+    if (note.nanoid) {
+      setShareLink(`${window.location.origin}/sticky-notes/shared/${note.nanoid}`);
+      setShareOpen(true);
+      return;
+    }
+    setShareLoading(true);
+    try {
+      const res = await apiClient.post(`/sticky-notes/notes/${note.id}/share`);
+      const nanoid = res.data.data.nanoid;
+      setShareLink(`${window.location.origin}/sticky-notes/shared/${nanoid}`);
+      setShareOpen(true);
+    } catch {
+      setShareLink("");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const copyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      //
+    }
+  };
+
   return (
     <div className="flex h-full flex-col overflow-y-auto">
       <style>{`.note-editor code { font-family: 'Operator Mono', 'Fira Code', monospace !important; }`}</style>
@@ -231,7 +266,15 @@ export default function NoteEditor() {
           <ArrowLeft size={14} />
           Back to notes
         </button>
-        <div className="flex items-center gap-2">
+        <div className="relative flex items-center gap-2">
+          <button
+            onClick={handleShare}
+            disabled={shareLoading}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Share2 size={13} />
+            Share
+          </button>
           <button
             onClick={handleDelete}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-red-400"
@@ -239,6 +282,37 @@ export default function NoteEditor() {
             <Trash2 size={13} />
             Delete
           </button>
+
+          {shareOpen && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setShareOpen(false)} />
+              <div className="absolute right-0 top-full z-40 mt-1.5 w-80 rounded-xl border border-border bg-popover p-4 shadow-lg">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">Share this note</h3>
+                  <button
+                    onClick={() => setShareOpen(false)}
+                    className="flex h-5 w-5 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-accent"
+                  >
+                    <span className="text-xs">&times;</span>
+                  </button>
+                </div>
+                <label className="mb-1 block text-xs text-muted-foreground">Share link</label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    readOnly
+                    value={shareLink}
+                    className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground outline-none"
+                  />
+                  <button
+                    onClick={copyShareLink}
+                    className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    {shareCopied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

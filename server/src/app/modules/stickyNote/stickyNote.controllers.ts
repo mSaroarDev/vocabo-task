@@ -130,6 +130,34 @@ const reorderNotes: RequestHandler = catchAsync(async (req: Request, res: Respon
   });
 });
 
+// ─── Share ────────────────────────────────────────────────
+
+const generateNoteShareLink: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const nanoid = await StickyNoteServices.generateNoteShareNanoid(
+    getUserId(req as AuthRequest),
+    getNoteId(req)
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Share link generated successfully",
+    data: { nanoid },
+  });
+});
+
+const getSharedNote: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const nanoid = req.params.nanoid as string;
+  const result = await StickyNoteServices.getNoteByNanoid(nanoid);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Shared note retrieved successfully",
+    data: result,
+  });
+});
+
 export const StickyNoteControllers = {
   getGroups,
   createGroup,
@@ -141,4 +169,6 @@ export const StickyNoteControllers = {
   updateNote,
   deleteNote,
   reorderNotes,
+  generateNoteShareLink,
+  getSharedNote,
 };

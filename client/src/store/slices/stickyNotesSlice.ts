@@ -11,6 +11,7 @@ export interface StickyNote {
   order: number;
   createdAt: number;
   updatedAt: number;
+  nanoid?: string;
 }
 
 export interface StickyNoteGroup {
@@ -54,6 +55,7 @@ function mapNote(doc: any): StickyNote {
     order: doc.order ?? 0,
     createdAt: doc.createdAt ? new Date(doc.createdAt).getTime() : Date.now(),
     updatedAt: doc.updatedAt ? new Date(doc.updatedAt).getTime() : Date.now(),
+    nanoid: doc.nanoid,
   };
 }
 

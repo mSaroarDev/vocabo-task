@@ -14,4 +14,5 @@ export interface IStickyNote {
   color: string;
   isPinned: boolean;
   order: number;
+  nanoid?: string;
 }

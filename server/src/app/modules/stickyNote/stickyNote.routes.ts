@@ -13,6 +13,9 @@ import {
 
 const router = express.Router();
 
+// Public route (no auth)
+router.get("/share/:nanoid", StickyNoteControllers.getSharedNote);
+
 router.use(authMiddleware);
 
 // Groups
@@ -28,5 +31,6 @@ router.post("/notes", validatorMiddleware(createNoteValidator), StickyNoteContro
 router.patch("/notes/:noteId", validatorMiddleware(updateNoteValidator), StickyNoteControllers.updateNote);
 router.delete("/notes/:noteId", StickyNoteControllers.deleteNote);
 router.put("/notes/reorder", validatorMiddleware(reorderNotesValidator), StickyNoteControllers.reorderNotes);
+router.post("/notes/:noteId/share", StickyNoteControllers.generateNoteShareLink);
 
 export const StickyNoteRoutes = router;
