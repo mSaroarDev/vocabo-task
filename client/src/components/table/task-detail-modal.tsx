@@ -12,6 +12,9 @@ import {
   Plus,
   User,
   Loader2,
+  Share2,
+  Copy,
+  Check,
 } from "lucide-react";
 import type { Task, Attachment } from "./notion-table";
 import type { StatusOption } from "./notion-table";
@@ -232,6 +235,10 @@ export default function TaskDetailModal({
   const [previewIndex, setPreviewIndex] = useState(0);
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [shareLoading, setShareLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -333,6 +340,33 @@ export default function TaskDetailModal({
     },
     [task, teamId, workspaceId, dispatch]
   );
+
+  const handleShare = useCallback(() => {
+    if (!task || isCreate) return;
+    if (task.nanoid) {
+      setShareLink(`${window.location.origin}/task/shared/${task.nanoid}`);
+      setShareOpen(true);
+      return;
+    }
+    if (!teamId || !workspaceId) return;
+    setShareLoading(true);
+    apiClient
+      .post(`/teams/${teamId}/workspaces/${workspaceId}/tasks/${task.id}/share`)
+      .then((res) => {
+        setShareLink(`${window.location.origin}/task/shared/${res.data.data.nanoid}`);
+        setShareOpen(true);
+      })
+      .catch(() => setShareLink(""))
+      .finally(() => setShareLoading(false));
+  }, [task, isCreate, teamId, workspaceId]);
+
+  const handleCopyLink = useCallback(() => {
+    if (!shareLink) return;
+    navigator.clipboard.writeText(shareLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [shareLink]);
 
   useEffect(() => {
     if (!open) return;
@@ -573,12 +607,47 @@ export default function TaskDetailModal({
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               {isCreate ? "New Task" : "Task"}
             </span>
-            <button
-              onClick={() => onOpenChange(false)}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-            >
-              <X size={16} />
-            </button>
+            <div className="flex items-center gap-1">
+              {!isCreate && (
+                <div className="relative">
+                  <button
+                    onClick={handleShare}
+                    disabled={shareLoading}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-40"
+                    aria-label="Share task"
+                  >
+                    {shareLoading ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
+                  </button>
+                  {shareOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => { setShareOpen(false); setCopied(false); }} />
+                      <div className="absolute right-0 top-full mt-1 z-20 bg-[#252525] border border-border rounded-lg shadow-xl p-3 min-w-[280px]">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Share task</p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            readOnly
+                            value={shareLink}
+                            className="flex-1 bg-[#1a1a1a] border border-border/50 rounded-md px-2 py-1.5 text-xs text-foreground outline-none"
+                          />
+                          <button
+                            onClick={handleCopyLink}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                          >
+                            {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={() => onOpenChange(false)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Split Layout */}

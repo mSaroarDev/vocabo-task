@@ -9,10 +9,21 @@ import { getStorage } from "./task.storage";
 import { ActivityLogServices } from "../activityLog/activityLog.services";
 import { NotificationServices } from "../notification/notification.services";
 import { emitToUser } from "../../socket";
+import CommentModel from "../comment/comment.model";
 import { User } from "../auth/auth.model";
 import { Input } from "telegraf";
 import bot from "../auth/telegram.bot";
 import config from "../../config";
+
+let _nanoid: ((size?: number) => string) | null = null;
+
+async function nanoid(): Promise<string> {
+  if (!_nanoid) {
+    const mod = await import("nanoid");
+    _nanoid = mod.nanoid;
+  }
+  return _nanoid();
+}
 
 const ensureTeamMember = async (teamId: string, userId: string) => {
   if (!Types.ObjectId.isValid(teamId)) {
@@ -493,6 +504,7 @@ const createTask = async (
     assignedTo: payload.assignedTo ? new Types.ObjectId(payload.assignedTo) : undefined,
     createdBy: new Types.ObjectId(userId),
     order,
+    nanoid: await nanoid(),
   });
 
   const populated = await task.populate(["createdBy", "assignedTo"]);
@@ -1159,6 +1171,39 @@ const setTasksArchive = async (
   return updated;
 };
 
+const generateTaskShareNanoid = async (userId: string, teamId: string, workspaceId: string, taskId: string) => {
+  await ensureTeamMember(teamId, userId);
+  await ensureWorkspace(teamId, workspaceId);
+
+  if (!Types.ObjectId.isValid(taskId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
+  }
+
+  const task = await TaskModel.findOne({ _id: taskId, workspace: workspaceId });
+  if (!task) {
+    throw new AppError(httpStatus.NOT_FOUND, "Task not found");
+  }
+
+  if (task.nanoid) return task.nanoid;
+
+  task.nanoid = await nanoid();
+  await task.save();
+  return task.nanoid;
+};
+
+const getTaskByNanoid = async (nanoid: string) => {
+  const task = await TaskModel.findOne({ nanoid })
+    .populate("createdBy", "name email avatar")
+    .populate("assignedTo", "name email avatar");
+  if (!task) {
+    throw new AppError(httpStatus.NOT_FOUND, "Shared task not found");
+  }
+  const comments = await CommentModel.find({ task: task._id })
+    .populate("author", "name email avatar")
+    .sort({ createdAt: -1 });
+  return { ...task.toObject(), comments };
+};
+
 export const TaskServices = {
   getTasks,
   getTask,
@@ -1173,4 +1218,6 @@ export const TaskServices = {
   setTasksArchive,
   setBanner,
   removeBanner,
+  generateTaskShareNanoid,
+  getTaskByNanoid,
 };

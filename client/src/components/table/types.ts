@@ -38,6 +38,7 @@ export interface Task {
   workspaceName?: string;
   createdAt?: string;
   isPending?: boolean;
+  nanoid?: string;
 }
 
 export interface StatusOption {

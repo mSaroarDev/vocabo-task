@@ -270,6 +270,34 @@ const removeBanner: RequestHandler = catchAsync(async (req: Request, res: Respon
   });
 });
 
+const generateTaskShareLink: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const nanoid = await TaskServices.generateTaskShareNanoid(
+    getUserId(req as AuthRequest),
+    req.params.teamId as string,
+    req.params.workspaceId as string,
+    req.params.taskId as string
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Share link generated successfully",
+    data: { nanoid },
+  });
+});
+
+const getSharedTask: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const nanoid = req.params.nanoid as string;
+  const result = await TaskServices.getTaskByNanoid(nanoid);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Shared task retrieved successfully",
+    data: result,
+  });
+});
+
 export const TaskControllers = {
   getTasks,
   getTask,
@@ -285,4 +313,6 @@ export const TaskControllers = {
   removeAttachment,
   setBanner,
   removeBanner,
+  generateTaskShareLink,
+  getSharedTask,
 };

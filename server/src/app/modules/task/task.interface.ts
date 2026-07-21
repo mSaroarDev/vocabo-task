@@ -28,6 +28,7 @@ export interface ITask {
   order: number;
   memberTaskOrder?: number;
   isArchived: boolean;
+  nanoid?: string;
   createdAt: Date;
   updatedAt: Date;
 }

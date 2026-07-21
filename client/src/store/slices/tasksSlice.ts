@@ -82,6 +82,7 @@ export interface ApiTask {
   workspaceName?: string;
   createdAt?: string;
   order: number;
+  nanoid?: string;
 }
 
 export function mapTask(task: ApiTask): Task {
@@ -118,6 +119,7 @@ export function mapTask(task: ApiTask): Task {
     workspaceId: task.workspace,
     workspaceName: task.workspaceName,
     createdAt: task.createdAt,
+    nanoid: task.nanoid,
   };
 }
 

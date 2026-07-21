@@ -35,6 +35,7 @@ const taskSchema = new Schema<ITask>(
     order: { type: Number, required: true, default: 0 },
     memberTaskOrder: { type: Number, default: 0 },
     isArchived: { type: Boolean, default: false },
+    nanoid: { type: String, sparse: true, unique: true },
   },
   { timestamps: true, versionKey: false }
 );

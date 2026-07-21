@@ -5,6 +5,7 @@ import { TeamRoutes } from "../modules/team/team.routes";
 import { WorkspaceRoutes } from "../modules/workspace/workspace.routes";
 import { ColumnRoutes } from "../modules/column/column.routes";
 import { TaskRoutes, TeamTaskRoutes } from "../modules/task/task.routes";
+import { TaskControllers } from "../modules/task/task.controllers";
 import { ChecklistRoutes } from "../modules/checklist/checklist.routes";
 import { NotificationRoutes } from "../modules/notification/notification.routes";
 import { StickyNoteRoutes } from "../modules/stickyNote/stickyNote.routes";
@@ -17,6 +18,7 @@ router.get("/health", (_req, res) => {
 
 router.use("/sample", SampleRoutes);
 router.use("/auth", AuthRoutes);
+router.get("/tasks/share/:nanoid", TaskControllers.getSharedTask);
 router.use("/teams", TeamRoutes);
 router.use("/teams/:teamId/workspaces", WorkspaceRoutes);
 router.use("/teams/:teamId/workspaces/:workspaceId/columns", ColumnRoutes);

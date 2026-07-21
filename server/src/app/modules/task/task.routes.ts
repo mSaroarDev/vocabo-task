@@ -31,6 +31,7 @@ router.delete("/:taskId", TaskControllers.deleteTask);
 router.post("/:taskId/attachments", attachmentUpload, TaskControllers.addAttachments);
 router.delete("/:taskId/attachments/:attachmentId", TaskControllers.removeAttachment);
 
+router.post("/:taskId/share", TaskControllers.generateTaskShareLink);
 router.post("/:taskId/banner", bannerUpload, TaskControllers.setBanner);
 router.delete("/:taskId/banner", TaskControllers.removeBanner);
 
