@@ -2,7 +2,6 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import MobileNav from "./mobile-nav";
 import NotificationBell from "@/components/notifications/notification-bell";
-import { useSocket } from "@/hooks/useSocket";
 import { useAppDispatch } from "@/store/hooks";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
@@ -24,8 +23,6 @@ interface MobileLayoutProps {
 }
 
 export default function MobileLayout({ children }: MobileLayoutProps) {
-  useSocket();
-
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

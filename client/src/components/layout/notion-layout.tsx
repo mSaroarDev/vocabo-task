@@ -6,7 +6,6 @@ import MobileLayout from "./mobile-layout";
 import NotificationBell from "@/components/notifications/notification-bell";
 import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
-import { useSocket } from "@/hooks/useSocket";
 import { useAppDispatch } from "@/store/hooks";
 import type { Workspace } from "@/store/slices/workspacesSlice";
 import { fetchChecklist } from "@/store/slices/checklistSlice";
@@ -26,8 +25,6 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
   if (isMobile()) {
     return <MobileLayout>{children}</MobileLayout>;
   }
-
-  useSocket();
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);

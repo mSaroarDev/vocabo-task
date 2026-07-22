@@ -8,7 +8,6 @@ import type { TaskPriority } from "./task.interface";
 import { getStorage } from "./task.storage";
 import { ActivityLogServices } from "../activityLog/activityLog.services";
 import { NotificationServices } from "../notification/notification.services";
-import { emitToUser } from "../../socket";
 import CommentModel from "../comment/comment.model";
 import { User } from "../auth/auth.model";
 import { Input } from "telegraf";
@@ -108,7 +107,6 @@ const createAssignmentNotification = async (
       workspaceId,
       taskId,
     });
-    emitToUser(assignedUserId, "notification:new", notification);
   } catch (error) {
     console.error("Failed to create assignment notification:", error);
   }
@@ -133,7 +131,6 @@ const createTaskUpdateNotification = async (
       workspaceId,
       taskId,
     });
-    emitToUser(assignedUserId, "notification:new", notification);
   } catch (error) {
     console.error("Failed to create task update notification:", error);
   }
@@ -200,7 +197,6 @@ const createTaskCreatedNotification = async (
       workspaceId,
       taskId,
     });
-    emitToUser(recipientId, "notification:new", notification);
   } catch (error) {
     console.error("Failed to create task created notification:", error);
   }
@@ -268,7 +264,6 @@ const createTaskStatusChangeNotification = async (
       workspaceId,
       taskId,
     });
-    emitToUser(recipientId, "notification:new", notification);
   } catch (error) {
     console.error("Failed to create task status change notification:", error);
   }
@@ -340,7 +335,6 @@ const createAttachmentNotification = async (
         taskId,
         imageUrl,
       });
-      emitToUser(recipientId, "notification:new", notification);
     } catch (error) {
       console.error("Failed to create attachment notification:", error);
     }
