@@ -209,6 +209,7 @@ export default function TaskDetailModal({
   mode = "view",
 }: TaskDetailModalProps) {
   const isCreate = mode === "create";
+  const wid = workspaceId || task?.workspaceId;
 
   const [titleValue, setTitleValue] = useState(task?.title || "");
   const [editingTitle, setEditingTitle] = useState(false);
@@ -242,7 +243,7 @@ export default function TaskDetailModal({
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    if (!open || !task || !teamId || !workspaceId) {
+    if (!open || !task || !teamId || !wid) {
       fetchedForRef.current = null;
       setActivity([]);
       return;
@@ -251,12 +252,12 @@ export default function TaskDetailModal({
     if (fetchedForRef.current === key) return;
     fetchedForRef.current = key;
 
-    dispatch(fetchComments({ teamId, workspaceId, taskId: task.id }));
+    dispatch(fetchComments({ teamId, workspaceId: wid, taskId: task.id }));
     apiClient
-      .get(`/teams/${teamId}/workspaces/${workspaceId}/tasks/${task.id}/activity`)
+      .get(`/teams/${teamId}/workspaces/${wid}/tasks/${task.id}/activity`)
       .then((res) => setActivity(res.data.data as ActivityItem[]))
       .catch(() => setActivity([]));
-  }, [open, task?.id, teamId, workspaceId, dispatch]);
+  }, [open, task?.id, teamId, wid, dispatch]);
 
   useEffect(() => {
     if (task) {
@@ -285,27 +286,27 @@ export default function TaskDetailModal({
 
   const uploadViewAttachment = useCallback(
     async (file: File) => {
-      if (!teamId || !workspaceId || !task?.id) return;
+      if (!teamId || !wid || !task?.id) return;
       setUploading(true);
       try {
-        await dispatch(addTaskAttachment({ teamId, workspaceId, taskId: task.id, file })).unwrap();
+        await dispatch(addTaskAttachment({ teamId, workspaceId: wid, taskId: task.id, file })).unwrap();
       } catch {
         // upload failed silently
       } finally {
         setUploading(false);
       }
     },
-    [dispatch, teamId, workspaceId, task?.id]
+    [dispatch, teamId, wid, task?.id]
   );
 
   const removeAttachment = useCallback(
     (attachmentId: string) => {
-      if (!teamId || !workspaceId || !task?.id) return;
+      if (!teamId || !wid || !task?.id) return;
       dispatch(
-        deleteTaskAttachment({ teamId, workspaceId, taskId: task.id, attachmentId })
+        deleteTaskAttachment({ teamId, workspaceId: wid, taskId: task.id, attachmentId })
       );
     },
-    [dispatch, teamId, workspaceId, task?.id]
+    [dispatch, teamId, wid, task?.id]
   );
 
   const removePendingAttachment = useCallback((preview: string) => {
@@ -318,7 +319,7 @@ export default function TaskDetailModal({
 
   const handleAddComment = useCallback(() => {
     const content = commentText.trim();
-    if (!content || !task || !teamId || !workspaceId || !currentUser) return;
+    if (!content || !task || !teamId || !wid || !currentUser) return;
     const author = {
       name: currentUser.name,
       initials: getInitials(currentUser.name),
@@ -327,18 +328,18 @@ export default function TaskDetailModal({
     };
     setCommentText("");
     dispatch(
-      addComment({ teamId, workspaceId, taskId: task.id, content, author })
+      addComment({ teamId, workspaceId: wid, taskId: task.id, content, author })
     );
-  }, [commentText, task, teamId, workspaceId, currentUser, dispatch]);
+  }, [commentText, task, teamId, wid, currentUser, dispatch]);
 
   const handleDeleteComment = useCallback(
     (commentId: string) => {
-      if (!task || !teamId || !workspaceId) return;
+      if (!task || !teamId || !wid) return;
       dispatch(
-        deleteComment({ teamId, workspaceId, taskId: task.id, commentId })
+        deleteComment({ teamId, workspaceId: wid, taskId: task.id, commentId })
       );
     },
-    [task, teamId, workspaceId, dispatch]
+    [task, teamId, wid, dispatch]
   );
 
   const handleShare = useCallback(() => {
@@ -348,17 +349,17 @@ export default function TaskDetailModal({
       setShareOpen(true);
       return;
     }
-    if (!teamId || !workspaceId) return;
+    if (!teamId || !wid) return;
     setShareLoading(true);
     apiClient
-      .post(`/teams/${teamId}/workspaces/${workspaceId}/tasks/${task.id}/share`)
+      .post(`/teams/${teamId}/workspaces/${wid}/tasks/${task.id}/share`)
       .then((res) => {
         setShareLink(`${window.location.origin}/task/shared/${res.data.data.nanoid}`);
         setShareOpen(true);
       })
       .catch(() => setShareLink(""))
       .finally(() => setShareLoading(false));
-  }, [task, isCreate, teamId, workspaceId]);
+  }, [task, isCreate, teamId, wid]);
 
   const handleCopyLink = useCallback(() => {
     if (!shareLink) return;
