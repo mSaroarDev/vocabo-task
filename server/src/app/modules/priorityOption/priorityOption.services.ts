@@ -51,6 +51,10 @@ const getPriorityOptions = async (teamId: string, workspaceId: string, userId: s
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
   const options = await PriorityOptionModel.find({ workspace: workspaceId }).sort({ order: 1, createdAt: 1 });
+  if (options.length === 0) {
+    await seedDefaultPriorityOptions(new Types.ObjectId(workspaceId), new Types.ObjectId(teamId));
+    return PriorityOptionModel.find({ workspace: workspaceId }).sort({ order: 1, createdAt: 1 });
+  }
   return options;
 };
 

@@ -51,6 +51,10 @@ const getStatusOptions = async (teamId: string, workspaceId: string, userId: str
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
   const options = await StatusOptionModel.find({ workspace: workspaceId }).sort({ order: 1, createdAt: 1 });
+  if (options.length === 0) {
+    await seedDefaultStatusOptions(new Types.ObjectId(workspaceId), new Types.ObjectId(teamId));
+    return StatusOptionModel.find({ workspace: workspaceId }).sort({ order: 1, createdAt: 1 });
+  }
   return options;
 };
 

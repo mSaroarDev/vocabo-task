@@ -131,7 +131,7 @@ export interface ColumnDef {
 export const defaultColumns: ColumnDef[] = [
   { key: "title", label: "Title", width: 350 },
   { key: "status", label: "Status", width: 160 },
-  { key: "priority", label: "Priority", width: 100 },
+  { key: "priority", label: "Priority", width: 160 },
   { key: "description", label: "Description", width: 300 },
   { key: "assignee", label: "Assigned To", width: 200 },
   { key: "createdBy", label: "Created By", width: 200 },
