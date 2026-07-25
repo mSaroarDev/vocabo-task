@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import {
   DndContext,
   closestCenter,
@@ -15,10 +16,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowUpDown, Pencil, Trash2, Plus, ArrowLeft, GripVertical } from "lucide-react";
-import type { ColumnDef, StatusOption } from "../types";
+import type { ColumnDef, StatusOption, PriorityOption } from "../types";
 import { cn } from "@/lib/utils";
 
-const STATUS_COLORS = [
+const COLOR_PALETTE = [
   "bg-blue-600/20 text-blue-300",
   "bg-amber-500/20 text-amber-300",
   "bg-green-600/20 text-green-300",
@@ -29,23 +30,26 @@ const STATUS_COLORS = [
   "bg-cyan-500/20 text-cyan-300",
 ];
 
-function SortableStatusOption({
+function SortableOptionItem({
   option,
   onRenameStart,
   onDelete,
 }: {
-  option: StatusOption;
-  onRenameStart: (option: StatusOption) => void;
-  onDelete: (option: StatusOption) => void;
+  option: StatusOption | PriorityOption;
+  onRenameStart: (option: StatusOption | PriorityOption) => void;
+  onDelete: (option: StatusOption | PriorityOption) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const isDefault = !option._id;
+  const sortable = useSortable({
     id: option._id || option.label,
+    disabled: isDefault,
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
+
+  const style = transform
+    ? { transform: CSS.Transform.toString(transform), transition }
+    : undefined;
 
   return (
     <div
@@ -56,29 +60,37 @@ function SortableStatusOption({
         isDragging && "opacity-40"
       )}
     >
-      <span
-        {...attributes}
-        {...listeners}
-        className="inline-flex cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0"
-      >
-        <GripVertical size={12} />
-      </span>
+      {!isDefault ? (
+        <span
+          {...attributes}
+          {...listeners}
+          className="inline-flex cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0"
+        >
+          <GripVertical size={12} />
+        </span>
+      ) : (
+        <span className="inline-flex shrink-0 w-3" />
+      )}
       <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-xs font-medium shrink-0", option.color)}>
         {option.label}
       </span>
       <div className="flex-1" />
-      <button
-        onClick={() => onRenameStart(option)}
-        className="text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-      >
-        <Pencil size={10} />
-      </button>
-      <button
-        onClick={() => onDelete(option)}
-        className="text-muted-foreground/40 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-      >
-        <Trash2 size={10} />
-      </button>
+      {!isDefault && (
+        <button
+          onClick={() => onRenameStart(option)}
+          className="text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+        >
+          <Pencil size={10} />
+        </button>
+      )}
+      {!isDefault && (
+        <button
+          onClick={() => onDelete(option)}
+          className="text-muted-foreground/40 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+        >
+          <Trash2 size={10} />
+        </button>
+      )}
     </div>
   );
 }
@@ -92,11 +104,17 @@ export function ColumnHeaderDropdown({
   onRemove,
   onAddColumn,
   onClose,
+  menuPosition,
   statusOptions,
   onCreateStatusOption,
   onUpdateStatusOption,
   onDeleteStatusOption,
   onReorderStatusOption,
+  priorityOptions,
+  onCreatePriorityOption,
+  onUpdatePriorityOption,
+  onDeletePriorityOption,
+  onReorderPriorityOption,
 }: {
   column: ColumnDef;
   sortKey: string | null;
@@ -106,16 +124,23 @@ export function ColumnHeaderDropdown({
   onRemove?: (key: string) => void;
   onAddColumn?: () => void;
   onClose: () => void;
+  menuPosition: { top: number; left: number };
   statusOptions?: StatusOption[];
   onCreateStatusOption?: (label: string, color: string) => void;
   onUpdateStatusOption?: (optionId: string, label: string, color: string) => void;
   onDeleteStatusOption?: (optionId: string) => void;
   onReorderStatusOption?: (optionIds: string[]) => void;
+  priorityOptions?: PriorityOption[];
+  onCreatePriorityOption?: (label: string, color: string) => void;
+  onUpdatePriorityOption?: (optionId: string, label: string, color: string) => void;
+  onDeletePriorityOption?: (optionId: string) => void;
+  onReorderPriorityOption?: (optionIds: string[]) => void;
 }) {
-  const options = statusOptions || [];
+  const statusOpts = statusOptions || [];
+  const priorityOpts = priorityOptions || [];
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(column.label);
-  const [editingStatuses, setEditingStatuses] = useState(false);
+  const [editingMode, setEditingMode] = useState<"status" | "priority" | null>(null);
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -125,62 +150,72 @@ export function ColumnHeaderDropdown({
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   );
 
+  const currentOptions = editingMode === "status" ? statusOpts : editingMode === "priority" ? priorityOpts : [];
+  const labelName = editingMode === "status" ? "status" : "priority";
+
+  const onCreateOption = editingMode === "status" ? onCreateStatusOption : onCreatePriorityOption;
+  const onUpdateOption = editingMode === "status" ? onUpdateStatusOption : onUpdatePriorityOption;
+  const onDeleteOption = editingMode === "status" ? onDeleteStatusOption : onDeletePriorityOption;
+  const onReorderOption = editingMode === "status" ? onReorderStatusOption : onReorderPriorityOption;
+
   const handleAdd = () => {
-    if (!newLabel.trim() || !onCreateStatusOption) return;
-    const usedColors = options.map((s) => s.color);
-    const available = STATUS_COLORS.find((c) => !usedColors.includes(c));
-    const color = available || STATUS_COLORS[options.length % STATUS_COLORS.length];
-    onCreateStatusOption(newLabel.trim(), color);
+    if (!newLabel.trim() || !onCreateOption) return;
+    const usedColors = currentOptions.map((s) => s.color);
+    const available = COLOR_PALETTE.find((c) => !usedColors.includes(c));
+    const color = available || COLOR_PALETTE[currentOptions.length % COLOR_PALETTE.length];
+    onCreateOption(newLabel.trim(), color);
     setNewLabel("");
     setAdding(false);
   };
 
-  const handleRenameStart = (option: StatusOption) => {
+  const handleRenameStart = (option: StatusOption | PriorityOption) => {
     setEditingId(option._id || null);
     setEditingLabel(option.label);
   };
 
   const handleRenameSave = () => {
-    if (!editingId || !editingLabel.trim() || !onUpdateStatusOption) return;
-    const option = options.find((s) => s._id === editingId);
+    if (!editingId || !editingLabel.trim() || !onUpdateOption) return;
+    const option = currentOptions.find((s) => s._id === editingId);
     if (option && editingLabel.trim() !== option.label) {
-      onUpdateStatusOption(editingId, editingLabel.trim(), option.color);
+      onUpdateOption(editingId, editingLabel.trim(), option.color);
     }
     setEditingId(null);
     setEditingLabel("");
   };
 
-  const handleDelete = (option: StatusOption) => {
-    if (option._id && onDeleteStatusOption) {
-      onDeleteStatusOption(option._id);
+  const handleDelete = (option: StatusOption | PriorityOption) => {
+    if (option._id && onDeleteOption) {
+      onDeleteOption(option._id);
     }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id || !onReorderStatusOption) return;
+    if (!over || active.id === over.id || !onReorderOption) return;
 
-    const oldIndex = options.findIndex((s) => (s._id || s.label) === active.id);
-    const newIndex = options.findIndex((s) => (s._id || s.label) === over.id);
+    const oldIndex = currentOptions.findIndex((s) => (s._id || s.label) === active.id);
+    const newIndex = currentOptions.findIndex((s) => (s._id || s.label) === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const reordered = arrayMove(options, oldIndex, newIndex);
-    onReorderStatusOption(reordered.map((s) => s._id!));
+    const reordered = arrayMove(currentOptions, oldIndex, newIndex);
+    const ids = reordered.filter((s) => s._id).map((s) => s._id!);
+    if (ids.length > 0) onReorderOption(ids);
   };
 
   const isStatusColumn = column.key === "status";
+  const isPriorityColumn = column.key === "priority";
 
-  return (
+  return createPortal(
     <>
       <div className="fixed inset-0 z-20" onClick={onClose} />
-      <div className="absolute left-0 top-full mt-1 z-30 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[200px]">
-        {editingStatuses ? (
+      <div className="fixed z-30 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[200px]" style={{ top: menuPosition.top, left: menuPosition.left }}>
+        {editingMode ? (
           <>
             <div className="px-3 py-2 border-b border-border/50">
               <button
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                 onClick={() => {
-                  setEditingStatuses(false);
+                  setEditingMode(null);
                   setAdding(false);
                   setEditingId(null);
                 }}
@@ -205,7 +240,7 @@ export function ColumnHeaderDropdown({
                     else setAdding(false);
                   }}
                   className="flex-1 bg-transparent border border-border rounded px-2 py-1 text-xs text-foreground outline-none focus:border-foreground/50"
-                  placeholder="Status name"
+                  placeholder={`${labelName === "status" ? "Status" : "Priority"} name`}
                 />
                 <button
                   onClick={handleAdd}
@@ -222,12 +257,12 @@ export function ColumnHeaderDropdown({
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={options.map((s) => s._id || s.label)}
+                items={currentOptions.map((s) => s._id || s.label)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="max-h-[200px] overflow-y-auto">
-                  {options.map((s) => (
-                    <SortableStatusOption
+                  {currentOptions.map((s) => (
+                    <SortableOptionItem
                       key={s._id || s.label}
                       option={s}
                       onRenameStart={handleRenameStart}
@@ -245,7 +280,7 @@ export function ColumnHeaderDropdown({
                   onClick={() => setAdding(true)}
                 >
                   <Plus size={12} />
-                  Add status
+                  Add {labelName === "status" ? "status" : "priority"}
                 </button>
               </div>
             )}
@@ -253,7 +288,7 @@ export function ColumnHeaderDropdown({
             {editingId && (
               <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40" onClick={() => { setEditingId(null); setEditingLabel(""); }}>
                 <div className="bg-[#252525] border border-border rounded-lg p-4 min-w-[280px]" onClick={(e) => e.stopPropagation()}>
-                  <p className="text-xs text-muted-foreground mb-2">Rename status</p>
+                  <p className="text-xs text-muted-foreground mb-2">Rename {labelName === "status" ? "status" : "priority"}</p>
                   <input
                     autoFocus
                     value={editingLabel}
@@ -319,7 +354,19 @@ export function ColumnHeaderDropdown({
                 <div className="border-t border-border/50 my-1" />
                 <button
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer"
-                  onClick={() => setEditingStatuses(true)}
+                  onClick={() => setEditingMode("status")}
+                >
+                  <Pencil size={12} />
+                  Edit Options
+                </button>
+              </>
+            )}
+            {isPriorityColumn && onCreatePriorityOption && (
+              <>
+                <div className="border-t border-border/50 my-1" />
+                <button
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer"
+                  onClick={() => setEditingMode("priority")}
                 >
                   <Pencil size={12} />
                   Edit Options
@@ -365,6 +412,7 @@ export function ColumnHeaderDropdown({
           </div>
         )}
       </div>
-    </>
+    </>,
+    document.body
   );
 }

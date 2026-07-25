@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Swal from "sweetalert2";
 import type { TeamMember } from "@/store/slices/teamsSlice";
-import type { StatusOption, Task, CellRenderProps } from "../types";
+import type { StatusOption, PriorityOption, Task, CellRenderProps } from "../types";
 import { cn } from "@/lib/utils";
 import { renderCellContent } from "./renderCellContent";
 
@@ -14,6 +14,7 @@ export interface DraggableRowProps {
   columnOrder: string[];
   columnWidths: Record<string, number>;
   statusOptions: StatusOption[];
+  priorityOptions: PriorityOption[];
   onSelect: (task: Task) => void;
   onStatusUpdate: (id: string, status: string) => void;
   onPriorityUpdate: (id: string, priority: string) => void;
@@ -42,6 +43,7 @@ export function DraggableRow({
   columnOrder,
   columnWidths,
   statusOptions,
+  priorityOptions,
   onSelect,
   onStatusUpdate,
   onPriorityUpdate,
@@ -74,6 +76,7 @@ export function DraggableRow({
     onSelect,
     onStatusUpdate,
     statusOptions,
+    priorityOptions,
     wrapTaskName,
     onImagePreview,
     onPriorityUpdate,

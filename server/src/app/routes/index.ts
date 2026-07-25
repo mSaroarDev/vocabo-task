@@ -10,6 +10,7 @@ import { ChecklistRoutes } from "../modules/checklist/checklist.routes";
 import { NotificationRoutes } from "../modules/notification/notification.routes";
 import { StickyNoteRoutes } from "../modules/stickyNote/stickyNote.routes";
 import { StatusOptionRoutes } from "../modules/statusOption/statusOption.routes";
+import { PriorityOptionRoutes } from "../modules/priorityOption/priorityOption.routes";
 
 const router = express.Router();
 
@@ -28,6 +29,7 @@ router.use("/teams/:teamId/tasks", TeamTaskRoutes);
 router.use("/checklist", ChecklistRoutes);
 router.use("/notifications", NotificationRoutes);
 router.use("/teams/:teamId/workspaces/:workspaceId/status-options", StatusOptionRoutes);
+router.use("/teams/:teamId/workspaces/:workspaceId/priority-options", PriorityOptionRoutes);
 router.use("/sticky-notes", StickyNoteRoutes);
 
 export default router;

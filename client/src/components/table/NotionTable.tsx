@@ -25,12 +25,21 @@ import type { NotionTableProps, Task } from "./types";
 import {
   defaultColumns,
   defaultStatusOptions,
+  defaultPriorityOptions,
   type ColumnDef,
 } from "./types";
 import { cn } from "@/lib/utils";
 import { useStatusOptions } from "@/hooks/useStatusOptions";
+import { usePriorityOptions } from "@/hooks/usePriorityOptions";
 import { DraggableHeader } from "./columns/DraggableHeader";
 import { DraggableRow } from "./cells/DraggableRow";
+
+function mergeWithDefaults<T extends { label: string; _id?: string }>(source: T[], defaults: T[]): T[] {
+  const defaultLabels = new Set(defaults.map((o) => o.label));
+  const fromServer = source.filter((o) => defaultLabels.has(o.label));
+  const custom = source.filter((o) => !defaultLabels.has(o.label));
+  return [...(fromServer.length ? fromServer : defaults), ...custom];
+}
 
 export default function NotionTable({
   tasks = [],
@@ -64,7 +73,10 @@ export default function NotionTable({
     ? [...baseColumns, workspaceColumn]
     : baseColumns;
   const { options: reduxStatusOptions, create: createStatusOption, update: updateStatusOption, remove: deleteStatusOption, reorder: reorderStatusOption } = useStatusOptions(teamIdProp, workspaceIdProp);
-  const statusOptions = externalStatusOptions ?? (reduxStatusOptions.length ? reduxStatusOptions : defaultStatusOptions);
+  const sourceStatusOptions = externalStatusOptions ?? (reduxStatusOptions.length ? reduxStatusOptions : defaultStatusOptions);
+  const statusOptions = mergeWithDefaults(sourceStatusOptions, defaultStatusOptions);
+  const { options: reduxPriorityOptions, create: createPriorityOption, update: updatePriorityOption, remove: deletePriorityOption, reorder: reorderPriorityOption } = usePriorityOptions(teamIdProp, workspaceIdProp);
+  const priorityOptions = mergeWithDefaults(reduxPriorityOptions, defaultPriorityOptions);
   const [columnOrder, setColumnOrder] = useState<string[]>(visibleColumns.map((c) => c.key));
   const [columnLabels, setColumnLabels] = useState<Record<string, string>>(
     Object.fromEntries(visibleColumns.map((c) => [c.key, c.label]))
@@ -245,6 +257,11 @@ export default function NotionTable({
                       onUpdateStatusOption={updateStatusOption}
                       onDeleteStatusOption={deleteStatusOption}
                       onReorderStatusOption={reorderStatusOption}
+                      priorityOptions={priorityOptions}
+                      onCreatePriorityOption={createPriorityOption}
+                      onUpdatePriorityOption={updatePriorityOption}
+                      onDeletePriorityOption={deletePriorityOption}
+                      onReorderPriorityOption={reorderPriorityOption}
                     />
                   ))}
                 </tr>
@@ -261,6 +278,7 @@ export default function NotionTable({
                     isDragging={isDragging(task.id)}
                     columnOrder={columnOrder}
                     statusOptions={statusOptions}
+                    priorityOptions={priorityOptions}
                     onSelect={(t) => {
                       setSelectedTaskId(t.id);
                       setSearchParams(prev => { prev.set("task", t.id); return prev; }, { replace: true });

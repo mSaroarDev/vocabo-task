@@ -24,6 +24,7 @@ import commentsReducer from "./slices/commentsSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 import stickyNotesReducer from "./slices/stickyNotesSlice";
 import statusOptionsReducer from "./slices/statusOptionsSlice";
+import priorityOptionsReducer from "./slices/priorityOptionsSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -36,6 +37,7 @@ const rootReducer = combineReducers({
   notifications: notificationsReducer,
   stickyNotes: stickyNotesReducer,
   statusOptions: statusOptionsReducer,
+  priorityOptions: priorityOptionsReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

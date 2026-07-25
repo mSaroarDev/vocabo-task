@@ -19,6 +19,7 @@ export function renderCellContent(
     onSelect,
     onStatusUpdate,
     statusOptions,
+    priorityOptions,
     wrapTaskName,
     onImagePreview,
     onPriorityUpdate,
@@ -94,7 +95,7 @@ export function renderCellContent(
     case "status":
       return <StatusCell statusOptions={statusOptions} task={task} onUpdate={onStatusUpdate} />;
     case "priority":
-      return <PriorityCell task={task} onUpdate={onPriorityUpdate} />;
+      return <PriorityCell priorityOptions={priorityOptions} task={task} onUpdate={onPriorityUpdate} />;
     case "description":
       return (
         <DescriptionEditor

@@ -50,6 +50,15 @@ export interface StatusOption {
   teamId?: string;
 }
 
+export interface PriorityOption {
+  _id?: string;
+  label: string;
+  color: string;
+  order?: number;
+  workspaceId?: string;
+  teamId?: string;
+}
+
 export const defaultStatusOptions: StatusOption[] = [
   { label: "New", color: "bg-purple-500/20 text-purple-300" },
   { label: "In progress", color: "bg-sky-500/20 text-sky-300" },
@@ -65,6 +74,15 @@ export const defaultStatusOptions: StatusOption[] = [
   { label: "PR Raised", color: "bg-rose-500/20 text-rose-300" },
   { label: "Ready for Test", color: "bg-emerald-500/20 text-emerald-300" },
   { label: "Need Approval", color: "bg-violet-500/20 text-violet-300" },
+];
+
+export const defaultPriorityOptions: PriorityOption[] = [
+  { label: "None", color: "bg-zinc-600/20 text-zinc-300" },
+  { label: "Lowest", color: "bg-blue-500/20 text-blue-300" },
+  { label: "Low", color: "bg-sky-500/20 text-sky-300" },
+  { label: "Medium", color: "bg-amber-500/20 text-amber-300" },
+  { label: "High", color: "bg-orange-500/20 text-orange-300" },
+  { label: "Highest", color: "bg-red-500/20 text-red-300" },
 ];
 
 export const priorityOptions = [
@@ -138,6 +156,7 @@ export interface CellRenderProps extends CellEditHandlers {
   onSelect: (t: Task) => void;
   onStatusUpdate: (id: string, status: string) => void;
   statusOptions: StatusOption[];
+  priorityOptions: PriorityOption[];
   wrapTaskName?: boolean;
   onImagePreview?: (urls: string[], index: number) => void;
   onPriorityUpdate?: (id: string, priority: string) => void;

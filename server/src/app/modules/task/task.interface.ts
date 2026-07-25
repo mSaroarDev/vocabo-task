@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-export type TaskPriority = "None" | "Lowest" | "Low" | "Medium" | "High" | "Highest";
+export type TaskPriority = string;
 
 export interface IAttachment {
   filename: string;

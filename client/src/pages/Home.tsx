@@ -21,6 +21,7 @@ import type { ChecklistGroup } from "@/hooks/useChecklist";
 import type { Workspace } from "@/store/slices/workspacesSlice";
 import { isMobile } from "@/lib/device";
 import { useStatusOptions } from "@/hooks/useStatusOptions";
+import { usePriorityOptions } from "@/hooks/usePriorityOptions";
 import { useAppDispatch } from "@/store/hooks";
 import { setStatusOptions as setStatusOptionsSlice } from "@/store/slices/statusOptionsSlice";
 
@@ -108,9 +109,13 @@ export default function Home() {
 
   const dispatch = useAppDispatch();
   const { options: statusOptions, refetch: refetchStatusOptions } = useStatusOptions(selectedTeam?.id, effectiveWorkspaceId);
+  const { refetch: refetchPriorityOptions } = usePriorityOptions(selectedTeam?.id, effectiveWorkspaceId);
   useEffect(() => {
     refetchStatusOptions();
   }, [refetchStatusOptions]);
+  useEffect(() => {
+    refetchPriorityOptions();
+  }, [refetchPriorityOptions]);
 
   useEffect(() => {
     if (filterOpen && filterRef.current) {

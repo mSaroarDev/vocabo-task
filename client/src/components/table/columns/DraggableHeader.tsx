@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -11,7 +11,7 @@ import {
   Paperclip,
   CalendarClock,
 } from "lucide-react";
-import type { ColumnDef, StatusOption } from "../types";
+import type { ColumnDef, StatusOption, PriorityOption } from "../types";
 import { cn } from "@/lib/utils";
 import { ColumnHeaderDropdown } from "./ColumnHeaderDropdown";
 
@@ -40,6 +40,11 @@ export function DraggableHeader({
   onUpdateStatusOption,
   onDeleteStatusOption,
   onReorderStatusOption,
+  priorityOptions,
+  onCreatePriorityOption,
+  onUpdatePriorityOption,
+  onDeletePriorityOption,
+  onReorderPriorityOption,
 }: {
   column: ColumnDef;
   sortKey: string | null;
@@ -54,11 +59,18 @@ export function DraggableHeader({
   onUpdateStatusOption?: (optionId: string, label: string, color: string) => void;
   onDeleteStatusOption?: (optionId: string) => void;
   onReorderStatusOption?: (optionIds: string[]) => void;
+  priorityOptions?: PriorityOption[];
+  onCreatePriorityOption?: (label: string, color: string) => void;
+  onUpdatePriorityOption?: (optionId: string, label: string, color: string) => void;
+  onDeletePriorityOption?: (optionId: string) => void;
+  onReorderPriorityOption?: (optionIds: string[]) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `col-${column.key}`,
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const thRef = useRef<HTMLTableHeaderCellElement | null>(null);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -92,7 +104,10 @@ export function DraggableHeader({
 
   return (
     <th
-      ref={setNodeRef}
+      ref={(el) => {
+        setNodeRef(el);
+        thRef.current = el;
+      }}
       style={{ ...style, width: column.width, minWidth: column.width, maxWidth: column.key === "description" ? 300 : undefined }}
       className={cn(
         "h-10 px-3 text-left text-xs font-bold text-muted-foreground select-none relative border-b border-border/50",
@@ -102,7 +117,13 @@ export function DraggableHeader({
     >
       <div
         className="flex items-center gap-1.5 cursor-pointer"
-        onClick={() => setMenuOpen(true)}
+        onClick={() => {
+          if (thRef.current) {
+            const rect = thRef.current.getBoundingClientRect();
+            setMenuPos({ top: rect.bottom + 4, left: rect.left });
+          }
+          setMenuOpen(true);
+        }}
         {...attributes}
         {...listeners}
       >
@@ -128,11 +149,17 @@ export function DraggableHeader({
           onRemove={onRemove}
           onAddColumn={onAddColumn}
           onClose={() => setMenuOpen(false)}
+          menuPosition={menuPos}
           statusOptions={statusOptions}
           onCreateStatusOption={onCreateStatusOption}
           onUpdateStatusOption={onUpdateStatusOption}
           onDeleteStatusOption={onDeleteStatusOption}
           onReorderStatusOption={onReorderStatusOption}
+          priorityOptions={priorityOptions}
+          onCreatePriorityOption={onCreatePriorityOption}
+          onUpdatePriorityOption={onUpdatePriorityOption}
+          onDeletePriorityOption={onDeletePriorityOption}
+          onReorderPriorityOption={onReorderPriorityOption}
         />
       )}
     </th>
