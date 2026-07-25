@@ -34,13 +34,6 @@ import { usePriorityOptions } from "@/hooks/usePriorityOptions";
 import { DraggableHeader } from "./columns/DraggableHeader";
 import { DraggableRow } from "./cells/DraggableRow";
 
-function mergeWithDefaults<T extends { label: string; _id?: string }>(source: T[], defaults: T[]): T[] {
-  const defaultLabels = new Set(defaults.map((o) => o.label));
-  const fromServer = source.filter((o) => defaultLabels.has(o.label));
-  const custom = source.filter((o) => !defaultLabels.has(o.label));
-  return [...(fromServer.length ? fromServer : defaults), ...custom];
-}
-
 export default function NotionTable({
   tasks = [],
   isLoading,
@@ -73,10 +66,10 @@ export default function NotionTable({
     ? [...baseColumns, workspaceColumn]
     : baseColumns;
   const { options: reduxStatusOptions, create: createStatusOption, update: updateStatusOption, remove: deleteStatusOption, reorder: reorderStatusOption } = useStatusOptions(teamIdProp, workspaceIdProp);
-  const sourceStatusOptions = externalStatusOptions ?? (reduxStatusOptions.length ? reduxStatusOptions : defaultStatusOptions);
-  const statusOptions = mergeWithDefaults(sourceStatusOptions, defaultStatusOptions);
+  const sourceStatusOptions = externalStatusOptions ?? reduxStatusOptions;
+  const statusOptions = sourceStatusOptions.length > 0 ? sourceStatusOptions : defaultStatusOptions;
   const { options: reduxPriorityOptions, create: createPriorityOption, update: updatePriorityOption, remove: deletePriorityOption, reorder: reorderPriorityOption } = usePriorityOptions(teamIdProp, workspaceIdProp);
-  const priorityOptions = mergeWithDefaults(reduxPriorityOptions, defaultPriorityOptions);
+  const priorityOptions = reduxPriorityOptions.length > 0 ? reduxPriorityOptions : defaultPriorityOptions;
   const [columnOrder, setColumnOrder] = useState<string[]>(visibleColumns.map((c) => c.key));
   const [columnLabels, setColumnLabels] = useState<Record<string, string>>(
     Object.fromEntries(visibleColumns.map((c) => [c.key, c.label]))

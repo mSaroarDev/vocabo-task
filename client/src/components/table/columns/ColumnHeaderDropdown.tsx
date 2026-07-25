@@ -39,10 +39,8 @@ function SortableOptionItem({
   onRenameStart: (option: StatusOption | PriorityOption) => void;
   onDelete: (option: StatusOption | PriorityOption) => void;
 }) {
-  const isDefault = !option._id;
   const sortable = useSortable({
     id: option._id || option.label,
-    disabled: isDefault,
   });
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
@@ -60,22 +58,18 @@ function SortableOptionItem({
         isDragging && "opacity-40"
       )}
     >
-      {!isDefault ? (
-        <span
-          {...attributes}
-          {...listeners}
-          className="inline-flex cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0"
-        >
-          <GripVertical size={12} />
-        </span>
-      ) : (
-        <span className="inline-flex shrink-0 w-3" />
-      )}
+      <span
+        {...attributes}
+        {...listeners}
+        className="inline-flex cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground transition-colors shrink-0"
+      >
+        <GripVertical size={12} />
+      </span>
       <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-xs font-medium shrink-0", option.color)}>
         {option.label}
       </span>
       <div className="flex-1" />
-      {!isDefault && (
+      {option._id && (
         <button
           onClick={() => onRenameStart(option)}
           className="text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -83,7 +77,7 @@ function SortableOptionItem({
           <Pencil size={10} />
         </button>
       )}
-      {!isDefault && (
+      {option._id && (
         <button
           onClick={() => onDelete(option)}
           className="text-muted-foreground/40 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
