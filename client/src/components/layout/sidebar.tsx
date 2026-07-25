@@ -730,6 +730,10 @@ export default function Sidebar() {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setTeamDropdownOpen(false)} />
               <div className="absolute left-3 right-3 top-full z-50 mt-1 rounded-md border border-sidebar-border bg-sidebar py-1 shadow-lg">
+                <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Switch team
+                </div>
+                <div className="border-t border-sidebar-border mb-1" />
                 {teams.map((team) => (
                   <button
                     key={team.id}

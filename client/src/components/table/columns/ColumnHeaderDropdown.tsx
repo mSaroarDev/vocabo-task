@@ -313,6 +313,10 @@ export function ColumnHeaderDropdown({
           </>
         ) : !renaming ? (
           <>
+            <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Column options
+            </div>
+            <div className="border-t border-border/50 mb-1" />
             <button
               className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer"
               onClick={() => {

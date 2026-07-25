@@ -50,6 +50,10 @@ export function PriorityCell({
               className="fixed z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
               style={{ top: menuPos.top, left: menuPos.left }}
             >
+              <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Change priority
+              </div>
+              <div className="border-t border-border/50 mb-1" />
               {priorityOptions.map((p) => (
                 <button
                   key={p._id || p.label}

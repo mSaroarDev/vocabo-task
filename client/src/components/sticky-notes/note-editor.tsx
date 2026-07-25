@@ -50,6 +50,10 @@ function EmojiPicker({
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
       <div className="absolute top-full left-0 z-40 mt-1 w-[240px] rounded-lg border border-border bg-popover p-2 shadow-lg">
+        <div className="px-1 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+          Pick an emoji
+        </div>
+        <div className="border-t border-border/50 mb-1" />
         <div className="grid grid-cols-8 gap-0.5">
           {EMOJIS.map((emoji) => (
             <button

@@ -574,7 +574,8 @@ export default function TaskDetailModal({
     open: boolean,
     setOpen: (v: boolean) => void,
     onChange: (v: string) => void,
-    colorMap?: Record<string, string>
+    colorMap?: Record<string, string>,
+    header?: string
   ) => (
     <div className="relative">
       <button
@@ -591,6 +592,14 @@ export default function TaskDetailModal({
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute left-0 top-full mt-1 z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[140px] w-full">
+            {header && (
+              <>
+                <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  {header}
+                </div>
+                <div className="border-t border-border/50 mb-1" />
+              </>
+            )}
             {options.map((opt) => (
               <button
                 key={opt.label}
@@ -638,10 +647,14 @@ export default function TaskDetailModal({
                   >
                     <BsThreeDots size={14} />
                   </button>
-                  {moreOpen && (
+                    {moreOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setMoreOpen(false)} />
                       <div className="absolute right-0 top-full mt-1 z-20 bg-[#252525] border border-border rounded-lg shadow-xl p-1.5 min-w-[160px]">
+                        <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Task actions
+                        </div>
+                        <div className="border-t border-border/50 mb-1" />
                         <button
                           onClick={() => { setMoreOpen(false); handleShare(); }}
                           className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
@@ -826,6 +839,10 @@ export default function TaskDetailModal({
                           <SelectValue placeholder="Add a tag..." />
                         </SelectTrigger>
                         <SelectContent>
+                          <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                            Add a tag
+                          </div>
+                          <div className="border-t border-border/50 mb-1" />
                           {availableTags.map((opt) => (
                             <SelectItem key={opt.label} value={opt.label} className="cursor-pointer">
                               <span className="inline-flex items-center gap-2">
@@ -854,7 +871,8 @@ export default function TaskDetailModal({
                           setStatusValue(v);
                           if (!isCreate && task) onUpdate?.(task.id, { status: v });
                         },
-                        statusColors
+                        statusColors,
+                        "Select status"
                       )
                     ) : (
                       <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", statusColors[task?.status || ""])}>
@@ -874,7 +892,8 @@ export default function TaskDetailModal({
                           setPriorityValue(v as Task["priority"]);
                           if (!isCreate && task) onUpdate?.(task.id, { priority: v as Task["priority"] });
                         },
-                        priorityColors
+                        priorityColors,
+                        "Select priority"
                       )
                     ) : (
                       <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium", priorityColors[task?.priority || ""])}>

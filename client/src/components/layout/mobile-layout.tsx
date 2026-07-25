@@ -79,6 +79,10 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
               <SelectValue placeholder="Team" />
             </SelectTrigger>
             <SelectContent>
+              <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Switch team
+              </div>
+              <div className="border-t border-border/50 mb-1" />
               {teams.map((team) => (
                 <SelectItem key={team.id} value={team.id} className="text-xs">
                   {team.name}
@@ -94,6 +98,10 @@ export default function MobileLayout({ children }: MobileLayoutProps) {
               <SelectValue placeholder="Workspace" />
             </SelectTrigger>
             <SelectContent>
+              <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Switch workspace
+              </div>
+              <div className="border-t border-border/50 mb-1" />
               {workspaces.map((ws) => (
                 <SelectItem key={ws.id} value={ws.id} className="text-xs">
                   <span className="flex items-center gap-1.5">

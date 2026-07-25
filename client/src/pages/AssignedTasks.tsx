@@ -159,6 +159,10 @@ export default function AssignedTasks() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[#252525]">
+                <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Select a member
+                </div>
+                <div className="border-t border-border/50 mb-1" />
                 {membersForSelect.map((member) => (
                   <SelectItem key={member.userId} value={member.userId}>
                     {member.name}
@@ -190,6 +194,10 @@ export default function AssignedTasks() {
               <SelectValue placeholder="All workspaces" />
             </SelectTrigger>
             <SelectContent className="bg-[#252525]">
+              <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Filter by workspace
+              </div>
+              <div className="border-t border-border/50 mb-1" />
               <SelectItem value="all">All workspaces</SelectItem>
               {workspaces.map((ws) => (
                 <SelectItem key={ws.id} value={ws.id}>

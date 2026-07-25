@@ -170,24 +170,29 @@ export default function StickyNoteCard({
             }}
           />
           <div
-            className="absolute bottom-full left-2 z-40 mb-1 flex flex-wrap gap-1 rounded-lg border border-border bg-popover p-2 shadow-lg"
+            className="absolute bottom-full left-2 z-40 mb-1 rounded-lg border border-border bg-popover p-2 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            {NOTE_COLORS.map((color) => (
-              <button
-                key={color}
-                type="button"
-                onClick={() => {
-                  onChangeColor(note.id, color);
-                  setShowColorPicker(false);
-                }}
-                className={cn(
-                  "h-6 w-6 rounded-full border border-border/50 transition-transform hover:scale-110",
-                  note.color === color && "ring-2 ring-ring ring-offset-1"
-                )}
-                style={{ backgroundColor: color }}
-              />
-            ))}
+            <div className="px-1 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Pick a color
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {NOTE_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => {
+                    onChangeColor(note.id, color);
+                    setShowColorPicker(false);
+                  }}
+                  className={cn(
+                    "h-6 w-6 rounded-full border border-border/50 transition-transform hover:scale-110",
+                    note.color === color && "ring-2 ring-ring ring-offset-1"
+                  )}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
           </div>
         </>
       )}

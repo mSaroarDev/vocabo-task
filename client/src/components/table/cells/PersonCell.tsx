@@ -92,6 +92,10 @@ export function AssigneeCell({
               className="fixed z-20 bg-[#252525] border border-border rounded-lg shadow-xl py-1 min-w-[200px] max-h-[240px] overflow-y-auto"
               style={{ top: menuPos.top, left: menuPos.left }}
             >
+              <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Assign to
+              </div>
+              <div className="border-t border-border/50 mb-1" />
               <button
                 className={cn(
                   "flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-white/10 text-left cursor-pointer",

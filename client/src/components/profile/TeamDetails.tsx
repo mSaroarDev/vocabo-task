@@ -256,6 +256,10 @@ export default function TeamDetails({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        Update role
+                      </div>
+                      <div className="border-t border-border/50 mb-1" />
                       <SelectItem value="member">Member</SelectItem>
                       <SelectItem value="project manager">Project Manager</SelectItem>
                       <SelectItem value="others">Others</SelectItem>
@@ -294,6 +298,10 @@ export default function TeamDetails({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        Select role
+                      </div>
+                      <div className="border-t border-border/50 mb-1" />
                       <SelectItem value="member">Member</SelectItem>
                       <SelectItem value="project manager">Project Manager</SelectItem>
                       <SelectItem value="others">Others</SelectItem>
