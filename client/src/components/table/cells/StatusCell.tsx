@@ -52,7 +52,7 @@ export function StatusCell({
             >
               {statusOptions.map((s) => (
                 <button
-                  key={s.label}
+                  key={s._id || s.label}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/10 text-left cursor-pointer"
                   onClick={() => {
                     onUpdate(task.id, s.label);

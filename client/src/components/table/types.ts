@@ -42,8 +42,12 @@ export interface Task {
 }
 
 export interface StatusOption {
+  _id?: string;
   label: string;
   color: string;
+  order?: number;
+  workspaceId?: string;
+  teamId?: string;
 }
 
 export const defaultStatusOptions: StatusOption[] = [
@@ -145,6 +149,9 @@ export interface CellRenderProps extends CellEditHandlers {
   editingInputRef?: React.RefObject<HTMLInputElement | null>;
   teamId?: string;
   workspaceId?: string;
+  onCreateStatusOption?: (label: string, color: string) => void;
+  onUpdateStatusOption?: (optionId: string, label: string, color: string) => void;
+  onDeleteStatusOption?: (optionId: string) => void;
 }
 
 export interface NotionTableProps {
@@ -152,7 +159,6 @@ export interface NotionTableProps {
   isLoading?: boolean;
   wrapTaskName?: boolean;
   statusOptions?: StatusOption[];
-  onStatusOptionsChange?: (options: StatusOption[]) => void;
   teamId?: string;
   workspaceId?: string;
   members?: TeamMember[];

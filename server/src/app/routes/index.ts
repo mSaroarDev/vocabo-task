@@ -9,6 +9,7 @@ import { TaskControllers } from "../modules/task/task.controllers";
 import { ChecklistRoutes } from "../modules/checklist/checklist.routes";
 import { NotificationRoutes } from "../modules/notification/notification.routes";
 import { StickyNoteRoutes } from "../modules/stickyNote/stickyNote.routes";
+import { StatusOptionRoutes } from "../modules/statusOption/statusOption.routes";
 
 const router = express.Router();
 
@@ -26,6 +27,7 @@ router.use("/teams/:teamId/workspaces/:workspaceId/tasks", TaskRoutes);
 router.use("/teams/:teamId/tasks", TeamTaskRoutes);
 router.use("/checklist", ChecklistRoutes);
 router.use("/notifications", NotificationRoutes);
+router.use("/teams/:teamId/workspaces/:workspaceId/status-options", StatusOptionRoutes);
 router.use("/sticky-notes", StickyNoteRoutes);
 
 export default router;

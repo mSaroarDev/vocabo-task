@@ -11,7 +11,7 @@ import {
   Paperclip,
   CalendarClock,
 } from "lucide-react";
-import type { ColumnDef } from "../types";
+import type { ColumnDef, StatusOption } from "../types";
 import { cn } from "@/lib/utils";
 import { ColumnHeaderDropdown } from "./ColumnHeaderDropdown";
 
@@ -35,6 +35,11 @@ export function DraggableHeader({
   onRemove,
   onAddColumn,
   onResize,
+  statusOptions,
+  onCreateStatusOption,
+  onUpdateStatusOption,
+  onDeleteStatusOption,
+  onReorderStatusOption,
 }: {
   column: ColumnDef;
   sortKey: string | null;
@@ -44,6 +49,11 @@ export function DraggableHeader({
   onRemove?: (key: string) => void;
   onAddColumn?: () => void;
   onResize: (key: string, width: number) => void;
+  statusOptions?: StatusOption[];
+  onCreateStatusOption?: (label: string, color: string) => void;
+  onUpdateStatusOption?: (optionId: string, label: string, color: string) => void;
+  onDeleteStatusOption?: (optionId: string) => void;
+  onReorderStatusOption?: (optionIds: string[]) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `col-${column.key}`,
@@ -118,6 +128,11 @@ export function DraggableHeader({
           onRemove={onRemove}
           onAddColumn={onAddColumn}
           onClose={() => setMenuOpen(false)}
+          statusOptions={statusOptions}
+          onCreateStatusOption={onCreateStatusOption}
+          onUpdateStatusOption={onUpdateStatusOption}
+          onDeleteStatusOption={onDeleteStatusOption}
+          onReorderStatusOption={onReorderStatusOption}
         />
       )}
     </th>

@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import AppError from "../../errors/AppError";
 import TeamModel from "../team/team.model";
 import { seedDefaultColumns } from "../column/column.services";
+import { seedDefaultStatusOptions } from "../statusOption/statusOption.services";
 import WorkspaceModel from "./workspace.model";
 
 const ensureTeamMember = async (teamId: string, userId: string) => {
@@ -46,6 +47,7 @@ const createWorkspace = async (
   });
 
   await seedDefaultColumns(result._id);
+  await seedDefaultStatusOptions(result._id, new Types.ObjectId(teamId));
 
   return result;
 };

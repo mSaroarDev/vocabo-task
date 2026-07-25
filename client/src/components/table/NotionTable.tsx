@@ -28,6 +28,7 @@ import {
   type ColumnDef,
 } from "./types";
 import { cn } from "@/lib/utils";
+import { useStatusOptions } from "@/hooks/useStatusOptions";
 import { DraggableHeader } from "./columns/DraggableHeader";
 import { DraggableRow } from "./cells/DraggableRow";
 
@@ -62,7 +63,8 @@ export default function NotionTable({
   const visibleColumns = showWorkspace
     ? [...baseColumns, workspaceColumn]
     : baseColumns;
-  const [localStatusOptions] = useState(defaultStatusOptions);
+  const { options: reduxStatusOptions, create: createStatusOption, update: updateStatusOption, remove: deleteStatusOption, reorder: reorderStatusOption } = useStatusOptions(teamIdProp, workspaceIdProp);
+  const statusOptions = externalStatusOptions ?? (reduxStatusOptions.length ? reduxStatusOptions : defaultStatusOptions);
   const [columnOrder, setColumnOrder] = useState<string[]>(visibleColumns.map((c) => c.key));
   const [columnLabels, setColumnLabels] = useState<Record<string, string>>(
     Object.fromEntries(visibleColumns.map((c) => [c.key, c.label]))
@@ -94,8 +96,6 @@ export default function NotionTable({
       }
     }
   }, [searchParams, tasks]);
-
-  const statusOptions = externalStatusOptions ?? localStatusOptions;
 
   const rowSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -240,6 +240,11 @@ export default function NotionTable({
                       onResize={(key, w) =>
                         setColumnWidths((prev) => ({ ...prev, [key]: w }))
                       }
+                      statusOptions={statusOptions}
+                      onCreateStatusOption={createStatusOption}
+                      onUpdateStatusOption={updateStatusOption}
+                      onDeleteStatusOption={deleteStatusOption}
+                      onReorderStatusOption={reorderStatusOption}
                     />
                   ))}
                 </tr>
@@ -249,51 +254,51 @@ export default function NotionTable({
           <tbody>
             <SortableContext items={sorted.map((t) => t.id)} strategy={verticalListSortingStrategy}>
               {sorted.map((task) => (
-                <DraggableRow
-                  columnWidths={columnWidths}
-                  key={task.id}
-                  task={task}
-                  isDragging={isDragging(task.id)}
-                  columnOrder={columnOrder}
-                  statusOptions={statusOptions}
-                  onSelect={(t) => {
-                    setSelectedTaskId(t.id);
-                    setSearchParams(prev => { prev.set("task", t.id); return prev; }, { replace: true });
-                  }}
-                  onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
-                  onPriorityUpdate={(id, priority) => onTaskUpdate?.(id, { priority: priority as Task["priority"] })}
-                  onAssigneeUpdate={(id, assignedTo) => {
-                    const member = members?.find((m) => m.userId === assignedTo);
-                    const optimisticAssignedTo = member
-                      ? {
-                        name: member.name,
-                        avatar: member.avatar || "",
-                        initials: member.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
-                        color: "bg-blue-500/20 text-blue-300",
-                      }
-                      : { name: "Unassigned", avatar: "", initials: "Un", color: "bg-blue-500/20 text-blue-300" };
-                    onTaskUpdate?.(id, { assignedTo: assignedTo as unknown as Task["assignedTo"] }, { assignedTo: optimisticAssignedTo });
-                  }}
-                  onTaskDelete={(id) => onTaskDelete?.(id)}
-                  selectedIds={selectedIds}
-                  onToggleSelect={onToggleSelect}
-                  wrapTaskName={wrapTaskName}
-                  onImagePreview={(urls, index) => {
-                    setPreviewUrls(urls);
-                    setPreviewIndex(index);
-                  }}
-                  members={members}
-                  editingTaskId={editingTaskId}
-                  editingField={editingField}
-                  editingValue={editingValue}
-                  editingInputRef={editingInputRef}
-                  onStartEdit={handleStartEdit}
-                  onEditingChange={setEditingValue}
-                  onSaveEdit={handleSaveEdit}
-                  onCancelEdit={handleCancelEdit}
-                  teamId={teamIdProp}
-                  workspaceId={workspaceIdProp}
-                />
+                  <DraggableRow
+                    columnWidths={columnWidths}
+                    key={task.id}
+                    task={task}
+                    isDragging={isDragging(task.id)}
+                    columnOrder={columnOrder}
+                    statusOptions={statusOptions}
+                    onSelect={(t) => {
+                      setSelectedTaskId(t.id);
+                      setSearchParams(prev => { prev.set("task", t.id); return prev; }, { replace: true });
+                    }}
+                    onStatusUpdate={(id, status) => onTaskUpdate?.(id, { status })}
+                    onPriorityUpdate={(id, priority) => onTaskUpdate?.(id, { priority: priority as Task["priority"] })}
+                    onAssigneeUpdate={(id, assignedTo) => {
+                      const member = members?.find((m) => m.userId === assignedTo);
+                      const optimisticAssignedTo = member
+                        ? {
+                          name: member.name,
+                          avatar: member.avatar || "",
+                          initials: member.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2),
+                          color: "bg-blue-500/20 text-blue-300",
+                        }
+                        : { name: "Unassigned", avatar: "", initials: "Un", color: "bg-blue-500/20 text-blue-300" };
+                      onTaskUpdate?.(id, { assignedTo: assignedTo as unknown as Task["assignedTo"] }, { assignedTo: optimisticAssignedTo });
+                    }}
+                    onTaskDelete={(id) => onTaskDelete?.(id)}
+                    selectedIds={selectedIds}
+                    onToggleSelect={onToggleSelect}
+                    wrapTaskName={wrapTaskName}
+                    onImagePreview={(urls, index) => {
+                      setPreviewUrls(urls);
+                      setPreviewIndex(index);
+                    }}
+                    members={members}
+                    editingTaskId={editingTaskId}
+                    editingField={editingField}
+                    editingValue={editingValue}
+                    editingInputRef={editingInputRef}
+                    onStartEdit={handleStartEdit}
+                    onEditingChange={setEditingValue}
+                    onSaveEdit={handleSaveEdit}
+                    onCancelEdit={handleCancelEdit}
+                    teamId={teamIdProp}
+                    workspaceId={workspaceIdProp}
+                  />
               ))}
             </SortableContext>
             {addingNew && (

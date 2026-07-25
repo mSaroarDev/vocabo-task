@@ -23,6 +23,7 @@ import checklistReducer from "./slices/checklistSlice";
 import commentsReducer from "./slices/commentsSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 import stickyNotesReducer from "./slices/stickyNotesSlice";
+import statusOptionsReducer from "./slices/statusOptionsSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -34,6 +35,7 @@ const rootReducer = combineReducers({
   comments: commentsReducer,
   notifications: notificationsReducer,
   stickyNotes: stickyNotesReducer,
+  statusOptions: statusOptionsReducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
