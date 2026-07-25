@@ -6,6 +6,7 @@ import {
   createTaskValidator,
   updateTaskValidator,
   reorderTasksValidator,
+  swapTaskValidator,
 } from "./task.validation";
 import { attachmentUpload, bannerUpload } from "./task.upload";
 import { ActivityLogRoutes } from "../activityLog/activityLog.routes";
@@ -49,6 +50,12 @@ teamTaskRouter.patch(
   "/reorder-assigned",
   validatorMiddleware(reorderTasksValidator),
   TaskControllers.reorderMemberTasks
+);
+
+teamTaskRouter.patch(
+  "/:taskId/swap",
+  validatorMiddleware(swapTaskValidator),
+  TaskControllers.swapTaskWorkspace
 );
 
 export const TeamTaskRoutes = teamTaskRouter;

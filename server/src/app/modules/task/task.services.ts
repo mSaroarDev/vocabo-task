@@ -1189,6 +1189,44 @@ const getTaskByNanoid = async (nanoid: string) => {
   return { ...task.toObject(), comments };
 };
 
+const swapTaskWorkspace = async (
+  teamId: string,
+  taskId: string,
+  userId: string,
+  targetWorkspaceId: string
+) => {
+  await ensureTeamMember(teamId, userId);
+  await ensureWorkspace(teamId, targetWorkspaceId);
+
+  if (!Types.ObjectId.isValid(taskId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
+  }
+
+  const task = await TaskModel.findById(taskId);
+  if (!task) {
+    throw new AppError(httpStatus.NOT_FOUND, "Task not found");
+  }
+
+  const oldWorkspaceId = String(task.workspace);
+
+  task.workspace = new Types.ObjectId(targetWorkspaceId);
+  await task.save();
+
+  await ActivityLogServices.logActivity({
+    task: taskId,
+    workspace: oldWorkspaceId,
+    team: teamId,
+    action: "updated",
+    field: "workspace",
+    oldValue: oldWorkspaceId,
+    newValue: targetWorkspaceId,
+    performedBy: userId,
+  });
+
+  const populated = await task.populate(["createdBy", "assignedTo"]);
+  return populated;
+};
+
 export const TaskServices = {
   getTasks,
   getTask,
@@ -1205,4 +1243,5 @@ export const TaskServices = {
   removeBanner,
   generateTaskShareNanoid,
   getTaskByNanoid,
+  swapTaskWorkspace,
 };

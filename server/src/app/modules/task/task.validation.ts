@@ -24,6 +24,10 @@ const updateTaskValidator = z.object({
   isArchived: z.boolean().optional(),
 });
 
+const swapTaskValidator = z.object({
+  targetWorkspaceId: z.string().min(1, "Target workspace is required"),
+});
+
 const reorderTasksValidator = z.object({
   taskIds: z
     .array(z.string())
@@ -34,4 +38,4 @@ const reorderTasksValidator = z.object({
     ),
 });
 
-export { createTaskValidator, updateTaskValidator, reorderTasksValidator };
+export { createTaskValidator, updateTaskValidator, reorderTasksValidator, swapTaskValidator };

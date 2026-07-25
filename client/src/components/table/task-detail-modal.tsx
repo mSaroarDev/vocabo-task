@@ -15,6 +15,7 @@ import {
   Share2,
   Copy,
   Check,
+  ArrowLeftRight,
 } from "lucide-react";
 import type { Task, Attachment } from "./notion-table";
 import type { StatusOption } from "./notion-table";
@@ -29,8 +30,9 @@ import {
 } from "@/components/ui/select";
 import apiClient from "@/api/client";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { addTaskAttachment, deleteTaskAttachment } from "@/store/slices/tasksSlice";
+import { addTaskAttachment, deleteTaskAttachment, swapTask } from "@/store/slices/tasksSlice";
 import { fetchComments, addComment, deleteComment } from "@/store/slices/commentsSlice";
+import { BsThreeDots } from "react-icons/bs";
 import ImagePreview from "@/components/ui/image-preview";
 import ImagePickerModal from "./image-picker-modal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
@@ -238,9 +240,14 @@ export default function TaskDetailModal({
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareLink, setShareLink] = useState("");
-  const [shareLoading, setShareLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [selectedSwapWorkspace, setSelectedSwapWorkspace] = useState<string | null>(null);
+  const [swapLoading, setSwapLoading] = useState(false);
   const dispatch = useAppDispatch();
+  const workspaces = useAppSelector((state) => state.workspaces.items);
+  const otherWorkspaces = workspaces.filter((w) => w.id !== wid);
 
   useEffect(() => {
     if (!open || !task || !teamId || !wid) {
@@ -350,15 +357,13 @@ export default function TaskDetailModal({
       return;
     }
     if (!teamId || !wid) return;
-    setShareLoading(true);
     apiClient
       .post(`/teams/${teamId}/workspaces/${wid}/tasks/${task.id}/share`)
       .then((res) => {
         setShareLink(`${window.location.origin}/task/shared/${res.data.data.nanoid}`);
         setShareOpen(true);
       })
-      .catch(() => setShareLink(""))
-      .finally(() => setShareLoading(false));
+      .catch(() => setShareLink(""));
   }, [task, isCreate, teamId, wid]);
 
   const handleCopyLink = useCallback(() => {
@@ -368,6 +373,21 @@ export default function TaskDetailModal({
       setTimeout(() => setCopied(false), 2000);
     });
   }, [shareLink]);
+
+  const handleSwapConfirm = useCallback(async () => {
+    if (!selectedSwapWorkspace || !task || !teamId || !wid) return;
+    setSwapLoading(true);
+    try {
+      await dispatch(swapTask({ teamId, workspaceId: wid, taskId: task.id, targetWorkspaceId: selectedSwapWorkspace })).unwrap();
+      setSwapOpen(false);
+      setSelectedSwapWorkspace(null);
+      onOpenChange(false);
+    } catch {
+      // swap failed silently — optimistic revert handled by thunk
+    } finally {
+      setSwapLoading(false);
+    }
+  }, [selectedSwapWorkspace, task, teamId, wid, dispatch, onOpenChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -612,13 +632,33 @@ export default function TaskDetailModal({
               {!isCreate && (
                 <div className="relative">
                   <button
-                    onClick={handleShare}
-                    disabled={shareLoading}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-40"
-                    aria-label="Share task"
+                    onClick={() => { setMoreOpen((v) => !v); setShareOpen(false); }}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                    aria-label="More options"
                   >
-                    {shareLoading ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
+                    <BsThreeDots size={14} />
                   </button>
+                  {moreOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setMoreOpen(false)} />
+                      <div className="absolute right-0 top-full mt-1 z-20 bg-[#252525] border border-border rounded-lg shadow-xl p-1.5 min-w-[160px]">
+                        <button
+                          onClick={() => { setMoreOpen(false); handleShare(); }}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
+                        >
+                          <Share2 size={13} />
+                          Share
+                        </button>
+                        <button
+                          onClick={() => { setSwapOpen(true); setMoreOpen(false); }}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs text-foreground hover:bg-accent rounded-md transition-colors cursor-pointer"
+                        >
+                          <ArrowLeftRight size={13} />
+                          Swap task
+                        </button>
+                      </div>
+                    </>
+                  )}
                   {shareOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => { setShareOpen(false); setCopied(false); }} />
@@ -635,6 +675,49 @@ export default function TaskDetailModal({
                             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
                           >
                             {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {swapOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => { setSwapOpen(false); setSelectedSwapWorkspace(null); }} />
+                      <div className="absolute right-0 top-full mt-1 z-20 bg-[#252525] border border-border rounded-lg shadow-xl p-3 min-w-[220px]">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Swap to workspace</p>
+                        {otherWorkspaces.length === 0 ? (
+                          <p className="text-xs text-muted-foreground/50 py-2">No other workspaces</p>
+                        ) : (
+                          <div className="space-y-1 max-h-[180px] overflow-y-auto">
+                            {otherWorkspaces.map((w) => (
+                              <button
+                                key={w.id}
+                                onClick={() => setSelectedSwapWorkspace(w.id)}
+                                className={cn(
+                                  "flex w-full items-center gap-2 px-2.5 py-1.5 text-xs rounded-md transition-colors cursor-pointer text-left",
+                                  selectedSwapWorkspace === w.id
+                                    ? "bg-accent text-foreground"
+                                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                                )}
+                              >
+                                {w.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 mt-3">
+                          <button
+                            onClick={() => { setSwapOpen(false); setSelectedSwapWorkspace(null); }}
+                            className="flex-1 rounded-md border border-border/50 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleSwapConfirm}
+                            disabled={!selectedSwapWorkspace || swapLoading}
+                            className="flex-1 rounded-md bg-foreground text-background px-2.5 py-1.5 text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            {swapLoading ? "Swapping..." : "Swap"}
                           </button>
                         </div>
                       </div>

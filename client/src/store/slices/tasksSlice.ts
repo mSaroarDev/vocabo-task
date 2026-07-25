@@ -312,6 +312,27 @@ export const deleteTask = createAsyncThunk<
   }
 });
 
+export const swapTask = createAsyncThunk<
+  string,
+  { teamId: string; taskId: string; targetWorkspaceId: string; workspaceId?: string },
+  { state: { tasks: TasksState }; rejectValue: string }
+>("tasks/swapTask", async ({ teamId, taskId, targetWorkspaceId }, { dispatch, getState, rejectWithValue }) => {
+  const task = getState().tasks.items.find((t) => t.id === taskId);
+  if (task) {
+    dispatch(removeOptimisticTask(taskId));
+  }
+
+  try {
+    await apiClient.patch(`/teams/${teamId}/tasks/${taskId}/swap`, { targetWorkspaceId });
+    return taskId;
+  } catch (error) {
+    if (task) {
+      dispatch(restoreDeletedTask(task));
+    }
+    return rejectWithValue(getErrorMessage(error, "Failed to swap task"));
+  }
+});
+
 export const reorderTasks = createAsyncThunk<
   { workspaceId: string; tasks: Task[] },
   { teamId: string; workspaceId: string; taskIds: string[]; optimisticTasks?: Task[] },
@@ -513,6 +534,12 @@ const tasksSlice = createSlice({
       })
       .addCase(deleteTaskAttachment.rejected, (state, action) => {
         state.error = action.payload || "Failed to delete attachment";
+      })
+      .addCase(swapTask.fulfilled, (state) => {
+        state.error = null;
+      })
+      .addCase(swapTask.rejected, (state, action) => {
+        state.error = action.payload || "Failed to swap task";
       })
       .addCase(reorderTasks.fulfilled, (state, action) => {
         if (state.currentWorkspaceId === action.payload.workspaceId) {

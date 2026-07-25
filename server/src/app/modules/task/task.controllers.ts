@@ -298,6 +298,21 @@ const getSharedTask: RequestHandler = catchAsync(async (req: Request, res: Respo
   });
 });
 
+const swapTaskWorkspace: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const result = await TaskServices.swapTaskWorkspace(
+    req.params.teamId as string,
+    req.params.taskId as string,
+    getUserId(req as AuthRequest),
+    req.body.targetWorkspaceId as string
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Task moved successfully",
+    data: result,
+  });
+});
+
 export const TaskControllers = {
   getTasks,
   getTask,
@@ -315,4 +330,5 @@ export const TaskControllers = {
   removeBanner,
   generateTaskShareLink,
   getSharedTask,
+  swapTaskWorkspace,
 };
