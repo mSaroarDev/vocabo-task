@@ -116,10 +116,19 @@ export default function SharedTask() {
     apiClient
       .get(`/tasks/share/${nanoid}`)
       .then((res) => {
-        setTask(res.data.data as SharedTaskData);
+        const data = res.data.data as SharedTaskData;
+        setTask(data);
+        document.title = data.title;
       })
       .catch(() => setError("Task not found or unavailable"))
       .finally(() => setLoading(false));
+
+    const favicon = document.querySelector('link[rel="icon"]');
+    if (favicon) favicon.remove();
+
+    return () => {
+      document.title = "Plano - The Ultimate Task Management App";
+    };
   }, [nanoid]);
 
   if (loading) {
@@ -148,13 +157,6 @@ export default function SharedTask() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-4xl px-6 py-10">
-        {/* Top Bar */}
-        <div className="flex items-center justify-between px-5 py-3 mb-6 rounded-xl border border-border/50 bg-[#1a1a1a]">
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Shared Task
-          </span>
-        </div>
-
         {/* Task Card */}
         <div className="rounded-xl border border-border/50 bg-[#1a1a1a] overflow-hidden">
           {/* Fields */}
