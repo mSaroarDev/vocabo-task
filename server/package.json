@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" ts-node-dev --respawn --transpile-only src/server.ts",
-    "start": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" node dist/src/server.js"
+    "start": "NODE_OPTIONS=\"--dns-result-order=ipv4first\" node dist/server.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1079.0",
