@@ -5,11 +5,13 @@ import {
   ChevronsUpDown,
   Check,
   Plus,
+  ArrowUpCircle,
   GripVertical,
   ListTodo,
   Star,
   Trash2,
   Pen,
+  Settings,
   LogOut,
   Loader2,
   Home,
@@ -18,6 +20,9 @@ import {
   X,
   MessageSquare,
   StickyNote,
+  User,
+  UserPlus,
+  Users,
 } from "lucide-react";
 import { LuUserRoundCheck, LuUserRoundCog } from "react-icons/lu";
 import { useRef, useState, useEffect } from "react";
@@ -40,6 +45,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/input";
 import ItemModal from "@/components/ui/item-modal";
 import WorkspaceModal from "@/components/ui/workspace-modal";
+import SettingsModal from "@/components/ui/settings-modal";
+import TeamModal from "@/components/ui/settings/TeamModal";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -513,10 +520,12 @@ export default function Sidebar() {
         ? "members-assigned"
         : "assigned"
       : null;
+  const selectedWorkspace = workspaces.find((w: Workspace) => w.id === activeWorkspace);
   const favoritesActive =
     pathname === "/dashboard" && !activeWorkspace && !activeChecklist;
   const [searchQuery, setSearchQuery] = useState("");
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const workspaceList: SidebarItem[] = workspaces
     .filter((workspace: Workspace) => workspace.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
@@ -537,6 +546,8 @@ export default function Sidebar() {
     onSave: (value: string) => void;
   }>({ open: false, title: "", initialValue: "", onSave: () => {} });
   const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState<{
     id: string;
     name: string;
@@ -549,15 +560,16 @@ export default function Sidebar() {
     open: boolean;
     title: string;
     description: string;
+    confirmLabel?: string;
     onConfirm: () => void;
-  }>({ open: false, title: "", description: "", onConfirm: () => {} });
+  }>({ open: false, title: "", description: "", confirmLabel: "Delete", onConfirm: () => {} });
 
   const openInputModal = (title: string, initialValue: string, onSave: (value: string) => void) => {
     setItemModal({ open: true, title, initialValue, onSave });
   };
 
-  const openConfirm = (title: string, description: string, onConfirm: () => void) => {
-    setConfirmDialog({ open: true, title, description, onConfirm });
+  const openConfirm = (title: string, description: string, onConfirm: () => void, confirmLabel?: string) => {
+    setConfirmDialog({ open: true, title, description, confirmLabel, onConfirm });
   };
 
   const createTeam = () => {
@@ -639,9 +651,10 @@ export default function Sidebar() {
     });
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login", { replace: true });
+  const handleLogout = () => {
+    openConfirm("Log out", "Are you sure you want to log out?", () => {
+      void logout().then(() => navigate("/login", { replace: true }));
+    }, "Log out");
   };
 
   const userInitials = user
@@ -661,6 +674,22 @@ export default function Sidebar() {
         title={itemModal.title}
         initialValue={itemModal.initialValue}
         onSave={itemModal.onSave}
+      />
+      <SettingsModal
+        open={settingsModalOpen}
+        onOpenChange={setSettingsModalOpen}
+        user={user}
+        teams={teams}
+        defaultTeamId={selectedTeam?.id || null}
+        onSetDefaultTeam={(team) => {
+          setSelectedTeam(team);
+          setSettingsModalOpen(false);
+        }}
+      />
+      <TeamModal
+        open={teamModalOpen}
+        onOpenChange={setTeamModalOpen}
+        team={selectedTeam}
       />
       <WorkspaceModal
         open={workspaceModalOpen}
@@ -694,6 +723,7 @@ export default function Sidebar() {
         onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
         title={confirmDialog.title}
         description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel || "Delete"}
         onConfirm={confirmDialog.onConfirm}
       />
 
@@ -705,23 +735,22 @@ export default function Sidebar() {
             className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
           >
             <div
-              className={cn(
-                "flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white overflow-hidden",
-                selectedTeam
-                  ? selectedTeam.avatar.startsWith("http") || selectedTeam.avatar.startsWith("/uploads")
-                    ? ""
-                    : selectedTeam.color
-                  : "bg-sidebar-accent"
-              )}
+              className="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white overflow-hidden"
+              style={{
+                backgroundColor:
+                  selectedTeam?.avatar.startsWith("http") || selectedTeam?.avatar.startsWith("/uploads")
+                    ? "transparent"
+                    : selectedWorkspace?.color || selectedTeam?.color || "#3A3A3D",
+              }}
             >
               {selectedTeam?.avatar.startsWith("http") || selectedTeam?.avatar.startsWith("/uploads") ? (
                 <img src={selectedTeam.avatar} alt={selectedTeam.name} className="h-full w-full object-cover" />
               ) : (
-                selectedTeam?.avatar || "+"
+                <WorkspaceIcon name={selectedWorkspace?.icon || "briefcase"} size={14} />
               )}
             </div>
             <span className="flex-1 truncate text-left">
-              {selectedTeam?.name || "No team"}
+              {selectedWorkspace?.name || selectedTeam?.name || "No workspace"}
             </span>
             <ChevronsUpDown size={14} className="text-muted-foreground" />
           </button>
@@ -729,39 +758,100 @@ export default function Sidebar() {
           {teamDropdownOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setTeamDropdownOpen(false)} />
-              <div className="absolute left-3 right-3 top-full z-50 mt-1 rounded-md border border-sidebar-border bg-sidebar py-1 shadow-lg">
-                <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Switch team
-                </div>
-                <div className="border-t border-sidebar-border mb-1" />
-                {teams.map((team) => (
-                  <button
-                    key={team.id}
-                    onClick={() => {
-                      setSelectedTeam(team);
-                      setTeamDropdownOpen(false);
+              <div className="absolute left-3 right-3 top-full z-50 mt-1 min-w-[280px] rounded-lg border border-sidebar-border bg-sidebar p-3 shadow-lg">
+                {/* Header — Current Active Space */}
+                <div className="flex items-center gap-3 pb-3">
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold text-white overflow-hidden"
+                    style={{
+                      backgroundColor:
+                        selectedTeam?.avatar.startsWith("http") || selectedTeam?.avatar.startsWith("/uploads")
+                          ? "transparent"
+                          : selectedWorkspace?.color || "#3A3A3D",
                     }}
-                    className="flex w-full cursor-pointer items-center gap-3 px-3 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
                   >
-                    <div className={`flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white overflow-hidden ${team.avatar.startsWith("http") || team.avatar.startsWith("/uploads") ? "" : team.color}`}>
-                      {team.avatar.startsWith("http") || team.avatar.startsWith("/uploads") ? (
-                        <img src={team.avatar} alt={team.name} className="h-full w-full object-cover" />
-                      ) : (
-                        team.avatar
-                      )}
-                    </div>
-                    <span className="flex-1 truncate text-left">{team.name}</span>
-                    {selectedTeam?.id === team.id && <Check size={14} className="text-muted-foreground" />}
-                  </button>
-                ))}
-                <button
-                  onClick={createTeam}
-                  className="mt-1 flex w-full cursor-pointer items-center gap-3 border-t border-sidebar-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                >
-                  <div className="flex h-6 w-6 items-center justify-center rounded bg-sidebar-accent text-sidebar-foreground">
-                    <Plus size={14} />
+                    {selectedTeam?.avatar.startsWith("http") || selectedTeam?.avatar.startsWith("/uploads") ? (
+                      <img src={selectedTeam.avatar} alt={selectedTeam.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <WorkspaceIcon name={selectedWorkspace?.icon || "briefcase"} size={16} />
+                    )}
                   </div>
-                  <span className="flex-1 truncate text-left">Create team</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px] font-semibold text-sidebar-foreground">
+                      {selectedWorkspace?.name || (selectedTeam?.name || "No workspace")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Free Plan &middot; {selectedTeam?.members?.length || 0} members
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-sidebar-border" />
+
+                {/* Action Menu */}
+                <div className="space-y-0.5 py-1">
+                  <button
+                    type="button"
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent"
+                  >
+                    <ArrowUpCircle size={16} className="text-blue-500" />
+                    <span className="font-medium text-blue-500">Upgrade</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTeamDropdownOpen(false); setSettingsModalOpen(true); }}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+                  >
+                    <Settings size={16} className="text-muted-foreground" />
+                    Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTeamDropdownOpen(false); setTeamModalOpen(true); }}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+                  >
+                    <Users size={16} className="text-muted-foreground" />
+                    Invite members
+                  </button>
+                </div>
+
+                <div className="border-t border-sidebar-border" />
+
+                {/* Workspace Switcher */}
+                <div className="space-y-0.5 py-1">
+                  <p className="px-2 pb-1 text-xs text-muted-foreground">{user?.email}</p>
+                  {teams.map((team) => (
+                    <button
+                      key={team.id}
+                      onClick={() => {
+                        setSelectedTeam(team);
+                        setTeamDropdownOpen(false);
+                      }}
+                      className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+                    >
+                      <div className={`flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white overflow-hidden ${team.avatar.startsWith("http") || team.avatar.startsWith("/uploads") ? "" : team.color}`}>
+                        {team.avatar.startsWith("http") || team.avatar.startsWith("/uploads") ? (
+                          <img src={team.avatar} alt={team.name} className="h-full w-full object-cover" />
+                        ) : (
+                          team.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <span className="flex-1 truncate text-left">{team.name}</span>
+                      {selectedTeam?.id === team.id && <Check size={14} className="text-sidebar-foreground" />}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="border-t border-sidebar-border" />
+
+                {/* Footer */}
+                <button
+                  type="button"
+                  onClick={() => { setTeamDropdownOpen(false); handleLogout(); }}
+                  className="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent"
+                >
+                  <LogOut size={16} />
+                  Log out
                 </button>
               </div>
             </>
@@ -855,9 +945,9 @@ export default function Sidebar() {
           />
         </div>
 
-        <div className="pb-3">
+        <div className="relative pb-3">
           <div
-            onClick={() => navigate("/profile")}
+            onClick={() => setUserDropdownOpen(!userDropdownOpen)}
             className="flex items-center gap-3 px-3 py-2 rounded-md mx-2 mt-2 group cursor-pointer hover:bg-sidebar-accent/50 transition-colors"
           >
             <div className={cn("flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium overflow-hidden", user?.avatar ? "" : "bg-sidebar-accent")}>
@@ -882,6 +972,61 @@ export default function Sidebar() {
               <LogOut size={14} />
             </button>
           </div>
+
+          {userDropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setUserDropdownOpen(false)} />
+              <div className="absolute bottom-full left-3 right-3 z-50 mb-1 min-w-[280px] rounded-lg border border-sidebar-border bg-sidebar p-3 shadow-lg">
+                <div className="flex items-center gap-3 pb-3">
+                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium overflow-hidden", user?.avatar ? "" : "bg-sidebar-accent")}>
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-base">{userInitials}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-sidebar-foreground">
+                      {user?.name || "Guest"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">{user?.email || ""}</p>
+                  </div>
+                </div>
+
+                <div className="border-t border-sidebar-border" />
+
+                <div className="space-y-0.5 py-1">
+                  <button
+                    type="button"
+                    onClick={() => { setUserDropdownOpen(false); navigate("/profile"); }}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+                  >
+                    <User size={16} className="text-muted-foreground" />
+                    View profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setUserDropdownOpen(false); setSettingsModalOpen(true); }}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+                  >
+                    <Settings size={16} className="text-muted-foreground" />
+                    Account settings
+                  </button>
+                </div>
+
+                <div className="border-t border-sidebar-border" />
+
+                <button
+                  type="button"
+                  onClick={() => { setUserDropdownOpen(false); handleLogout(); }}
+                  className="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent"
+                >
+                  <LogOut size={16} />
+                  Log out
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </aside>
     </>

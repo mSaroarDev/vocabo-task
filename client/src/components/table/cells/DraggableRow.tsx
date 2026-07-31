@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GripVertical, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import Swal from "sweetalert2";
+import ConfirmModal from "@/components/ui/confirm-modal";
 import type { TeamMember } from "@/store/slices/teamsSlice";
 import type { StatusOption, PriorityOption, Task, CellRenderProps } from "../types";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,7 @@ export function DraggableRow({
   workspaceId,
 }: DraggableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id });
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -95,14 +97,24 @@ export function DraggableRow({
   };
 
   return (
-    <tr
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "group hover:bg-white/[0.02] transition-colors",
-        isDragging && "opacity-40"
-      )}
-    >
+    <>
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title="Delete task?"
+        description={`"${task.title}" will be permanently deleted.`}
+        confirmText="Delete"
+        variant="danger"
+        onConfirm={() => onTaskDelete(task.id)}
+      />
+      <tr
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          "group hover:bg-white/[0.02] transition-colors",
+          isDragging && "opacity-40"
+        )}
+      >
       <td style={{ width: 84, minWidth: 84 }} className="h-9 px-2 pl-3">
         <div className="flex items-center justify-center flex-nowrap w-full gap-1">
           <Checkbox
@@ -119,23 +131,7 @@ export function DraggableRow({
             <GripVertical size={18} />
           </span>
           <button
-            onClick={async () => {
-              const result = await Swal.fire({
-                title: "Delete task?",
-                text: `"${task.title}" will be permanently deleted.`,
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#ef4444",
-                cancelButtonColor: "#6b7280",
-                confirmButtonText: "Delete",
-                cancelButtonText: "Cancel",
-                background: "#252525",
-                color: "#e5e7eb",
-              });
-              if (result.isConfirmed) {
-                onTaskDelete(task.id);
-              }
-            }}
+            onClick={() => setConfirmDeleteOpen(true)}
             className="invisible group-hover:visible inline-flex cursor-pointer text-muted-foreground/30 hover:text-red-400 transition-colors px-0.5"
             title="Delete task"
           >
@@ -151,6 +147,7 @@ export function DraggableRow({
           </td>
         );
       })}
-    </tr>
+      </tr>
+    </>
   );
 }

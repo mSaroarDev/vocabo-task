@@ -29,7 +29,7 @@ const createTeam = async (userId: string, payload: { name: string }) => {
   const ownerId = new Types.ObjectId(userId);
   const inviteCode = await createUniqueInviteCode();
 
-  const result = await TeamModel.create({
+  const created = await TeamModel.create({
     name: payload.name.trim(),
     inviteCode,
     owner: ownerId,
@@ -41,6 +41,8 @@ const createTeam = async (userId: string, payload: { name: string }) => {
       },
     ],
   });
+
+  const result = await created.populate("members.user", "name email avatar");
 
   return result;
 };

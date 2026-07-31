@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { id: "basic-info", label: "Basic info" },
-  { id: "teams", label: "Teams" },
   { id: "settings", label: "Settings" },
 ] as const;
 

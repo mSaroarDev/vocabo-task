@@ -255,6 +255,17 @@ const teamsSlice = createSlice({
       state.lastFetched = null;
       state.error = null;
     },
+    optimisticUpdateMemberRole: (state, action: PayloadAction<{ teamId: string; memberUserId: string; role: string }>) => {
+      const team = state.items.find((t) => t.id === action.payload.teamId);
+      if (!team || !team.members) return;
+      const member = team.members.find((m) => m.userId === action.payload.memberUserId);
+      if (member) member.role = action.payload.role;
+    },
+    optimisticRemoveMember: (state, action: PayloadAction<{ teamId: string; memberUserId: string }>) => {
+      const team = state.items.find((t) => t.id === action.payload.teamId);
+      if (!team || !team.members) return;
+      team.members = team.members.filter((m) => m.userId !== action.payload.memberUserId);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -398,5 +409,7 @@ export const {
   setTeamsLoading,
   clearTeamsError,
   clearTeams,
+  optimisticUpdateMemberRole,
+  optimisticRemoveMember,
 } = teamsSlice.actions;
 export default teamsSlice.reducer;
