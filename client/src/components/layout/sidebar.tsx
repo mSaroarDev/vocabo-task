@@ -21,7 +21,6 @@ import {
   MessageSquare,
   StickyNote,
   User,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { LuUserRoundCheck, LuUserRoundCog } from "react-icons/lu";
@@ -485,7 +484,7 @@ function SidebarSearchPanel({
 export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { teams, selectedTeam, setSelectedTeam, addTeam } = useTeams();
+  const { teams, selectedTeam, setSelectedTeam } = useTeams();
   const {
     workspaces,
     isLoading: workspacesLoading,
@@ -570,13 +569,6 @@ export default function Sidebar() {
 
   const openConfirm = (title: string, description: string, onConfirm: () => void, confirmLabel?: string) => {
     setConfirmDialog({ open: true, title, description, confirmLabel, onConfirm });
-  };
-
-  const createTeam = () => {
-    setTeamDropdownOpen(false);
-    openInputModal("Create team", "", (value) => {
-      void addTeam(value);
-    });
   };
 
   const addWorkspace = () => {
