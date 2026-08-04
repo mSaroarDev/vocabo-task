@@ -27,5 +27,6 @@ export const updateProfileSchema: ZodSchema = z
     name: z.string().min(2, "Name must be at least 2 characters").optional(),
     email: z.string().email("Invalid email").optional(),
     phone: z.string().optional(),
+    defaultTeam: z.string().nullable().optional(),
   })
   .strict();

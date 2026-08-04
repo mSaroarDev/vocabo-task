@@ -107,7 +107,7 @@ export const AuthServices = {
     return { message: "Logged out successfully" };
   },
 
-  updateProfile: async (userId: string, data: { name?: string; email?: string; phone?: string }) => {
+  updateProfile: async (userId: string, data: { name?: string; email?: string; phone?: string; defaultTeam?: string | null }) => {
     const user = await User.findById(userId);
     if (!user) {
       throw new AppError(httpStatus.NOT_FOUND, "User not found");
@@ -123,6 +123,7 @@ export const AuthServices = {
     if (data.name) user.name = data.name;
     if (data.email) user.email = data.email;
     if (data.phone !== undefined) user.phone = data.phone;
+    if (data.defaultTeam !== undefined) user.defaultTeam = data.defaultTeam ?? undefined;
 
     await user.save();
 

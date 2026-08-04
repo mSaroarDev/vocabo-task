@@ -6,6 +6,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { store } from "@/store";
 import apiClient from "@/api/client";
 import { setTeams } from "@/store/slices/teamsSlice";
+import { updateProfile } from "@/store/slices/authSlice";
 import type { Team as StoreTeam } from "@/store/slices/teamsSlice";
 import type { User, Team } from "@/components/ui/settings/types";
 import SettingsSidebar from "@/components/ui/settings/SettingsSidebar";
@@ -66,6 +67,15 @@ export default function SettingsModal({
       setDefaultTeamId(initialDefaultTeamId);
     }
   }, [open, initialDefaultTeamId]);
+
+  const handleSetDefaultTeam = async (team: Team) => {
+    try {
+      dispatch(updateProfile({ defaultTeam: team.id }));
+    } catch (err) {
+      console.error("Failed to save default team", err);
+    }
+    onSetDefaultTeam(team);
+  };
 
   const handleCreateTeam = async (name: string) => {
     try {
@@ -146,7 +156,7 @@ export default function SettingsModal({
             limitCreation={limitCreation}
             setLimitCreation={setLimitCreation}
             user={user}
-            onSetDefaultTeam={onSetDefaultTeam}
+            onSetDefaultTeam={handleSetDefaultTeam}
             onNewTeamspace={() => handleTeamModalOpenChange(true)}
             onNestedModalActiveChange={setNestedModalActive}
             onDeleteTeam={handleDeleteTeam}

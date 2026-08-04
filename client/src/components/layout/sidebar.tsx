@@ -672,7 +672,7 @@ export default function Sidebar() {
         onOpenChange={setSettingsModalOpen}
         user={user}
         teams={teams}
-        defaultTeamId={selectedTeam?.id || null}
+        defaultTeamId={user?.defaultTeam || selectedTeam?.id || null}
         onSetDefaultTeam={(team) => {
           setSelectedTeam(team);
           setSettingsModalOpen(false);

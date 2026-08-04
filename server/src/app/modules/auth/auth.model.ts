@@ -13,6 +13,7 @@ export interface IUser extends Document {
   telegramConnected?: boolean;
   telegramConnectToken?: string | null;
   telegramUsername?: string;
+  defaultTeam?: string;
   isEmailVerified: boolean;
   lastLogin?: Date;
   createdAt: Date;
@@ -63,6 +64,10 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
       default: null,
     },
     telegramUsername: {
+      type: String,
+      default: null,
+    },
+    defaultTeam: {
       type: String,
       default: null,
     },

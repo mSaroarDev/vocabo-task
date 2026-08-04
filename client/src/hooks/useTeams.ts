@@ -17,15 +17,21 @@ import {
 
 export function useTeams() {
   const dispatch = useAppDispatch();
-  const { token } = useAppSelector((state) => state.auth as NonNullable<typeof state.auth>);
+  const { token, user } = useAppSelector((state) => state.auth as NonNullable<typeof state.auth>);
   const { items: teams, selectedTeamId, isLoading, lastFetched, error } = useAppSelector(
     (state) => state.teams as NonNullable<typeof state.teams>
   );
 
-  const selectedTeam = useMemo(
-    () => teams.find((team: Team) => team.id === selectedTeamId) || teams[0] || null,
-    [teams, selectedTeamId]
-  );
+  const selectedTeam = useMemo(() => {
+    if (selectedTeamId) {
+      return teams.find((team: Team) => team.id === selectedTeamId) || teams[0] || null;
+    }
+    if (user?.defaultTeam) {
+      const defaultMatch = teams.find((team: Team) => team.id === user.defaultTeam);
+      if (defaultMatch) return defaultMatch;
+    }
+    return teams[0] || null;
+  }, [teams, selectedTeamId, user?.defaultTeam]);
 
   const shouldRefetch = useMemo(() => {
     if (!lastFetched) return true;
@@ -38,6 +44,12 @@ export function useTeams() {
       dispatch(fetchTeamsAction());
     }
   }, [dispatch, isLoading, shouldRefetch, token]);
+
+  useEffect(() => {
+    if (!selectedTeamId && selectedTeam?.id && teams.length > 0) {
+      dispatch(selectTeamAction(selectedTeam.id));
+    }
+  }, [dispatch, selectedTeamId, selectedTeam?.id, teams.length]);
 
   return {
     teams,

@@ -12,6 +12,7 @@ export interface User {
   telegramConnected?: boolean;
   telegramConnectToken?: string | null;
   telegramUsername?: string;
+  defaultTeam?: string;
   isEmailVerified: boolean;
   lastLogin?: string;
   createdAt: string;
@@ -74,7 +75,7 @@ export const logoutUser = createAsyncThunk("auth/logout", async () => {
 
 export const updateProfile = createAsyncThunk(
   "auth/updateProfile",
-  async (data: { name?: string; email?: string; phone?: string }, { rejectWithValue }) => {
+  async (data: { name?: string; email?: string; phone?: string; defaultTeam?: string | null }, { rejectWithValue }) => {
     try {
       const response = await apiClient.patch("/auth/profile", data);
       const updatedUser = response.data.data;
