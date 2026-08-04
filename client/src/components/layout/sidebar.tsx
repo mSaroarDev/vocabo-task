@@ -732,7 +732,7 @@ export default function Sidebar() {
                 backgroundColor:
                   selectedTeam?.avatar.startsWith("http") || selectedTeam?.avatar.startsWith("/uploads")
                     ? "transparent"
-                    : selectedWorkspace?.color || selectedTeam?.color || "#3A3A3D",
+                    : selectedTeam?.color || "#3A3A3D",
               }}
             >
               {selectedTeam?.avatar.startsWith("http") || selectedTeam?.avatar.startsWith("/uploads") ? (
@@ -742,7 +742,7 @@ export default function Sidebar() {
               )}
             </div>
             <span className="flex-1 truncate text-left">
-              {selectedWorkspace?.name || selectedTeam?.name || "No workspace"}
+              {selectedTeam?.name || "No team"}
             </span>
             <ChevronsUpDown size={14} className="text-muted-foreground" />
           </button>
@@ -759,7 +759,7 @@ export default function Sidebar() {
                       backgroundColor:
                         selectedTeam?.avatar.startsWith("http") || selectedTeam?.avatar.startsWith("/uploads")
                           ? "transparent"
-                          : selectedWorkspace?.color || "#3A3A3D",
+                          : selectedTeam?.color || "#3A3A3D",
                     }}
                   >
                     {selectedTeam?.avatar.startsWith("http") || selectedTeam?.avatar.startsWith("/uploads") ? (
@@ -770,7 +770,7 @@ export default function Sidebar() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-semibold text-sidebar-foreground">
-                      {selectedWorkspace?.name || (selectedTeam?.name || "No workspace")}
+                      {selectedTeam?.name || "No team"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Free Plan &middot; {selectedTeam?.members?.length || 0} members

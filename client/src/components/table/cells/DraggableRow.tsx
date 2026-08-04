@@ -16,7 +16,9 @@ export interface DraggableRowProps {
   columnWidths: Record<string, number>;
   statusOptions: StatusOption[];
   priorityOptions: PriorityOption[];
+  isSelected?: boolean;
   onSelect: (task: Task) => void;
+  onRowClick?: (task: Task) => void;
   onStatusUpdate: (id: string, status: string) => void;
   onPriorityUpdate: (id: string, priority: string) => void;
   onAssigneeUpdate: (id: string, assignedTo: string | null) => void;
@@ -45,7 +47,9 @@ export function DraggableRow({
   columnWidths,
   statusOptions,
   priorityOptions,
+  isSelected,
   onSelect,
+  onRowClick,
   onStatusUpdate,
   onPriorityUpdate,
   onAssigneeUpdate,
@@ -111,9 +115,11 @@ export function DraggableRow({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "group hover:bg-white/[0.02] transition-colors",
-          isDragging && "opacity-40"
+          "group transition-colors cursor-pointer",
+          isDragging && "opacity-40",
+          isSelected ? "bg-white/[0.06]" : "hover:bg-white/[0.02]"
         )}
+        onClick={() => onRowClick?.(task)}
       >
       <td style={{ width: 84, minWidth: 84 }} className="h-9 px-2 pl-3">
         <div className="flex items-center justify-center flex-nowrap w-full gap-1">

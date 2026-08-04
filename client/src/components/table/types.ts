@@ -22,6 +22,7 @@ export interface Attachment {
 
 export interface Task {
   id: string;
+  uuid?: string;
   title: string;
   status: string;
   priority: Priority;

@@ -14,6 +14,7 @@ export interface IAttachment {
 
 export interface ITask {
   workspace: Types.ObjectId;
+  uuid: string;
   title: string;
   banner?: string;
   isCompleted: boolean;

@@ -66,6 +66,7 @@ interface ApiAttachment {
 
 export interface ApiTask {
   _id: string;
+  uuid: string;
   title: string;
   status: string;
   priority: Task["priority"];
@@ -94,7 +95,8 @@ export function mapTask(task: ApiTask): Task {
   });
 
   return {
-    id: task._id,
+    id: task.uuid,
+    uuid: task.uuid,
     title: task.title,
     status: task.status,
     priority: task.priority,
@@ -162,9 +164,10 @@ export const createTask = createAsyncThunk<
     const currentUser = getState().auth.user;
     const userName = currentUser?.name || "Unknown";
     const userAvatar = currentUser?.avatar || "";
-    const tempId = `temp_${crypto.randomUUID()}`;
+    const uuid = crypto.randomUUID();
     const tempTask: Task = {
-      id: tempId,
+      id: uuid,
+      uuid,
       title: data.title || "Untitled",
       status: data.status || "New",
       priority: data.priority || "None",
@@ -191,6 +194,7 @@ export const createTask = createAsyncThunk<
 
     try {
       const payload: Record<string, unknown> = {
+        uuid,
         title: data.title,
         description: data.description,
         status: data.status,
@@ -218,18 +222,18 @@ export const createTask = createAsyncThunk<
               },
             });
             const updated = mapTask(attachRes.data.data as ApiTask);
-            dispatch(confirmOptimisticTask({ tempId, realTask: updated }));
+            dispatch(confirmOptimisticTask({ tempId: uuid, realTask: updated }));
           } catch {
             // individual attachment upload failure — continue
           }
         }
       } else {
-        dispatch(confirmOptimisticTask({ tempId, realTask }));
+        dispatch(confirmOptimisticTask({ tempId: uuid, realTask }));
       }
 
       return realTask;
     } catch (error) {
-      dispatch(removeOptimisticTask(tempId));
+      dispatch(removeOptimisticTask(uuid));
       return rejectWithValue(
         getErrorMessage(error, "Failed to create task")
       );

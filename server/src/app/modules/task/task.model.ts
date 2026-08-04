@@ -17,6 +17,7 @@ const attachmentSchema = new Schema<IAttachment>(
 const taskSchema = new Schema<ITask>(
   {
     workspace: { type: Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
+    uuid: { type: String, required: true, unique: true, index: true },
     title: { type: String, required: true, trim: true, maxlength: 200 },
     banner: { type: String, trim: true },
     isCompleted: { type: Boolean, default: false },

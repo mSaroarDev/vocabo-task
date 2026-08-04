@@ -25,19 +25,19 @@ router.patch(
 );
 
 router.patch("/archive", TaskControllers.archiveTasks);
-router.get("/:taskId", TaskControllers.getTask);
-router.patch("/:taskId", validatorMiddleware(updateTaskValidator), TaskControllers.updateTask);
-router.delete("/:taskId", TaskControllers.deleteTask);
+router.get("/:uuid", TaskControllers.getTask);
+router.patch("/:uuid", validatorMiddleware(updateTaskValidator), TaskControllers.updateTask);
+router.delete("/:uuid", TaskControllers.deleteTask);
 
-router.post("/:taskId/attachments", attachmentUpload, TaskControllers.addAttachments);
-router.delete("/:taskId/attachments/:attachmentId", TaskControllers.removeAttachment);
+router.post("/:uuid/attachments", attachmentUpload, TaskControllers.addAttachments);
+router.delete("/:uuid/attachments/:attachmentId", TaskControllers.removeAttachment);
 
-router.post("/:taskId/share", TaskControllers.generateTaskShareLink);
-router.post("/:taskId/banner", bannerUpload, TaskControllers.setBanner);
-router.delete("/:taskId/banner", TaskControllers.removeBanner);
+router.post("/:uuid/share", TaskControllers.generateTaskShareLink);
+router.post("/:uuid/banner", bannerUpload, TaskControllers.setBanner);
+router.delete("/:uuid/banner", TaskControllers.removeBanner);
 
-router.use("/:taskId/activity", ActivityLogRoutes);
-router.use("/:taskId/comments", CommentRoutes);
+router.use("/:uuid/activity", ActivityLogRoutes);
+router.use("/:uuid/comments", CommentRoutes);
 
 export const TaskRoutes = router;
 
@@ -53,7 +53,7 @@ teamTaskRouter.patch(
 );
 
 teamTaskRouter.patch(
-  "/:taskId/swap",
+  "/:uuid/swap",
   validatorMiddleware(swapTaskValidator),
   TaskControllers.swapTaskWorkspace
 );

@@ -31,7 +31,7 @@ const getTask: RequestHandler = catchAsync(async (req: Request, res: Response) =
   const result = await TaskServices.getTask(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    req.params.uuid as string,
     getUserId(req as AuthRequest)
   );
   sendResponse(res, {
@@ -76,7 +76,7 @@ const updateTask: RequestHandler = catchAsync(async (req: Request, res: Response
   const result = await TaskServices.updateTask(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    req.params.uuid as string,
     getUserId(req as AuthRequest),
     req.body
   );
@@ -92,7 +92,7 @@ const deleteTask: RequestHandler = catchAsync(async (req: Request, res: Response
   await TaskServices.deleteTask(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    req.params.uuid as string,
     getUserId(req as AuthRequest)
   );
   sendResponse(res, {
@@ -172,7 +172,7 @@ const addAttachment: RequestHandler = catchAsync(async (req: Request, res: Respo
   const result = await TaskServices.addAttachment(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    req.params.uuid as string,
     getUserId(req as AuthRequest),
     file
   );
@@ -201,7 +201,7 @@ const addAttachments: RequestHandler = catchAsync(async (req: Request, res: Resp
     result = await TaskServices.addAttachment(
       req.params.teamId as string,
       req.params.workspaceId as string,
-      req.params.taskId as string,
+      req.params.uuid as string,
       userId,
       file
     );
@@ -218,7 +218,7 @@ const removeAttachment: RequestHandler = catchAsync(async (req: Request, res: Re
   const result = await TaskServices.removeAttachment(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    req.params.uuid as string,
     req.params.attachmentId as string,
     getUserId(req as AuthRequest)
   );
@@ -243,7 +243,7 @@ const setBanner: RequestHandler = catchAsync(async (req: Request, res: Response)
   const result = await TaskServices.setBanner(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    req.params.uuid as string,
     getUserId(req as AuthRequest),
     file
   );
@@ -259,7 +259,7 @@ const removeBanner: RequestHandler = catchAsync(async (req: Request, res: Respon
   const result = await TaskServices.removeBanner(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    req.params.uuid as string,
     getUserId(req as AuthRequest)
   );
   sendResponse(res, {
@@ -275,7 +275,7 @@ const generateTaskShareLink: RequestHandler = catchAsync(async (req: Request, re
     getUserId(req as AuthRequest),
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string
+    req.params.uuid as string
   );
 
   sendResponse(res, {
@@ -301,7 +301,7 @@ const getSharedTask: RequestHandler = catchAsync(async (req: Request, res: Respo
 const swapTaskWorkspace: RequestHandler = catchAsync(async (req: Request, res: Response) => {
   const result = await TaskServices.swapTaskWorkspace(
     req.params.teamId as string,
-    req.params.taskId as string,
+    req.params.uuid as string,
     getUserId(req as AuthRequest),
     req.body.targetWorkspaceId as string
   );

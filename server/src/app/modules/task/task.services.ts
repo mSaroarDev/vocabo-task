@@ -406,13 +406,10 @@ const getTasks = async (teamId: string, workspaceId: string, userId: string) => 
   return tasks;
 };
 
-const getTask = async (teamId: string, workspaceId: string, taskId: string, userId: string) => {
+const getTask = async (teamId: string, workspaceId: string, uuid: string, userId: string) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
-  if (!Types.ObjectId.isValid(taskId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
-  const task = await TaskModel.findOne({ _id: taskId, workspace: workspaceId })
+  const task = await TaskModel.findOne({ uuid, workspace: workspaceId })
     .populate("createdBy", "name email avatar")
     .populate("assignedTo", "name email avatar");
   if (!task) {
@@ -454,6 +451,7 @@ const getAssignedToMe = async (teamId: string, requesterId: string, targetUserId
 };
 
 interface CreateTaskPayload {
+  uuid: string;
   title: string;
   description?: string;
   status?: string;
@@ -480,6 +478,7 @@ const createTask = async (
 
   const task = await TaskModel.create({
     workspace: new Types.ObjectId(workspaceId),
+    uuid: payload.uuid,
     title: payload.title.trim(),
     description: payload.description?.trim(),
     status: payload.status?.trim() || defaultStatus,
@@ -578,18 +577,14 @@ interface UpdateTaskPayload {
 const updateTask = async (
   teamId: string,
   workspaceId: string,
-  taskId: string,
+  uuid: string,
   userId: string,
   payload: UpdateTaskPayload
 ) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
 
-  if (!Types.ObjectId.isValid(taskId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
-
-  const oldTask = await TaskModel.findOne({ _id: taskId, workspace: workspaceId });
+  const oldTask = await TaskModel.findOne({ uuid, workspace: workspaceId });
   if (!oldTask) {
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
   }
@@ -651,7 +646,7 @@ const updateTask = async (
   }
 
   const task = await TaskModel.findOneAndUpdate(
-    { _id: taskId, workspace: workspaceId },
+    { uuid, workspace: workspaceId },
     { $set: updateData },
     { new: true, runValidators: true }
   ).populate(["createdBy", "assignedTo"]);
@@ -664,7 +659,7 @@ const updateTask = async (
     await Promise.all(
       changes.map((c) =>
         ActivityLogServices.logActivity({
-          task: taskId,
+          task: String(oldTask._id),
           workspace: workspaceId,
           team: teamId,
           action: "updated",
@@ -681,7 +676,7 @@ const updateTask = async (
     const performer = await User.findById(userId).select("name");
     const performerName = performer?.name || "Unknown";
     sendTaskAssignedNotification(
-      taskId,
+      String(oldTask._id),
       payload.assignedTo,
       task.title,
       task.priority,
@@ -690,7 +685,7 @@ const updateTask = async (
       workspaceId
     );
     createAssignmentNotification(
-      taskId,
+      String(oldTask._id),
       payload.assignedTo,
       task.title,
       performerName,
@@ -710,7 +705,7 @@ const updateTask = async (
       const performer = await User.findById(userId).select("name");
       const performerName = performer?.name || "Unknown";
       sendTaskUpdateNotification(
-        taskId,
+        String(oldTask._id),
         task.title,
         assignedUserId,
         otherChanges,
@@ -720,7 +715,7 @@ const updateTask = async (
       );
 
       createTaskUpdateNotification(
-        taskId,
+        String(oldTask._id),
         assignedUserId,
         task.title,
         performerName,
@@ -747,7 +742,7 @@ const updateTask = async (
 
       for (const recipientId of recipientIds) {
         sendTaskStatusChangeNotification(
-          taskId,
+          String(oldTask._id),
           task.title,
           oldTask.status,
           newStatus,
@@ -757,7 +752,7 @@ const updateTask = async (
           recipientId
         );
         createTaskStatusChangeNotification(
-          taskId,
+          String(oldTask._id),
           task.title,
           oldTask.status,
           newStatus,
@@ -777,24 +772,20 @@ const updateTask = async (
 const deleteTask = async (
   teamId: string,
   workspaceId: string,
-  taskId: string,
+  uuid: string,
   userId: string
 ) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
 
-  if (!Types.ObjectId.isValid(taskId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
-
-  const task = await TaskModel.findOneAndDelete({ _id: taskId, workspace: workspaceId });
+  const task = await TaskModel.findOneAndDelete({ uuid, workspace: workspaceId });
 
   if (!task) {
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
   }
 
   await ActivityLogServices.logActivity({
-    task: taskId,
+    task: String(task._id),
     workspace: workspaceId,
     team: teamId,
     action: "deleted",
@@ -826,30 +817,26 @@ const reorderTasks = async (
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
 
-  const ids = payload.taskIds;
+  const uuids = payload.taskIds;
 
-  if (ids.some((id) => !Types.ObjectId.isValid(id))) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
-
-  const uniqueIds = [...new Set(ids)];
-  if (uniqueIds.length !== ids.length) {
+  const uniqueUuids = [...new Set(uuids)];
+  if (uniqueUuids.length !== uuids.length) {
     throw new AppError(httpStatus.BAD_REQUEST, "Task order contains duplicates");
   }
 
   const matchingCount = await TaskModel.countDocuments({
-    _id: { $in: uniqueIds },
+    uuid: { $in: uniqueUuids },
     workspace: workspaceId,
   });
 
-  if (matchingCount !== uniqueIds.length) {
+  if (matchingCount !== uniqueUuids.length) {
     throw new AppError(httpStatus.BAD_REQUEST, "Some tasks were not found in this workspace");
   }
 
   await TaskModel.bulkWrite(
-    uniqueIds.map((taskId, index) => ({
+    uniqueUuids.map((uuid, index) => ({
       updateOne: {
-        filter: { _id: taskId, workspace: workspaceId },
+        filter: { uuid, workspace: workspaceId },
         update: { $set: { order: index } },
       },
     }))
@@ -868,33 +855,29 @@ const reorderMemberTasks = async (
 ) => {
   await ensureTeamMember(teamId, userId);
 
-  const ids = payload.taskIds;
+  const uuids = payload.taskIds;
 
-  if (ids.some((id) => !Types.ObjectId.isValid(id))) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
-
-  const uniqueIds = [...new Set(ids)];
-  if (uniqueIds.length !== ids.length) {
+  const uniqueUuids = [...new Set(uuids)];
+  if (uniqueUuids.length !== uuids.length) {
     throw new AppError(httpStatus.BAD_REQUEST, "Task order contains duplicates");
   }
 
-  const matchingCount = await TaskModel.countDocuments({ _id: { $in: uniqueIds } });
+  const matchingCount = await TaskModel.countDocuments({ uuid: { $in: uniqueUuids } });
 
-  if (matchingCount !== uniqueIds.length) {
+  if (matchingCount !== uniqueUuids.length) {
     throw new AppError(httpStatus.BAD_REQUEST, "Some tasks were not found");
   }
 
   await TaskModel.bulkWrite(
-    uniqueIds.map((taskId, index) => ({
+    uniqueUuids.map((uuid, index) => ({
       updateOne: {
-        filter: { _id: taskId },
+        filter: { uuid },
         update: { $set: { memberTaskOrder: index } },
       },
     }))
   );
 
-  const tasks = await TaskModel.find({ _id: { $in: uniqueIds } })
+  const tasks = await TaskModel.find({ uuid: { $in: uniqueUuids } })
     .sort({ memberTaskOrder: 1 })
     .populate(["createdBy", "assignedTo"]);
 
@@ -913,16 +896,12 @@ const reorderMemberTasks = async (
 const addAttachment = async (
   teamId: string,
   workspaceId: string,
-  taskId: string,
+  uuid: string,
   userId: string,
   file: Express.Multer.File
 ) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
-
-  if (!Types.ObjectId.isValid(taskId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
 
   const storage = getStorage();
 
@@ -944,7 +923,7 @@ const addAttachment = async (
   };
 
   const task = await TaskModel.findOneAndUpdate(
-    { _id: taskId, workspace: workspaceId },
+    { uuid, workspace: workspaceId },
     { $push: { attachments: attachment } },
     { new: true, runValidators: true }
   ).populate(["createdBy", "assignedTo"]);
@@ -1013,18 +992,14 @@ const addAttachment = async (
 const removeAttachment = async (
   teamId: string,
   workspaceId: string,
-  taskId: string,
+  uuid: string,
   attachmentId: string,
   userId: string
 ) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
 
-  if (!Types.ObjectId.isValid(taskId) || !Types.ObjectId.isValid(attachmentId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid id");
-  }
-
-  const task = await TaskModel.findOne({ _id: taskId, workspace: workspaceId });
+  const task = await TaskModel.findOne({ uuid, workspace: workspaceId });
   if (!task) {
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
   }
@@ -1037,7 +1012,7 @@ const removeAttachment = async (
   }
 
   const updated = await TaskModel.findOneAndUpdate(
-    { _id: taskId, workspace: workspaceId },
+    { uuid, workspace: workspaceId },
     { $pull: { attachments: { _id: attachmentId } } },
     { new: true }
   ).populate(["createdBy", "assignedTo"]);
@@ -1052,16 +1027,12 @@ const removeAttachment = async (
 const setBanner = async (
   teamId: string,
   workspaceId: string,
-  taskId: string,
+  uuid: string,
   userId: string,
   file: Express.Multer.File
 ) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
-
-  if (!Types.ObjectId.isValid(taskId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
 
   const storage = getStorage();
 
@@ -1073,7 +1044,7 @@ const setBanner = async (
   }
 
   const task = await TaskModel.findOneAndUpdate(
-    { _id: taskId, workspace: workspaceId },
+    { uuid, workspace: workspaceId },
     { $set: { banner: url } },
     { new: true, runValidators: true }
   ).populate(["createdBy", "assignedTo"]);
@@ -1089,17 +1060,13 @@ const setBanner = async (
 const removeBanner = async (
   teamId: string,
   workspaceId: string,
-  taskId: string,
+  uuid: string,
   userId: string
 ) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
 
-  if (!Types.ObjectId.isValid(taskId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
-
-  const task = await TaskModel.findOne({ _id: taskId, workspace: workspaceId });
+  const task = await TaskModel.findOne({ uuid, workspace: workspaceId });
   if (!task) {
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
   }
@@ -1107,7 +1074,7 @@ const removeBanner = async (
   const oldBanner = task.banner;
 
   const updated = await TaskModel.findOneAndUpdate(
-    { _id: taskId, workspace: workspaceId },
+    { uuid, workspace: workspaceId },
     { $unset: { banner: "" } },
     { new: true }
   ).populate(["createdBy", "assignedTo"]);
@@ -1123,19 +1090,14 @@ const setTasksArchive = async (
   teamId: string,
   workspaceId: string,
   userId: string,
-  taskIds: string[],
+  uuids: string[],
   isArchived: boolean
 ) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
 
-  const validIds = taskIds.filter((id) => Types.ObjectId.isValid(id));
-  if (validIds.length === 0) {
-    throw new AppError(httpStatus.BAD_REQUEST, "No valid task ids provided");
-  }
-
   const matching = await TaskModel.find({
-    _id: { $in: validIds },
+    uuid: { $in: uuids },
     workspace: workspaceId,
   });
 
@@ -1144,27 +1106,23 @@ const setTasksArchive = async (
   }
 
   await TaskModel.updateMany(
-    { _id: { $in: matching.map((t) => t._id) }, workspace: workspaceId },
+    { uuid: { $in: uuids }, workspace: workspaceId },
     { $set: { isArchived } }
   );
 
   const updated = await TaskModel.find({
-    _id: { $in: matching.map((t) => t._id) },
+    uuid: { $in: uuids },
     workspace: workspaceId,
   }).populate(["createdBy", "assignedTo"]);
 
   return updated;
 };
 
-const generateTaskShareNanoid = async (userId: string, teamId: string, workspaceId: string, taskId: string) => {
+const generateTaskShareNanoid = async (userId: string, teamId: string, workspaceId: string, uuid: string) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, workspaceId);
 
-  if (!Types.ObjectId.isValid(taskId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
-
-  const task = await TaskModel.findOne({ _id: taskId, workspace: workspaceId });
+  const task = await TaskModel.findOne({ uuid, workspace: workspaceId });
   if (!task) {
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
   }
@@ -1191,18 +1149,14 @@ const getTaskByNanoid = async (nanoid: string) => {
 
 const swapTaskWorkspace = async (
   teamId: string,
-  taskId: string,
+  uuid: string,
   userId: string,
   targetWorkspaceId: string
 ) => {
   await ensureTeamMember(teamId, userId);
   await ensureWorkspace(teamId, targetWorkspaceId);
 
-  if (!Types.ObjectId.isValid(taskId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid task id");
-  }
-
-  const task = await TaskModel.findById(taskId);
+  const task = await TaskModel.findOne({ uuid });
   if (!task) {
     throw new AppError(httpStatus.NOT_FOUND, "Task not found");
   }
@@ -1213,7 +1167,7 @@ const swapTaskWorkspace = async (
   await task.save();
 
   await ActivityLogServices.logActivity({
-    task: taskId,
+    task: String(task._id),
     workspace: oldWorkspaceId,
     team: teamId,
     action: "updated",

@@ -78,6 +78,7 @@ export default function NotionTable({
     Object.fromEntries(visibleColumns.map((c) => [c.key, c.width]))
   );
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [highlightedRowId, setHighlightedRowId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const selectedTask = useMemo(() => tasks.find((t) => t.id === selectedTaskId) ?? null, [tasks, selectedTaskId]);
   const [addingNew, setAddingNew] = useState(false);
@@ -269,6 +270,8 @@ export default function NotionTable({
                     key={task.id}
                     task={task}
                     isDragging={isDragging(task.id)}
+                    isSelected={highlightedRowId === task.id}
+                    onRowClick={(t) => setHighlightedRowId(t.id)}
                     columnOrder={columnOrder}
                     statusOptions={statusOptions}
                     priorityOptions={priorityOptions}

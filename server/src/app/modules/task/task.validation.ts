@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const createTaskValidator = z.object({
+  uuid: z.string().uuid("Invalid UUID"),
   title: z.string().trim().min(1, "Title is required").max(200, "Title is too long"),
   description: z.string().trim().optional(),
   status: z.string().trim().optional(),

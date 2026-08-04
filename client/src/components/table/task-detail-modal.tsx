@@ -965,12 +965,18 @@ export default function TaskDetailModal({
                   {/* Image thumbnails grid */}
                   <div className="flex flex-wrap gap-2 mb-3">
                     {/* Existing image attachments */}
-                     {!isCreate && task && task.attachments
-                       .filter(a => a.mimeType.startsWith("image/"))
-                       .map((attachment) => (
+                     {!isCreate && task && (() => {
+                       const imageAttachments = task.attachments.filter(a => a.mimeType.startsWith("image/"));
+                       return imageAttachments.length > 0 && imageAttachments.map((attachment) => {
+                         const idx = imageAttachments.indexOf(attachment);
+                         return (
                          <div
                            key={attachment.id}
-                           className="relative group rounded-lg overflow-hidden border border-border/50 hover:border-foreground/50 transition-colors"
+                           className="relative group rounded-lg overflow-hidden border border-border/50 hover:border-foreground/50 transition-colors cursor-pointer"
+                           onClick={() => {
+                             setPreviewUrls(imageAttachments.map(a => a.url));
+                             setPreviewIndex(idx);
+                           }}
                          >
                            <img
                              src={attachment.url}
@@ -978,14 +984,16 @@ export default function TaskDetailModal({
                              className="w-[50px] h-[80px] object-cover"
                            />
                            <button
-                             onClick={() => removeAttachment(attachment.id)}
+                             onClick={(e) => { e.stopPropagation(); removeAttachment(attachment.id); }}
                              className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all cursor-pointer"
                              aria-label="Remove image"
                            >
                              <X size={10} />
                            </button>
                          </div>
-                       ))}
+                         );
+                       });
+                     })()}
                      
                      {/* Pending image attachments */}
                      {pendingAttachments
@@ -993,7 +1001,12 @@ export default function TaskDetailModal({
                        .map((p, i) => (
                          <div
                            key={`pending-${i}`}
-                           className="relative rounded-lg overflow-hidden border border-border/50"
+                           className="relative rounded-lg overflow-hidden border border-border/50 cursor-pointer"
+                           onClick={() => {
+                             const pendingUrls = pendingAttachments.filter(pp => pp.file.type.startsWith("image/")).map(pp => pp.preview);
+                             setPreviewUrls(pendingUrls);
+                             setPreviewIndex(i);
+                           }}
                          >
                            <img
                              src={p.preview}

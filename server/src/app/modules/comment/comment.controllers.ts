@@ -4,6 +4,7 @@ import { AuthRequest } from "../../middlewares/authMiddleware";
 import catchAsync from "../../utils/asyncCatch";
 import sendResponse from "../../utils/sendResponse";
 import { CommentServices } from "./comment.services";
+import TaskModel from "../task/task.model";
 
 const getUserId = (req: AuthRequest) => {
   const userId = req.user?.id;
@@ -13,11 +14,25 @@ const getUserId = (req: AuthRequest) => {
   return userId;
 };
 
+const getTaskByUuid = async (uuid: string) => {
+  const task = await TaskModel.findOne({ uuid }).select("_id");
+  return task ? String(task._id) : null;
+};
+
 const getComments: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const taskId = await getTaskByUuid(req.params.uuid as string);
+  if (!taskId) {
+    sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: "Task not found",
+    });
+    return;
+  }
   const result = await CommentServices.getComments(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    taskId,
     getUserId(req as AuthRequest)
   );
   sendResponse(res, {
@@ -29,10 +44,19 @@ const getComments: RequestHandler = catchAsync(async (req: Request, res: Respons
 });
 
 const createComment: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const taskId = await getTaskByUuid(req.params.uuid as string);
+  if (!taskId) {
+    sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: "Task not found",
+    });
+    return;
+  }
   const result = await CommentServices.createComment(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    taskId,
     getUserId(req as AuthRequest),
     req.body.content as string
   );
@@ -45,10 +69,19 @@ const createComment: RequestHandler = catchAsync(async (req: Request, res: Respo
 });
 
 const deleteComment: RequestHandler = catchAsync(async (req: Request, res: Response) => {
+  const taskId = await getTaskByUuid(req.params.uuid as string);
+  if (!taskId) {
+    sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: "Task not found",
+    });
+    return;
+  }
   const result = await CommentServices.deleteComment(
     req.params.teamId as string,
     req.params.workspaceId as string,
-    req.params.taskId as string,
+    taskId,
     req.params.commentId as string,
     getUserId(req as AuthRequest)
   );
