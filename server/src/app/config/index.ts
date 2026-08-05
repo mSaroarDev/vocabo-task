@@ -9,6 +9,7 @@ export default {
   node_env: process.env.NODE_ENV || "development",
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
   telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || "",
+  skipTelegramBot: process.env.SKIP_TELEGRAM_BOT === "true",
   r2: {
     accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
     accessKeyId: process.env.R2_ACCESS_KEY_ID,

@@ -7,9 +7,10 @@ let botUsername = "";
 let botUsernameFetched = false;
 
 const agent = new https.Agent({ family: 4 });
-const bot = config.telegramBotToken
-  ? new Telegraf(config.telegramBotToken, { telegram: { agent } })
-  : null;
+const bot =
+  config.telegramBotToken && !config.skipTelegramBot
+    ? new Telegraf(config.telegramBotToken, { telegram: { agent } })
+    : null;
 
 if (bot) {
   bot.start(async (ctx) => {
@@ -47,7 +48,11 @@ if (bot) {
 
 export async function startBot() {
   if (!bot) {
-    console.warn("Telegram bot token not configured, skipping bot launch");
+    console.warn(
+      config.skipTelegramBot
+        ? "SKIP_TELEGRAM_BOT is true, skipping bot launch"
+        : "Telegram bot token not configured, skipping bot launch"
+    );
     return;
   }
   try {
