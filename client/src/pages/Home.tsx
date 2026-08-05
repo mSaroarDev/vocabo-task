@@ -1,8 +1,10 @@
 import BoardView from "@/components/board/board-view";
 import ChecklistView from "@/components/checklist/checklist-view";
+import InProgressTasksWidget from "@/components/dashboard/InProgressTasksWidget";
 import NotionTable from "@/components/table/notion-table";
 import MobileTaskList from "@/components/table/MobileTaskList";
 import SettingsModal from "@/components/table/settings-modal";
+import TaskDetailModal from "@/components/table/task-detail-modal";
 import WorkspaceModal from "@/components/ui/workspace-modal";
 import { useAuth } from "@/hooks/useAuth";
 import { useAssignedTasks } from "@/hooks/useAssignedTasks";
@@ -12,12 +14,13 @@ import { useTeams } from "@/hooks/useTeams";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { cn } from "@/lib/utils";
 import { WorkspaceIcon } from "@/lib/workspace-icons";
-import { ClipboardList, Clock, Filter, LayoutDashboard, Plus, Search, Sun, UserPlus, Users, Check, X, Archive } from "lucide-react";
+import { Filter, LayoutDashboard, Plus, Search, Sun, UserPlus, Check, X, Archive } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { ChecklistGroup } from "@/hooks/useChecklist";
+import type { Task } from "@/components/table/types";
 import type { Workspace } from "@/store/slices/workspacesSlice";
 import { isMobile } from "@/lib/device";
 import { useStatusOptions } from "@/hooks/useStatusOptions";
@@ -37,7 +40,8 @@ export default function Home() {
   const effectiveWorkspaceId = workspaceId ?? (onMobile ? workspaces[0]?.id : workspaceId);
   const { tasks, isLoading: tasksLoading, addTask, editTask, removeTask, reorder, archiveTask } = useTasks(selectedTeam?.id, effectiveWorkspaceId);
   const { groups: checklistGroups } = useChecklist();
-  const { tasks: assignedTasks, isLoading: assignedLoading } = useAssignedTasks(selectedTeam?.id, "me");
+  const { tasks: assignedTasks, isLoading: assignedLoading, editTask: editAssignedTask } = useAssignedTasks(selectedTeam?.id, "me");
+  const [selectedAssignedTask, setSelectedAssignedTask] = useState<Task | null>(null);
   const currentWorkspace = effectiveWorkspaceId ? workspaces.find((w: Workspace) => w.id === effectiveWorkspaceId) : null;
   const currentChecklist = checklistId ? checklistGroups.find((g: ChecklistGroup) => g.id === checklistId) : null;
   const workspaceName = currentWorkspace?.name || "";
@@ -505,9 +509,6 @@ export default function Home() {
     );
   }
 
-  const assignedCount = assignedTasks.length;
-  const pendingCount = assignedTasks.filter((t) => t.status !== "Done").length;
-
   return (
     <div className="max-w-5xl mx-auto px-16 py-16">
       {/* Greeting */}
@@ -525,43 +526,23 @@ export default function Home() {
 
       {teams.length > 0 && selectedTeam ? (
         <>
-          {/* Stats row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-            <div className="rounded-xl border border-border/50 bg-card p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                <ClipboardList size={16} />
-                <span className="text-xs font-medium">My Tasks</span>
-              </div>
-              <p className="text-2xl font-semibold text-foreground tabular-nums">
-                {assignedLoading ? "..." : assignedCount}
-              </p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-card p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                <LayoutDashboard size={16} />
-                <span className="text-xs font-medium">Workspaces</span>
-              </div>
-              <p className="text-2xl font-semibold text-foreground tabular-nums">{workspaces.length}</p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-card p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                <Users size={16} />
-                <span className="text-xs font-medium">Members</span>
-              </div>
-              <p className="text-2xl font-semibold text-foreground tabular-nums">
-                {selectedTeam.members?.length || 0}
-              </p>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-card p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                <Clock size={16} />
-                <span className="text-xs font-medium">Pending</span>
-              </div>
-              <p className="text-2xl font-semibold text-foreground tabular-nums">
-                {assignedLoading ? "..." : pendingCount}
-              </p>
-            </div>
-          </div>
+          <InProgressTasksWidget
+            tasks={assignedTasks}
+            isLoading={assignedLoading}
+            onTaskClick={setSelectedAssignedTask}
+          />
+          <TaskDetailModal
+            task={selectedAssignedTask}
+            open={selectedAssignedTask !== null}
+            onOpenChange={(next) => {
+              if (!next) setSelectedAssignedTask(null);
+            }}
+            onUpdate={editAssignedTask}
+            statusOptions={[]}
+            mode="view"
+            teamId={selectedTeam?.id}
+            workspaceId={selectedAssignedTask?.workspaceId}
+          />
 
           {/* Team card */}
           <section className="mb-10">
