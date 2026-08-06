@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
+import { TbLayoutSidebarRightCollapse } from "react-icons/tb";
 import Sidebar from "./sidebar";
 import MobileLayout from "./mobile-layout";
 import NotificationBell from "@/components/notifications/notification-bell";
@@ -28,6 +29,7 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(DEFAULT_SIDEBAR_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
 
   const dispatch = useAppDispatch();
@@ -96,37 +98,54 @@ export default function NotionLayout({ children }: NotionLayoutProps) {
   }, [isResizing]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="relative flex h-screen overflow-hidden">
       <div
         className="relative h-full shrink-0"
-        style={{ width: sidebarWidth }}
+        style={{ width: isCollapsed ? 0 : sidebarWidth }}
       >
-        <Sidebar />
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize sidebar"
-          onPointerDown={handlePointerDown}
-          className={`group absolute right-0 top-0 z-40 h-full w-1 cursor-col-resize transition-colors hover:bg-sidebar-border ${
-            isResizing ? "bg-sidebar-border" : ""
-          }`}
-        >
-          <span className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-sidebar-border opacity-0 transition-opacity group-hover:opacity-100" />
-        </div>
+        <Sidebar onToggleCollapse={() => setIsCollapsed(!isCollapsed)} />
+        {!isCollapsed && (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize sidebar"
+            onPointerDown={handlePointerDown}
+            className={`group absolute right-0 top-0 z-40 h-full w-1 cursor-col-resize transition-colors hover:bg-sidebar-border ${
+              isResizing ? "bg-sidebar-border" : ""
+            }`}
+          >
+            <span className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-sidebar-border opacity-0 transition-opacity group-hover:opacity-100" />
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-10 items-center justify-between bg-background px-4">
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
-            {selectedTeam && (
-              <>
-                <span className="truncate font-medium text-foreground">{selectedTeam.name}</span>
-                {activeWorkspace && (
-                  <>
-                    <ChevronRight size={14} className="shrink-0" />
-                    <span className="truncate">{activeWorkspace.name}</span>
-                  </>
+            {isCollapsed ? (
+              <button
+                type="button"
+                onClick={() => setIsCollapsed(false)}
+                title="Expand sidebar"
+                aria-label="Expand sidebar"
+                className="flex cursor-pointer items-center gap-1.5 rounded-md px-1 py-1 transition-colors hover:bg-sidebar-accent"
+              >
+                <TbLayoutSidebarRightCollapse size={18} className="shrink-0" />
+                {selectedTeam && (
+                  <span className="truncate font-medium text-foreground">{selectedTeam.name}</span>
                 )}
-              </>
+              </button>
+            ) : (
+              selectedTeam && (
+                <>
+                  <span className="truncate font-medium text-foreground">{selectedTeam.name}</span>
+                  {activeWorkspace && (
+                    <>
+                      <ChevronRight size={14} className="shrink-0" />
+                      <span className="truncate">{activeWorkspace.name}</span>
+                    </>
+                  )}
+                </>
+              )
             )}
           </div>
           <div className="flex items-center gap-2">

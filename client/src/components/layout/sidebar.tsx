@@ -24,6 +24,7 @@ import {
   Users,
 } from "lucide-react";
 import { LuUserRoundCheck, LuUserRoundCog } from "react-icons/lu";
+import { TbLayoutSidebarRightExpand } from "react-icons/tb";
 import { useRef, useState, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
@@ -357,7 +358,7 @@ function SidebarNav({
   const activeId = navTabs.find((tab) => tab.match(pathname, searchParams))?.id;
 
   return (
-    <div className="relative px-3 pb-2 pt-2">
+    <div className="relative px-3 pb-2 pt-2 mt-1">
       <div
         className={cn(
           "flex items-center justify-between gap-2 transition-opacity duration-200",
@@ -481,7 +482,7 @@ function SidebarSearchPanel({
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ onToggleCollapse }: { onToggleCollapse?: () => void }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { teams, selectedTeam, setSelectedTeam } = useTeams();
@@ -722,9 +723,24 @@ export default function Sidebar() {
       <aside className="h-full w-full bg-sidebar border-r border-sidebar-border flex flex-col overflow-hidden">
         {/* Team switcher */}
         <div className="relative px-3 pt-2 pb-1">
+          <div className="flex items-center justify-between gap-2 px-2 pt-1 pb-3 mb-1">
+            <img src="/favicon.png" alt="Plano" className="h-5 w-5" />
+            <span className="flex-1 text-xl font-bold text-sidebar-foreground">Plano</span>
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+                className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                <TbLayoutSidebarRightExpand size={16} />
+              </button>
+            )}
+          </div>
           <button
             onClick={() => setTeamDropdownOpen(!teamDropdownOpen)}
-            className="flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-md border border-sidebar-border px-2 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
           >
             <div
               className="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white overflow-hidden"
